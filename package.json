@@ -1,0 +1,24 @@
+{
+  "name": "glsl-parser",
+  "version": "0.0.1",
+  "description": "An OpenGL ES 2.0 and 3.0 GLSL parser that can preserve whitespace and comments",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ShaderFrog/glsl-parser.git"
+  },
+  "keywords": [
+    "glsl",
+    "parser",
+    "shaderfrog"
+  ],
+  "author": "Andrew Ray",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/ShaderFrog/glsl-parser/issues"
+  },
+  "homepage": "https://github.com/ShaderFrog/glsl-parser#readme"
+}
