@@ -98,13 +98,27 @@ const generators = {
   '/': (node) =>
     (node.children.length && node.children[0].type ? '' : generate(node.type)) +
     generate(node.children),
-  '%': (node) => node.type + generate(node.children),
-  '<': (node) => node.type + generate(node.children),
-  '>': (node) => node.type + generate(node.children),
-  '|': (node) => node.type + generate(node.children),
-  '^': (node) => node.type + generate(node.children),
-  '&': (node) => node.type + generate(node.children),
-  '?': (node) => node.type + generate(node.children),
+  '%': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '<': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '>': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '|': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '^': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '&': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
+  '?': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
 
   '<<': (node) =>
     (node.children.length && node.children[0].type ? '' : generate(node.type)) +
@@ -182,7 +196,12 @@ const generators = {
   continue: (node) => generate(node.type) + generate(node.children),
   do: (node) => generate(node.type) + generate(node.children),
   else: (node) => generate(node.type) + generate(node.children),
-  for: (node) => generate(node.type) + generate(node.children),
+  for: (node) =>
+    node.expression
+      ? generate(node.forSymbol) +
+        generate(node.expression) +
+        generate(node.body)
+      : generate(node.type) + generate(node.children),
   if: (node) =>
     node.if
       ? generate(node.if) + generate(node.condition) + generate(node.body)
@@ -333,15 +352,14 @@ const generators = {
 
 test('parsing test', () => {
   const input = `
-  float pModPolar(inout vec2 p, float repetitions) {
-    float angle = 2.*pi/repetitions;
-    float a = atan(p.y, p.x) + angle/2.;
-    float r = length(p);
-    float c = floor(a/angle);
-    a = mod(a,angle) - angle/2.;
-    p = vec2(cos(a), sin(a))*r;
-    if (abs(c) >= (repetitions/2.)) {c = abs(c);  }
-    return c;
+
+  void mainImage( out vec4 fragColor, in vec2 fragCoord )
+  {
+    for(int i = 0; i < 50; i ++)
+    {
+      acc -= scene(r + nse(r.y) * 0.013);
+      r += rd * 0.015;
+    }
   }
   `;
   const ast = parser.parse(input);

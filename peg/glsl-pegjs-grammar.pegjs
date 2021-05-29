@@ -751,7 +751,7 @@ single_type_qualifier
   / invariant_qualifier
   / precise_qualifier
 
-storage_qualifier
+storage_qualifier "storage qualifier"
   = CONST / INOUT / IN / OUT / CENTROID / PATCH / SAMPLE / UNIFORM / BUFFER
   / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY / SUBROUTINE
   // TODO: Handle subroutine case
@@ -928,19 +928,21 @@ iteration_statement
     ), semi];
   }
   / forSymbol:FOR
-      l:LEFT_PAREN
+      lp:LEFT_PAREN
       init:(expression_statement / declaration_statement)
       condition:(condition? SEMICOLON)
       operation:expression?
-      r:RIGHT_PAREN
+      rp:RIGHT_PAREN
       body:statement_no_new_scope {
     return node(
       forSymbol.type,
-      body,
+      [],
       {
+        forSymbol,
+        body,
         // This leaves nulls in the optional parts of the for expression
         // TODO: As part of whitespace cleanup, move this into the node
-        expression: [l, init, condition, operation, r].flat()
+        expression: [lp, init, condition, operation, rp].flat()
       }
     );
   }
@@ -955,7 +957,7 @@ condition
   }
   / expression
 
-jump_statement
+jump_statement "jump"
   = CONTINUE SEMICOLON
   / BREAK SEMICOLON
   / RETURN SEMICOLON
@@ -980,7 +982,7 @@ function_definition = prototype:function_prototype body:compound_statement_no_ne
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
-_ "whitespace" = w:whitespace? c:comment? e:whitespace? { return collapse(w, c, e); }
+_ "whitespace" = w:whitespace? rest:(comment whitespace?)* { return collapse(w, rest); }
 
 comment
   = single_comment
