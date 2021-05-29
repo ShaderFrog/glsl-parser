@@ -58,12 +58,9 @@
 
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
-start = [ \n\r]* ds:debugstart {return ds;}
-debugstart = start:(translation_unit) {
-  console.log('------- done');
-  return start;
+start = ws:_ program:translation_unit {
+  return { type: 'program', ws, program };
 }
-
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
 ATTRIBUTE = token:"attribute" t:terminal { return node(token, t); }
