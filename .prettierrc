@@ -1,0 +1,9 @@
+{
+  "overrides": [
+    {
+      "files": ["*.mjs", "*.js", ".prettierrc", "*.json"]
+    }
+  ],
+  "trailingComma": "es5",
+  "singleQuote": true
+}

@@ -59,7 +59,7 @@
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
 start = [ \n\r]* ds:debugstart {return ds;}
-debugstart = start:(statement / translation_unit) {
+debugstart = start:(translation_unit) {
   console.log('------- done');
   return start;
 }
@@ -647,7 +647,7 @@ parameter_declaration
 // Note array_specifier is "[const_expr]"
 parameter_declarator
   = specifier:type_specifier identifier:IDENTIFIER quantifier:array_specifier? {
-    return { specifier, identifier, ...quantifier && { quantifier } };
+    return { specifier, identifier, quantifier };
   }
 
 // I added this because on page 114, it says formal parameters can only have
@@ -764,8 +764,8 @@ storage_qualifier
 
 subroutine_type_name_list = SUBROUTINE_TYPE_NAME (COMMA SUBROUTINE_TYPE_NAME)*
 
-type_specifier = type:type_specifier_nonarray quantifier:array_specifier? {
-  return node('type_specifier', [], { type, ...quantifier && { quantifier } });
+type_specifier = specifier:type_specifier_nonarray quantifier:array_specifier? {
+  return node('type_specifier', [], { specifier, quantifier });
 }
 
 array_specifier

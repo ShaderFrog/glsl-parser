@@ -1,7 +1,22 @@
 {
   "name": "@shaderfrog/glsl-parser",
+  "engines": {
+    "node": ">=16"
+  },
   "version": "0.0.1",
   "description": "An OpenGL ES 2.0 and 3.0 GLSL parser that can preserve whitespace and comments",
+  "scripts": {
+    "build": "pegjs -o parser.js peg/glsl-pegjs-grammar.pegjs",
+    "watch-test": "jest --watch",
+    "test": "jest"
+  },
+  "jest": {
+    "moduleFileExtensions": [
+      "js",
+      "json",
+      "pegjs"
+    ]
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/ShaderFrog/glsl-parser.git"
@@ -18,6 +33,8 @@
   },
   "homepage": "https://github.com/ShaderFrog/glsl-parser#readme",
   "devDependencies": {
-    "pegjs": "^0.10.0"
+    "jest": "^27.0.2",
+    "pegjs": "^0.10.0",
+    "prettier": "^2.1.2"
   }
 }
