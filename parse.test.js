@@ -35,8 +35,11 @@ const generators = {
   float: (node) => node.type + generate(node.children),
 };
 
-test('adds 1 + 2 to equal 3', () => {
+test('parsing test', () => {
+  const input = 'float a;';
   const ast = parser.parse('float a;');
   console.log(util.inspect(ast, false, null, true));
-  console.log('Output:', '\n' + generate(ast));
+  const output = generate(ast);
+  console.log('Output:', '\n' + output);
+  expect(output).toEqual(input);
 });
