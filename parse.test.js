@@ -21,6 +21,12 @@ const generate = (ast) =>
 
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
+  precision: (node) =>
+    node.prefix
+      ? generate(node.prefix) +
+        generate(node.qualifier) +
+        generate(node.specifier)
+      : generate(node.type) + generate(node.children),
   statement: (node) => generate(node.children),
   declarator_list: (node) => generate(node.children),
   declarator: (node) =>
@@ -76,7 +82,9 @@ const generators = {
   '{': (node) => node.type + generate(node.children),
   '}': (node) => node.type + generate(node.children),
   '.': (node) => node.type + generate(node.children),
-  ',': (node) => node.type + generate(node.children),
+  ',': (node) =>
+    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
+    generate(node.children),
   ':': (node) => node.type + generate(node.children),
   // This ugly ternary is the result of using '=' both as a tree, and as a
   // token with whitespace after it. Definitely need to fix this
@@ -347,23 +355,48 @@ const generators = {
   void: (node) => generate(node.type) + generate(node.children),
   while: (node) => generate(node.type) + generate(node.children),
 
+  invariant: (node) => generate(node.type) + generate(node.children),
+  precise: (node) => generate(node.type) + generate(node.children),
+  highp: (node) => generate(node.type) + generate(node.children),
+  mediump: (node) => generate(node.type) + generate(node.children),
+  lowp: (node) => generate(node.type) + generate(node.children),
+
   float: (node) => node.type + generate(node.children),
 };
 
 test('parsing test', () => {
   const input = `
-
-  void mainImage( out vec4 fragColor, in vec2 fragCoord )
+  precision mediump float;
+  
+  uniform float time;
+  uniform vec2 mouse;
+  uniform vec2 resolution;
+  uniform vec2 surfaceSize;
+  varying vec2 surfacePosition;
+  
+  float fn(float x)
   {
-    for(int i = 0; i < 50; i ++)
-    {
-      acc -= scene(r + nse(r.y) * 0.013);
-      r += rd * 0.015;
-    }
+    float y = fract(x);
+    y = abs(y);
+    return 1.0-y*y; // * 0.5 + 0.5;
+  }
+  
+  void main( void ) {
+    
+    vec2 s = surfacePosition;
+    
+    float i = abs(resolution.x*resolution.y/2.0-gl_FragCoord.y * resolution.x + gl_FragCoord.x);
+    
+    float d = dot(s,s);
+    
+    float f = fn( d + i );
+    
+    gl_FragColor = vec4( vec3( fn(f+fn(i+f*i+surfaceSize.x*surfaceSize.y)) ), 1.0 );
+  
   }
   `;
   const ast = parser.parse(input);
-  console.log(util.inspect(ast, false, null, true));
+  // console.log(util.inspect(ast, false, null, true));
   const output = generate(ast);
   console.log('Output:', '\n' + output);
   expect(output).toEqual(input);

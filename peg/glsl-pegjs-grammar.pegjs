@@ -524,7 +524,7 @@ inclusive_or_expression = head:exclusive_or_expression tail:(
   }
 
 logical_and_expression = head:inclusive_or_expression tail:(
-    op:AND_OP expr:inclusive_or_expression { return node(op, expr); }
+    op:AND_OP expr:inclusive_or_expression { return suffix(op, expr); }
   )* {
     return tail.length ?
       leftAssociate(head, tail) :
@@ -532,7 +532,7 @@ logical_and_expression = head:inclusive_or_expression tail:(
   }
 
 logical_xor_expression = head:logical_and_expression tail:(
-    op:XOR_OP expr:logical_and_expression { return node(op, expr); }
+    op:XOR_OP expr:logical_and_expression { return suffix(op, expr); }
   )* {
     return tail.length ?
       leftAssociate(head, tail) :
@@ -540,7 +540,7 @@ logical_xor_expression = head:logical_and_expression tail:(
   }
 
 logical_or_expression = head:logical_xor_expression tail:(
-    op:OR_OP expr:logical_xor_expression { return node(op, expr); }
+    op:OR_OP expr:logical_xor_expression { return suffix(op, expr); }
   )* {
     return tail.length ?
       leftAssociate(head, tail) :
@@ -754,6 +754,9 @@ single_type_qualifier
 storage_qualifier "storage qualifier"
   = CONST / INOUT / IN / OUT / CENTROID / PATCH / SAMPLE / UNIFORM / BUFFER
   / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY / SUBROUTINE
+  // Note the grammar doesn't allow varying. To support GLSL ES 1.0, I've
+  // included it here
+  / VARYING
   // TODO: Handle subroutine case
   // subroutine subroutineTypeName(type0 arg0); doesn't trigger the below
   // rule: is something out of order?
