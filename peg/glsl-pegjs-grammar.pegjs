@@ -926,7 +926,7 @@ iteration_statement
       {
         'do': doSymbol,
         'while': whileSymbol,
-        expresion: [l, expression, r]
+        expression: [l, expression, r]
       }
     ), semi];
   }
