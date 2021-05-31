@@ -14,7 +14,8 @@
     "moduleFileExtensions": [
       "js",
       "json",
-      "pegjs"
+      "pegjs",
+      "glsl"
     ]
   },
   "repository": {

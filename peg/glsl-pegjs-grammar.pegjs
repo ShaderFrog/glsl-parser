@@ -314,7 +314,7 @@ floating_constant
   = $(fractional_constant exponent_part? floating_suffix?)
   / $(digit_sequence exponent_part floating_suffix?)
 fractional_constant = $(digit_sequence? "." digit_sequence?)
-exponent_part = $([eE] [+–]? digit_sequence)
+exponent_part "exponent" = $([eE] [+-]? digit_sequence)
 
 // digit_sequence
 digit_sequence = $digit+
@@ -322,7 +322,7 @@ floating_suffix = [fF] / "lf" / "LF"
 
 variable_identifier = IDENTIFIER
 
-primary_expression
+primary_expression "primary expression"
   = FLOATCONSTANT
   / INTCONSTANT
   / UINTCONSTANT
@@ -370,10 +370,10 @@ integer_expression
 
 function_call
   = identifier:function_identifier
-    lp:LEFT_PAREN
+    // lp:LEFT_PAREN
     args:function_arguments?
     rp:RIGHT_PAREN {
-      return node('function_call', [], { identifier, lp, args, rp });
+      return node('function_call', [], { ...identifier, args, rp });
     }
 
 function_arguments =
@@ -396,16 +396,35 @@ function_arguments =
 // “type_specifier”. Methods (.length), subroutine array calls, and identifiers
 // are recognized through postfix_expression.
 
+
+// a().length();        <--- postfix_expression as function_identifier
+// vs
+// texture().rgb;    <--- function_call . postfix_expression
+
 function_identifier
   = identifier:(
-      chained_function_call function_suffix
-      / type_specifier function_suffix?
-    ) {
-      return identifier.flat().reduceRight((postfix, expr) =>
-          postfix ?
-            node('postfix', [], { expr, postfix }) :
-            expr
-        );
+    // This is consuming "texture(iChannel0).rgb;" when the function
+    // name should only be "texture
+    kall:chained_function_call suffix:function_suffix lp:LEFT_PAREN {
+      return { head: [kall, suffix], lp };
+    } // a().length()
+    / kall:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
+      return { head: [kall, suffix], lp };
+    } // texture().rgb
+  )
+  // TODO cleanup you moved lp into above because if the first one
+  // matches texture().rgb even if that's it then the match ends
+  // there and it consumes it then expects "(" with left_paren
+  //lp:LEFT_PAREN
+  {
+    return {
+      lp: identifier.lp,
+      identifier: [identifier.head].flat().reduceRight((postfix, expr) =>
+        postfix ?
+          node('postfix', [], { expr, postfix }) :
+          expr
+      )
+    };
     }
 
 function_suffix
@@ -485,7 +504,7 @@ relational_expression
         head;
     }
 
-equality_expression
+equality_expression "equality expression"
   = head:relational_expression
     tail:(
       op:(EQ_OP / NE_OP)
@@ -498,7 +517,7 @@ equality_expression
         head;
     }
 
-and_expression
+and_expression "and expression"
   = head:equality_expression tail:(
     op:AMPERSAND expr:equality_expression { return suffix(op, expr); }
   )* {
@@ -570,7 +589,7 @@ assignment_expression
   }
   / conditional_expression
 
-assignment_operator
+assignment_operator "asignment"
   = EQUAL / MUL_ASSIGN / DIV_ASSIGN / MOD_ASSIGN / ADD_ASSIGN / SUB_ASSIGN
   / LEFT_ASSIGN / RIGHT_ASSIGN / AND_ASSIGN / XOR_ASSIGN / OR_ASSIGN
 
@@ -756,6 +775,7 @@ storage_qualifier "storage qualifier"
   / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY / SUBROUTINE
   // Note the grammar doesn't allow varying. To support GLSL ES 1.0, I've
   // included it here
+  // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing? (same for attribute?)
   / VARYING
   // TODO: Handle subroutine case
   // subroutine subroutineTypeName(type0 arg0); doesn't trigger the below
@@ -972,8 +992,14 @@ jump_statement "jump"
   }
   / DISCARD SEMICOLON // Fragment shader only.
 
+// TODO: This allows shaders with preprocessors to be parsed, and puts the
+// preprocessor line in the AST. Do I want to do this, or do I want to
+// always preprocess shaders before parsing? Not preprocessing will likely
+// break the ability to parse if there is wacky define using
+preprocessor = line:$('#' [^\n]*) _:_? { return node('preprocessor', [], { line, _ }); }
+
 // Translation unit is start of grammar
-translation_unit = external_declaration+
+translation_unit = (external_declaration / preprocessor)+
 
 external_declaration
   = function_definition / declaration

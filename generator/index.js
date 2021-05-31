@@ -16,6 +16,7 @@ const generate = (ast) =>
 
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
+  preprocessor: (node) => generate(node.line) + generate(node._),
   precision: (node) =>
     node.prefix
       ? generate(node.prefix) +
@@ -52,6 +53,8 @@ const generators = {
     generate(node.specifier) +
     generate(node.identifier),
   postfix: (node) => generate(node.expr) + generate(node.postfix),
+  quantifier: (node) =>
+    generate(node.lb) + generate(node.expr) + generate(node.rb),
   field_selection: (node) => generate(node.dot) + generate(node.selection),
 
   group: (node) => generate(node.children),
@@ -187,8 +190,10 @@ const generators = {
     (node.children.length && node.children[0].type ? '' : generate(node.type)) +
     generate(node.children),
 
+  // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing?
   attribute: (node) => generate(node.type) + generate(node.children),
   varying: (node) => generate(node.type) + generate(node.children),
+
   const: (node) => generate(node.type) + generate(node.children),
   bool: (node) => generate(node.type) + generate(node.children),
   float: (node) => generate(node.type) + generate(node.children),

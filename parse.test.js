@@ -4,9 +4,10 @@ const pegjs = require('pegjs');
 const util = require('util');
 const { generate } = require('./generator');
 
-const grammar = fs
-  .readFileSync(path.join('.', 'peg/glsl-pegjs-grammar.pegjs'))
-  .toString();
+const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
+
+const grammar = file('peg/glsl-pegjs-grammar.pegjs');
+const testFile = file('glsltest.glsl');
 const parser = pegjs.generate(grammar);
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
@@ -82,4 +83,16 @@ test('comments', () => {
     /* start */ statement(); /* end */
   }
   `);
+});
+
+test('parses function_call . postfix_expression', () => {
+  expectParsedStatement('texture().rgb;');
+});
+
+test('parses postfix_expression as function_identifier', () => {
+  expectParsedStatement('a().length();');
+});
+
+test('parses a test file', () => {
+  expectParsedProgram(testFile);
 });

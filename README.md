@@ -18,3 +18,7 @@ Do not use this
 # What?
 
 - Making this Babel ESTree compatible to use babel ecosystem
+- Shaderfrog engine for switching testing
+
+- Write shader vertex / fragment
+- Auto parse constants, variables, uniforms, let them be used
