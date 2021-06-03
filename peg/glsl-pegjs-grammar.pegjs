@@ -887,7 +887,7 @@ compound_statement_no_new_scope = compound_statement
 statement_no_new_scope
   = compound_statement_no_new_scope / simple_statement
 
-statement_list = statement+
+statement_list = (statement / preprocessor)+
 
 expression_statement = expression? SEMICOLON
 
