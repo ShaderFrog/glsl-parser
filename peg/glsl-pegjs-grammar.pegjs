@@ -30,11 +30,13 @@
   // could be an array or a string of tokens
   const noWs = a => [a].flat().slice(1);
 
-  // Left associate head nodes and the special suffix() tail nodes
+  // Create a left associative tree of nodes
 	const leftAssociate = (...nodes) =>
     nodes.flat().reduce((current, [operator, expr]) => ({
-      type: operator.type,
-      children: [current, operator, expr]
+      type: "binary",
+      operator: operator,
+      left: current,
+      right: expr
     }));
 
   // no longer needed?
@@ -47,7 +49,7 @@
   // }
 
   // Used for tracking associative tails
-  const suffix = (operator, expr) => ([ operator, expr ]);
+  // const suffix = (operator, expr) => ([ operator, expr ]);
 
   // No longer needed?
   // const without = (obj, ...keys) => Object.entries(obj).reduce((acc, [key, value]) => ({
@@ -320,8 +322,6 @@ exponent_part "exponent" = $([eE] [+-]? digit_sequence)
 digit_sequence = $digit+
 floating_suffix = [fF] / "lf" / "LF"
 
-variable_identifier = IDENTIFIER
-
 primary_expression "primary expression"
   = FLOATCONSTANT
   / INTCONSTANT
@@ -331,7 +331,7 @@ primary_expression "primary expression"
   / l:LEFT_PAREN expr:expression r:RIGHT_PAREN {
     return node('group', [l, expr, r]);
   }
-  / variable_identifier
+  / IDENTIFIER
 
 postfix_expression
   = body:(
@@ -396,7 +396,6 @@ function_arguments =
 // “type_specifier”. Methods (.length), subroutine array calls, and identifiers
 // are recognized through postfix_expression.
 
-
 // a().length();        <--- postfix_expression as function_identifier
 // vs
 // texture().rgb;    <--- function_call . postfix_expression
@@ -405,11 +404,11 @@ function_identifier
   = identifier:(
     // This is consuming "texture(iChannel0).rgb;" when the function
     // name should only be "texture
-    kall:chained_function_call suffix:function_suffix lp:LEFT_PAREN {
-      return { head: [kall, suffix], lp };
+    head:chained_function_call suffix:function_suffix lp:LEFT_PAREN {
+      return { head: [head, suffix], lp };
     } // a().length()
-    / kall:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
-      return { head: [kall, suffix], lp };
+    / head:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
+      return { head: [head, suffix], lp };
     } // texture().rgb
   )
   // TODO cleanup you moved lp into above because if the first one
@@ -456,115 +455,100 @@ multiplicative_expression
   = head:unary_expression
     tail:(
       op:(STAR / SLASH / PERCENT)
-      expr:unary_expression {
-        return suffix(op, expr);
-      }
+      expr:unary_expression
     )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+      return leftAssociate(head, tail);
+    }
 
 additive_expression
   = head:multiplicative_expression
     tail:(
       op:(PLUS / DASH)
-      expr:multiplicative_expression {
-        return suffix(op, expr);
-      }
+      expr:multiplicative_expression
     )* {
-      return tail.length ?
-        leftAssociate(head, tail) :
-        head;
+      return leftAssociate(head, tail);
     }
 
 shift_expression
   = head:additive_expression
     tail:(
       op:(RIGHT_OP / LEFT_OP)
-      expr:additive_expression {
-        return suffix(op, expr);
-      }
+      expr:additive_expression
     )* {
-      return tail.length ?
-        leftAssociate(head, tail) :
-        head;
+      return leftAssociate(head, tail);
     }
 
 relational_expression
   = head:shift_expression
     tail:(
       op:(LE_OP / GE_OP / LEFT_ANGLE / RIGHT_ANGLE)
-      expr:shift_expression {
-        return suffix(op, expr);
-      }
+      expr:shift_expression
     )* {
-      return tail.length ?
-        leftAssociate(head, tail) :
-        head;
+      return leftAssociate(head, tail);
     }
 
 equality_expression "equality expression"
   = head:relational_expression
     tail:(
       op:(EQ_OP / NE_OP)
-      expr:relational_expression {
-        return suffix(op, expr);
-      }
+      expr:relational_expression
     )* {
-      return tail.length ?
-        leftAssociate(head, tail) :
-        head;
+      return leftAssociate(head, tail);
     }
 
 and_expression "and expression"
-  = head:equality_expression tail:(
-    op:AMPERSAND expr:equality_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+  = head:equality_expression
+    tail:(
+      op:AMPERSAND
+      expr:equality_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
-exclusive_or_expression = head:and_expression tail:(
-    op:CARET expr:and_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+exclusive_or_expression
+  = head:and_expression
+    tail:(
+      op:CARET
+      expr:and_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
-inclusive_or_expression = head:exclusive_or_expression tail:(
-    op:VERTICAL_BAR expr:exclusive_or_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+inclusive_or_expression
+  = head:exclusive_or_expression
+    tail:(
+      op:VERTICAL_BAR
+      expr:exclusive_or_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
-logical_and_expression = head:inclusive_or_expression tail:(
-    op:AND_OP expr:inclusive_or_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+logical_and_expression
+  = head:inclusive_or_expression
+    tail:(
+      op:AND_OP
+      expr:inclusive_or_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
-logical_xor_expression = head:logical_and_expression tail:(
-    op:XOR_OP expr:logical_and_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+logical_xor_expression
+  = head:logical_and_expression
+    tail:(
+      op:XOR_OP
+      expr:logical_and_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
-logical_or_expression = head:logical_xor_expression tail:(
-    op:OR_OP expr:logical_xor_expression { return suffix(op, expr); }
-  )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+logical_or_expression
+  = head:logical_xor_expression
+    tail:(
+      op:OR_OP
+      expr:logical_xor_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
 
 conditional_expression
   = expr:logical_or_expression
@@ -584,23 +568,24 @@ conditional_expression
 assignment_expression
   // Note, I switched the order of these because a conditional expression can
   // hijack the production because it can also be a unary_expression
-  = l:unary_expression op:assignment_operator r:assignment_expression {
-    return node(op.type, [l, op, r]);
-  }
-  / conditional_expression
+  = left:unary_expression
+    operator:assignment_operator
+    right:assignment_expression {
+      return node('assignment', [], { left, operator, right });
+    }
+    / conditional_expression
 
 assignment_operator "asignment"
   = EQUAL / MUL_ASSIGN / DIV_ASSIGN / MOD_ASSIGN / ADD_ASSIGN / SUB_ASSIGN
   / LEFT_ASSIGN / RIGHT_ASSIGN / AND_ASSIGN / XOR_ASSIGN / OR_ASSIGN
 
 expression "expression"
-  = head:assignment_expression tail:(
-      op:COMMA expr:assignment_expression { return suffix(op, expr); }
+  = head:assignment_expression
+    tail:(
+      op:COMMA expr:assignment_expression
     )* {
-    return tail.length ?
-      leftAssociate(head, tail) :
-      head;
-  }
+      return leftAssociate(head, tail);
+    }
 
 // I'm leaving this in because there might be future use in hinting to the
 // compiler the expression must only be constant
@@ -676,15 +661,10 @@ memory_qualifier = COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY
 init_declarator_list
   = head:initial_declaration
     tail:(
-      op:COMMA expr:subsequent_declaration {
-        return suffix(op, expr);
-      }
+      op:COMMA
+      expr:subsequent_declaration
     )* {
-      return node('declarator_list',
-        tail.length ?
-          leftAssociate(head, tail) :
-          head
-      );
+      return node('declarator_list', leftAssociate(head, tail));
     }
 
 // declaration > init_declarator_list > single_declaration
@@ -740,14 +720,14 @@ layout_qualifier
   }
 
 layout_qualifier_id_list
-  = layout_qualifier:layout_qualifier_id tail:(
-      op:COMMA expr:layout_qualifier_id { return suffix(op, expr); }
+  = head:layout_qualifier_id
+    tail:(
+      op:COMMA expr:layout_qualifier_id
     )* {
-    return tail ?
-      leftAssociate(layout_qualifier, tail) :
-      layout_qualifier;
+      return leftAssociate(head, tail);
     }
 
+// TODO: This looks weird, test it.
 layout_qualifier_id
   = identifier:IDENTIFIER tail:(EQUAL constant_expression)? {
     const [op, expr] = tail || [];
@@ -833,15 +813,16 @@ struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
   })+
 
 struct_declaration
-  = specified_type:fully_specified_type field_declarator:quantified_identifier tail:(
-    op:COMMA expr:quantified_identifier { return suffix(op, expr); }
-  )* {
-    const struct_declarator = node('struct_declarator', [], { ...specified_type, ...field_declarator });
+  = specified_type:fully_specified_type
+    field_declarator:quantified_identifier
+    tail:(
+      op:COMMA expr:quantified_identifier
+    )* {
+      const struct_declarator = node('struct_declarator', [], { ...specified_type, ...field_declarator });
 
-    return tail ?
-      leftAssociate(struct_declarator, tail) :
-      struct_declarator;
-  }
+      // TODO: You removed suffix() from the tail, verify this works
+      return leftAssociate(struct_declarator, tail);
+    }
 
 quantified_identifier
   = identifier:IDENTIFIER quantifier:array_specifier? {

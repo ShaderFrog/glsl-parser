@@ -12,12 +12,32 @@ const parser = pegjs.generate(grammar);
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
+const debugStatement = (stmt) => {
+  const program = `void main() {/* start */${stmt}/* end */}`;
+  const ast = parser.parse(program);
+  console.log(
+    util.inspect(
+      ast.program[0].children[0].children[0].children[0],
+      false,
+      null,
+      true
+    )
+  );
+};
+
 const expectParsedStatement = (stmt) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
   const glsl = generate(ast);
   if (glsl !== program) {
-    console.log(util.inspect(ast, false, null, true));
+    console.log(
+      util.inspect(
+        ast.program[0].children[0].children[0].children[0],
+        false,
+        null,
+        true
+      )
+    );
     expect(stmt).toBe(glsl.match(middle)[1]);
   }
 };
@@ -95,4 +115,20 @@ test('parses postfix_expression as function_identifier', () => {
 
 test('parses a test file', () => {
   expectParsedProgram(testFile);
+});
+
+test('operators', () => {
+  expectParsedStatement('1 || 2 && 2 ^^ 3 >> 4 << 5;');
+});
+
+test('declaration', () => {
+  expectParsedStatement('const float x = 1.0, y = 2.0;');
+});
+
+test('assignment', () => {
+  expectParsedStatement('x |= 1.0;');
+});
+
+test('debug', () => {
+  debugStatement('const float x = 1.0, y = 2.0;');
 });

@@ -9,7 +9,7 @@ Do not use this
   middle child and put whitespace as a key of the top level +
 - ✅ Renamed "name" to "type"
 - Can I move all trailing whitespace into a ws key instead of in children?
-- (related to whitespace) Fix the problem with tokens like "+" being both nodes with a left and right, as well as inline nodes in children arrays to support whitespace handling
+- (related to whitespace) Fix the problem with tokens like "+" being both nodes with a left and right, as well as inline nodes in children arrays to support whitespace handling - have a "keyword" node - check what astparser does online for keywords
 - Impelement printing
 - Implement optional whitespace flag
 - glsl version switch to support glsl es 3 vs 1?

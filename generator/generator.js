@@ -57,6 +57,9 @@ const generators = {
     generate(node.lb) + generate(node.expr) + generate(node.rb),
   field_selection: (node) => generate(node.dot) + generate(node.selection),
 
+  assignment: (node) =>
+    generate(node.left) + generate(node.operator) + generate(node.right),
+
   ternary: (node) =>
     generate(node.expr) +
     generate(node.question) +
@@ -64,6 +67,8 @@ const generators = {
     generate(node.colon) +
     generate(node.right),
 
+  binary: (node) =>
+    generate(node.left) + generate(node.operator) + generate(node.right),
   group: (node) => generate(node.children),
   unary: (node) =>
     generate(node.operator) +
