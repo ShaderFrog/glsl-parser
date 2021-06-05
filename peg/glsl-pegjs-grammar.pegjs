@@ -48,9 +48,6 @@
   //   ), node(last.type, [...penultimate.children, ...last.children]));
   // }
 
-  // Used for tracking associative tails
-  // const suffix = (operator, expr) => ([ operator, expr ]);
-
   // No longer needed?
   // const without = (obj, ...keys) => Object.entries(obj).reduce((acc, [key, value]) => ({
   //   ...acc,
@@ -448,6 +445,8 @@ unary_expression
   = postfix_expression
   / operator:(INC_OP / DEC_OP / PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
+      // TODO: Unary "++" "+" "!" "~" etc are "right to left", verify
+      // things like "++ ++" parse and that they're right to left
       return node('unary', [], { operator, expression });
     }
 
@@ -550,7 +549,7 @@ logical_or_expression
       return leftAssociate(head, tail);
     }
 
-conditional_expression
+ternary_expression
   = expr:logical_or_expression
     suffix:(
       question:QUESTION
@@ -560,6 +559,8 @@ conditional_expression
         return { question, left, right, colon };
       }
     )? {
+      // TODO: Make sure this is right associative, as grammar specifies
+      // "right to left"
       return suffix ?
         node('ternary', [], { expr, ...suffix }) :
         expr
@@ -571,9 +572,11 @@ assignment_expression
   = left:unary_expression
     operator:assignment_operator
     right:assignment_expression {
+      // TODO: Verify this is right to left, as specified in the grammar. Can you
+      // even nest things like ">>=" or "*="
       return node('assignment', [], { left, operator, right });
     }
-    / conditional_expression
+    / ternary_expression
 
 assignment_operator "asignment"
   = EQUAL / MUL_ASSIGN / DIV_ASSIGN / MOD_ASSIGN / ADD_ASSIGN / SUB_ASSIGN
@@ -590,7 +593,7 @@ expression "expression"
 // I'm leaving this in because there might be future use in hinting to the
 // compiler the expression must only be constant
 constant_expression
-  = conditional_expression
+  = ternary_expression
 
 declaration
   // Note the grammar allows prototypes inside function bodies, but:
