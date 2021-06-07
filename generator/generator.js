@@ -17,13 +17,74 @@ const generate = (ast) =>
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
   preprocessor: (node) => generate(node.line) + generate(node._),
+  keyword: (node) => generate(node.token) + generate(node.whitespace),
+
   precision: (node) =>
     node.prefix
       ? generate(node.prefix) +
         generate(node.qualifier) +
         generate(node.specifier)
       : generate(node.type) + generate(node.children),
-  statement: (node) => generate(node.children),
+
+  // Statements
+  expression_statement: (node) =>
+    generate(node.expression) + generate(node.semi),
+  if_statement: (node) =>
+    generate(node.if) +
+    generate(node.lp) +
+    generate(node.condition) +
+    generate(node.rp) +
+    generate(node.body) +
+    generate(node.else),
+  switch_statement: (node) =>
+    generate(node.switch) +
+    generate(node.lp) +
+    generate(node.expression) +
+    generate(node.rp) +
+    generate(node.lb) +
+    generate(node.cases) +
+    generate(node.rb),
+  break_statement: (node) => generate(node.break) + generate(node.semi),
+  do_statement: (node) =>
+    generate(node.do) +
+    generate(node.body) +
+    generate(node.while) +
+    generate(node.lp) +
+    generate(node.expression) +
+    generate(node.rp) +
+    generate(node.semi),
+  continue_statement: (node) => generate(node.continue) + generate(node.semi),
+  return_statement: (node) =>
+    generate(node.return) + generate(node.expression) + generate(node.semi),
+  discard_statement: (node) => generate(node.discard) + generate(node.semi),
+  while_statement: (node) =>
+    generate(node.while) +
+    generate(node.lp) +
+    generate(node.condition) +
+    generate(node.rp) +
+    generate(node.body),
+  for_statement: (node) =>
+    generate(node.for) +
+    generate(node.lp) +
+    generate(node.init) +
+    generate(node.initSemi) +
+    generate(node.condition) +
+    generate(node.conditionSemi) +
+    generate(node.operation) +
+    generate(node.rp) +
+    generate(node.body),
+  declaration_statement: (node) =>
+    generate(node.declaration) + generate(node.semi),
+
+  switch_case: (node) =>
+    generate(node.case) +
+    generate(node.test) +
+    generate(node.colon) +
+    generate(node.statements),
+  default_case: (node) =>
+    generate(node.default) + generate(node.colon) + generate(node.statements),
+
+  declaration: (node) => generate(node.declaration) + generate(node.semi),
   declarator_list: (node) => generate(node.children),
   declarator: (node) =>
     generate(node.qualifiers) +
@@ -79,9 +140,6 @@ const generators = {
   double_constant: (node) => generate(node.children),
   int_constant: (node) => generate(node.children),
   uint_constant: (node) => generate(node.children),
-
-  return: (node) =>
-    generate(node.type) + generate(node.children) + generate(node.expression),
 
   // Tokens - should these all be in "keyword" or other to avoid one node
   // per thing? Compare to babel
@@ -201,195 +259,6 @@ const generators = {
   '-=': (node) =>
     (node.children.length && node.children[0].type ? '' : generate(node.type)) +
     generate(node.children),
-
-  // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing?
-  attribute: (node) => generate(node.type) + generate(node.children),
-  varying: (node) => generate(node.type) + generate(node.children),
-
-  const: (node) => generate(node.type) + generate(node.children),
-  bool: (node) => generate(node.type) + generate(node.children),
-  float: (node) => generate(node.type) + generate(node.children),
-  double: (node) => generate(node.type) + generate(node.children),
-  int: (node) => generate(node.type) + generate(node.children),
-  uint: (node) => generate(node.type) + generate(node.children),
-  break: (node) => generate(node.type) + generate(node.children),
-  continue: (node) => generate(node.type) + generate(node.children),
-  do: (node) =>
-    node.do
-      ? generate(node.do) +
-        generate(node.condition) +
-        generate(node.children) +
-        generate(node.while) +
-        generate(node.expression)
-      : generate(node.type) + generate(node.children),
-
-  else: (node) => generate(node.type) + generate(node.children),
-  for: (node) =>
-    node.expression
-      ? generate(node.forSymbol) +
-        generate(node.expression) +
-        generate(node.body)
-      : generate(node.type) + generate(node.children),
-  if: (node) =>
-    node.if
-      ? generate(node.if) +
-        generate(node.condition) +
-        generate(node.body) +
-        generate(node.else)
-      : generate(node.type) + generate(node.children),
-  discard: (node) => generate(node.type) + generate(node.children),
-  switch: (node) => generate(node.type) + generate(node.children),
-  case: (node) => generate(node.type) + generate(node.children),
-  default: (node) => generate(node.type) + generate(node.children),
-  subroutine: (node) => generate(node.type) + generate(node.children),
-  bvec2: (node) => generate(node.type) + generate(node.children),
-  bvec3: (node) => generate(node.type) + generate(node.children),
-  bvec4: (node) => generate(node.type) + generate(node.children),
-  ivec2: (node) => generate(node.type) + generate(node.children),
-  ivec3: (node) => generate(node.type) + generate(node.children),
-  ivec4: (node) => generate(node.type) + generate(node.children),
-  uvec2: (node) => generate(node.type) + generate(node.children),
-  uvec3: (node) => generate(node.type) + generate(node.children),
-  uvec4: (node) => generate(node.type) + generate(node.children),
-  vec2: (node) => generate(node.type) + generate(node.children),
-  vec3: (node) => generate(node.type) + generate(node.children),
-  vec4: (node) => generate(node.type) + generate(node.children),
-  mat2: (node) => generate(node.type) + generate(node.children),
-  mat3: (node) => generate(node.type) + generate(node.children),
-  mat4: (node) => generate(node.type) + generate(node.children),
-  centroid: (node) => generate(node.type) + generate(node.children),
-  in: (node) => generate(node.type) + generate(node.children),
-  out: (node) => generate(node.type) + generate(node.children),
-  inout: (node) => generate(node.type) + generate(node.children),
-  uniform: (node) => generate(node.type) + generate(node.children),
-  patch: (node) => generate(node.type) + generate(node.children),
-  sample: (node) => generate(node.type) + generate(node.children),
-  buffer: (node) => generate(node.type) + generate(node.children),
-  shared: (node) => generate(node.type) + generate(node.children),
-  coherent: (node) => generate(node.type) + generate(node.children),
-  volatile: (node) => generate(node.type) + generate(node.children),
-  restrict: (node) => generate(node.type) + generate(node.children),
-  readonly: (node) => generate(node.type) + generate(node.children),
-  writeonly: (node) => generate(node.type) + generate(node.children),
-  dvec2: (node) => generate(node.type) + generate(node.children),
-  dvec3: (node) => generate(node.type) + generate(node.children),
-  dvec4: (node) => generate(node.type) + generate(node.children),
-  dmat2: (node) => generate(node.type) + generate(node.children),
-  dmat3: (node) => generate(node.type) + generate(node.children),
-  dmat4: (node) => generate(node.type) + generate(node.children),
-  noperspective: (node) => generate(node.type) + generate(node.children),
-  flat: (node) => generate(node.type) + generate(node.children),
-  smooth: (node) => generate(node.type) + generate(node.children),
-  layout: (node) => generate(node.type) + generate(node.children),
-  mat2x2: (node) => generate(node.type) + generate(node.children),
-  mat2x3: (node) => generate(node.type) + generate(node.children),
-  mat2x4: (node) => generate(node.type) + generate(node.children),
-  mat3x2: (node) => generate(node.type) + generate(node.children),
-  mat3x3: (node) => generate(node.type) + generate(node.children),
-  mat3x4: (node) => generate(node.type) + generate(node.children),
-  mat4x2: (node) => generate(node.type) + generate(node.children),
-  mat4x3: (node) => generate(node.type) + generate(node.children),
-  mat4x4: (node) => generate(node.type) + generate(node.children),
-  dmat2x2: (node) => generate(node.type) + generate(node.children),
-  dmat2x3: (node) => generate(node.type) + generate(node.children),
-  dmat2x4: (node) => generate(node.type) + generate(node.children),
-  dmat3x2: (node) => generate(node.type) + generate(node.children),
-  dmat3x3: (node) => generate(node.type) + generate(node.children),
-  dmat3x4: (node) => generate(node.type) + generate(node.children),
-  dmat4x2: (node) => generate(node.type) + generate(node.children),
-  dmat4x3: (node) => generate(node.type) + generate(node.children),
-  dmat4x4: (node) => generate(node.type) + generate(node.children),
-  atomic_uint: (node) => generate(node.type) + generate(node.children),
-  sampler1D: (node) => generate(node.type) + generate(node.children),
-  sampler2D: (node) => generate(node.type) + generate(node.children),
-  sampler3D: (node) => generate(node.type) + generate(node.children),
-  samplerCube: (node) => generate(node.type) + generate(node.children),
-  sampler1DShadow: (node) => generate(node.type) + generate(node.children),
-  sampler2DShadow: (node) => generate(node.type) + generate(node.children),
-  samplerCubeShadow: (node) => generate(node.type) + generate(node.children),
-  sampler1DArray: (node) => generate(node.type) + generate(node.children),
-  sampler2DArray: (node) => generate(node.type) + generate(node.children),
-  sampler1DArrayShadow: (node) => generate(node.type) + generate(node.children),
-  sampler2DArrayshadow: (node) => generate(node.type) + generate(node.children),
-  isampler1D: (node) => generate(node.type) + generate(node.children),
-  isampler2D: (node) => generate(node.type) + generate(node.children),
-  isampler3D: (node) => generate(node.type) + generate(node.children),
-  isamplerCube: (node) => generate(node.type) + generate(node.children),
-  isampler1Darray: (node) => generate(node.type) + generate(node.children),
-  isampler2DArray: (node) => generate(node.type) + generate(node.children),
-  usampler1D: (node) => generate(node.type) + generate(node.children),
-  usampler2D: (node) => generate(node.type) + generate(node.children),
-  usampler3D: (node) => generate(node.type) + generate(node.children),
-  usamplerCube: (node) => generate(node.type) + generate(node.children),
-  usampler1DArray: (node) => generate(node.type) + generate(node.children),
-  usampler2DArray: (node) => generate(node.type) + generate(node.children),
-  sampler2DRect: (node) => generate(node.type) + generate(node.children),
-  sampler2DRectshadow: (node) => generate(node.type) + generate(node.children),
-  isampler2DRect: (node) => generate(node.type) + generate(node.children),
-  usampler2DRect: (node) => generate(node.type) + generate(node.children),
-  samplerBuffer: (node) => generate(node.type) + generate(node.children),
-  isamplerBuffer: (node) => generate(node.type) + generate(node.children),
-  usamplerBuffer: (node) => generate(node.type) + generate(node.children),
-  samplerCubeArray: (node) => generate(node.type) + generate(node.children),
-  samplerCubeArrayShadow: (node) =>
-    generate(node.type) + generate(node.children),
-  isamplerCubeArray: (node) => generate(node.type) + generate(node.children),
-  usamplerCubeArray: (node) => generate(node.type) + generate(node.children),
-  sampler2DMS: (node) => generate(node.type) + generate(node.children),
-  isampler2DMS: (node) => generate(node.type) + generate(node.children),
-  usampler2DMS: (node) => generate(node.type) + generate(node.children),
-  sampler2DMSArray: (node) => generate(node.type) + generate(node.children),
-  isampler2DMSArray: (node) => generate(node.type) + generate(node.children),
-  usampler2DMSArray: (node) => generate(node.type) + generate(node.children),
-  image1D: (node) => generate(node.type) + generate(node.children),
-  iimage1D: (node) => generate(node.type) + generate(node.children),
-  uimage1D: (node) => generate(node.type) + generate(node.children),
-  image2D: (node) => generate(node.type) + generate(node.children),
-  iimage2D: (node) => generate(node.type) + generate(node.children),
-  uimage2D: (node) => generate(node.type) + generate(node.children),
-  image3D: (node) => generate(node.type) + generate(node.children),
-  iimage3D: (node) => generate(node.type) + generate(node.children),
-  uimage3D: (node) => generate(node.type) + generate(node.children),
-  image2DRect: (node) => generate(node.type) + generate(node.children),
-  iimage2DRect: (node) => generate(node.type) + generate(node.children),
-  uimage2DRect: (node) => generate(node.type) + generate(node.children),
-  imageCube: (node) => generate(node.type) + generate(node.children),
-  iimageCube: (node) => generate(node.type) + generate(node.children),
-  uimageCube: (node) => generate(node.type) + generate(node.children),
-  imageBuffer: (node) => generate(node.type) + generate(node.children),
-  iimageBuffer: (node) => generate(node.type) + generate(node.children),
-  uimageBuffer: (node) => generate(node.type) + generate(node.children),
-  image1DArray: (node) => generate(node.type) + generate(node.children),
-  iimage1DArray: (node) => generate(node.type) + generate(node.children),
-  uimage1DArray: (node) => generate(node.type) + generate(node.children),
-  image2DArray: (node) => generate(node.type) + generate(node.children),
-  iimage2DArray: (node) => generate(node.type) + generate(node.children),
-  uimage2DArray: (node) => generate(node.type) + generate(node.children),
-  imageCubeArray: (node) => generate(node.type) + generate(node.children),
-  iimageCubeArray: (node) => generate(node.type) + generate(node.children),
-  uimageCubeArray: (node) => generate(node.type) + generate(node.children),
-  image2DMS: (node) => generate(node.type) + generate(node.children),
-  iimage2DMS: (node) => generate(node.type) + generate(node.children),
-  uimage2DMS: (node) => generate(node.type) + generate(node.children),
-  image2DMArray: (node) => generate(node.type) + generate(node.children),
-  iimage2DMSArray: (node) => generate(node.type) + generate(node.children),
-  uimage2DMSArray: (node) => generate(node.type) + generate(node.children),
-  struct: (node) => generate(node.type) + generate(node.children),
-  void: (node) => generate(node.type) + generate(node.children),
-  while: (node) =>
-    node.while
-      ? generate(node.while) +
-        generate(node.condition) +
-        generate(node.children)
-      : generate(node.type) + generate(node.children),
-
-  invariant: (node) => generate(node.type) + generate(node.children),
-  precise: (node) => generate(node.type) + generate(node.children),
-  highp: (node) => generate(node.type) + generate(node.children),
-  mediump: (node) => generate(node.type) + generate(node.children),
-  lowp: (node) => generate(node.type) + generate(node.children),
-
-  float: (node) => node.type + generate(node.children),
 };
 
 module.exports = { generate, generators };

@@ -15,6 +15,7 @@ Do not use this
 - glsl version switch to support glsl es 3 vs 1?
 - Figure out the preprocessor strategy
 - Verify every node type has a generator
+- "attribute" isn't used in GLSL ES 1.0 version parsing yet
 
 # What?
 
@@ -24,3 +25,17 @@ Do not use this
 
 - Write shader vertex / fragment
 - Auto parse constants, variables, uniforms, let them be used
+
+# Limitations
+
+## Known missing semantic analysis compared to the specification
+
+- Compilers are supposed to raise an error if a switch body ends in a case or
+  default label.
+- Currently no semantic analysis of vertex vs fragment shaders
+
+## Deviations from the Khronos Grammar
+
+- `selection_statement` is renamed to `if_statement`
+- The grammar specifies `declaration` itself ends with a semicolon. I moved the
+  semicolon into the `declaration_statement` rule.

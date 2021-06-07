@@ -38,8 +38,13 @@ const expectParsedStatement = (stmt) => {
         true
       )
     );
-    expect(stmt).toBe(glsl.match(middle)[1]);
+    expect(glsl.match(middle)[1]).toBe(stmt);
   }
+};
+
+const parseStatement = (stmt) => {
+  const program = `void main() {${stmt}}`;
+  return parser.parse(program);
 };
 
 const expectParsedProgram = (sourceGlsl) => {
@@ -47,7 +52,7 @@ const expectParsedProgram = (sourceGlsl) => {
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
     console.log(util.inspect(ast, false, null, true));
-    expect(sourceGlsl).toBe(glsl);
+    expect(glsl).toBe(sourceGlsl);
   }
 };
 
@@ -83,12 +88,42 @@ test('while loop', () => {
 
 test('for loop', () => {
   expectParsedStatement(`
-    for(int i = 0; i <= 99; i++) {
+    for(int a = 0; b <= 99; c++) {
       break;
       continue;
       return;
       aFunction();
     }
+  `);
+});
+
+test('infinite for loop', () => {
+  expectParsedStatement(`
+    for(;;) {
+    }
+  `);
+});
+
+test('switch error', () => {
+  expect(() =>
+    parseStatement(`
+    switch (easingId) {
+      result = cubicIn();
+    }
+  `)
+  ).toThrow(/must start with a case or default label/);
+});
+
+test('switch statement', () => {
+  expectParsedStatement(`
+    switch (easingId) {
+      case 0:
+          result = cubicIn();
+          break;
+      case 1:
+          result = cubicOut();
+          break;
+      }
   `);
 });
 
@@ -129,6 +164,8 @@ test('assignment', () => {
   expectParsedStatement('x |= 1.0;');
 });
 
-test('debug', () => {
-  debugStatement('const float x = 1.0, y = 2.0;');
-});
+// test('debug', () => {
+//   // TODO: Make float a keyword (i'm not sure what else to do) and move things
+//   // into whitespace key
+//   debugStatement('const float a = 1.0;');
+// });
