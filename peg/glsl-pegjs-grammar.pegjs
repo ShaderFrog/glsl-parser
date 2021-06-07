@@ -921,7 +921,7 @@ expression_statement = expression:expression? semi:SEMICOLON {
   return node('expression_statement', [], { expression, semi });
 }
 
-// Note: The grammar calls this "if statement"
+// Note: The Khronos grammar calls this "selection statement"
 if_statement
   = ifSymbol:IF lp:LEFT_PAREN condition:expression rp:RIGHT_PAREN tail:(
       statement (ELSE statement)?
