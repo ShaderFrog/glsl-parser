@@ -2,12 +2,9 @@
 // https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
 
 {
-  const node = (type, children, attrs) => ({
+  const node = (type, attrs) => ({
     type,
-    ...attrs,
-    // Handle case where a non-array is passed in, or nothing. And for
-    // convenience, xnil so we can pass in optional trailing whitespace
-    children: xnil([children || []].flat()),
+    ...attrs
   });
 
   // Filter out "empty" elements from an array
@@ -61,7 +58,6 @@
         ...cases,
         node(
           'switch_case',
-          [],
           {
             statements: [],
             case: stmt.case,
@@ -75,7 +71,6 @@
         ...cases,
         node(
           'default_case',
-          [],
           {
             statements: [],
             default: stmt.default,
@@ -105,232 +100,229 @@ start = ws:_ program:translation_unit {
 }
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
-ATTRIBUTE = token:"attribute" t:terminal { return node('keyword', [], { token, whitespace: t }); }
+ATTRIBUTE = token:"attribute" t:terminal { return node('keyword', { token, whitespace: t }); }
 // "varying compatibility profile only and vertex and fragment languages only;
 // same as out when in a vertex shader and same as in when in a fragment shader"
-VARYING = token:"varying" t:terminal { return node('keyword', [], { token, whitespace: t }); }
+VARYING = token:"varying" t:terminal { return node('keyword', { token, whitespace: t }); }
 
-CONST = token:"const" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BOOL = token:"bool" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-FLOAT = token:"float" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DOUBLE = token:"double" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-INT = token:"int" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UINT = token:"uint" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BREAK = token:"break" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-CONTINUE = token:"continue" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DO = token:"do" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ELSE = token:"else" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-FOR = token:"for" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IF = token:"if" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DISCARD = token:"discard" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-RETURN = token:"return" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SWITCH = token:"switch" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-CASE = token:"case" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DEFAULT = token:"default" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SUBROUTINE = token:"subroutine" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BVEC2 = token:"bvec2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BVEC3 = token:"bvec3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BVEC4 = token:"bvec4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IVEC2 = token:"ivec2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IVEC3 = token:"ivec3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IVEC4 = token:"ivec4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UVEC2 = token:"uvec2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UVEC3 = token:"uvec3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UVEC4 = token:"uvec4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-VEC2 = token:"vec2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-VEC3 = token:"vec3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-VEC4 = token:"vec4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT2 = token:"mat2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT3 = token:"mat3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT4 = token:"mat4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-CENTROID = token:"centroid" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IN = token:"in" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-OUT = token:"out" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-INOUT = token:"inout" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UNIFORM = token:"uniform" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-PATCH = token:"patch" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLE = token:"sample" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-BUFFER = token:"buffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SHARED = token:"shared" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-COHERENT = token:"coherent" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-VOLATILE = token:"volatile" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-RESTRICT = token:"restrict" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-READONLY = token:"readonly" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-WRITEONLY = token:"writeonly" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DVEC2 = token:"dvec2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DVEC3 = token:"dvec3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DVEC4 = token:"dvec4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT2 = token:"dmat2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT3 = token:"dmat3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT4 = token:"dmat4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-NOPERSPECTIVE = token:"noperspective" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-FLAT = token:"flat" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SMOOTH = token:"smooth" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-LAYOUT = token:"layout" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT2X2 = token:"mat2x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT2X3 = token:"mat2x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT2X4 = token:"mat2x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT3X2 = token:"mat3x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT3X3 = token:"mat3x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT3X4 = token:"mat3x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT4X2 = token:"mat4x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT4X3 = token:"mat4x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-MAT4X4 = token:"mat4x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT2X2 = token:"dmat2x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT2X3 = token:"dmat2x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT2X4 = token:"dmat2x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT3X2 = token:"dmat3x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT3X3 = token:"dmat3x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT3X4 = token:"dmat3x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT4X2 = token:"dmat4x2" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT4X3 = token:"dmat4x3" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-DMAT4X4 = token:"dmat4x4" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ATOMIC_UINT = token:"atomic_uint" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER1D = token:"sampler1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2D = token:"sampler2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER3D = token:"sampler3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLERCUBE = token:"samplerCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER1DSHADOW = token:"sampler1DShadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DSHADOW = token:"sampler2DShadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLERCUBESHADOW = token:"samplerCubeShadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER1DARRAY = token:"sampler1DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DARRAY = token:"sampler2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER1DARRAYSHADOW = token:"sampler1DArrayShadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DARRAYSHADOW = token:"sampler2DArrayshadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER1D = token:"isampler1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER2D = token:"isampler2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER3D = token:"isampler3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLERCUBE = token:"isamplerCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER1DARRAY = token:"isampler1Darray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER2DARRAY = token:"isampler2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER1D = token:"usampler1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER2D = token:"usampler2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER3D = token:"usampler3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLERCUBE = token:"usamplerCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER1DARRAY = token:"usampler1DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER2DARRAY = token:"usampler2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DRECT = token:"sampler2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DRECTSHADOW = token:"sampler2DRectshadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER2DRECT = token:"isampler2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER2DRECT = token:"usampler2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLERBUFFER = token:"samplerBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLERBUFFER = token:"isamplerBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLERBUFFER = token:"usamplerBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLERCUBEARRAY = token:"samplerCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLERCUBEARRAYSHADOW = token:"samplerCubeArrayShadow" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLERCUBEARRAY = token:"isamplerCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLERCUBEARRAY = token:"usamplerCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DMS = token:"sampler2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER2DMS = token:"isampler2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER2DMS = token:"usampler2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-SAMPLER2DMSARRAY = token:"sampler2DMSArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-ISAMPLER2DMSARRAY = token:"isampler2DMSArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-USAMPLER2DMSARRAY = token:"usampler2DMSArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE1D = token:"image1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE1D = token:"iimage1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE1D = token:"uimage1D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE2D = token:"image2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE2D = token:"iimage2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE2D = token:"uimage2D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE3D = token:"image3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE3D = token:"iimage3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE3D = token:"uimage3D" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE2DRECT = token:"image2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE2DRECT = token:"iimage2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE2DRECT = token:"uimage2DRect" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGECUBE = token:"imageCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGECUBE = token:"iimageCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGECUBE = token:"uimageCube" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGEBUFFER = token:"imageBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGEBUFFER = token:"iimageBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGEBUFFER = token:"uimageBuffer" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE1DARRAY = token:"image1DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE1DARRAY = token:"iimage1DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE1DARRAY = token:"uimage1DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE2DARRAY = token:"image2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE2DARRAY = token:"iimage2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE2DARRAY = token:"uimage2DArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGECUBEARRAY = token:"imageCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGECUBEARRAY = token:"iimageCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGECUBEARRAY = token:"uimageCubeArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE2DMS = token:"image2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE2DMS = token:"iimage2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE2DMS = token:"uimage2DMS" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IMAGE2DMSARRAY = token:"image2DMArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IIMAGE2DMSARRAY = token:"iimage2DMSArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-UIMAGE2DMSARRAY = token:"uimage2DMSArray" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-STRUCT = token:"struct" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-VOID = token:"void" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-WHILE = token:"while" t:terminal { return node('keyword', [], { token, whitespace: t }); }
-IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', xnil(_), { identifier }); }
+CONST = token:"const" t:terminal { return node('keyword', { token, whitespace: t }); }
+BOOL = token:"bool" t:terminal { return node('keyword', { token, whitespace: t }); }
+FLOAT = token:"float" t:terminal { return node('keyword', { token, whitespace: t }); }
+DOUBLE = token:"double" t:terminal { return node('keyword', { token, whitespace: t }); }
+INT = token:"int" t:terminal { return node('keyword', { token, whitespace: t }); }
+UINT = token:"uint" t:terminal { return node('keyword', { token, whitespace: t }); }
+BREAK = token:"break" t:terminal { return node('keyword', { token, whitespace: t }); }
+CONTINUE = token:"continue" t:terminal { return node('keyword', { token, whitespace: t }); }
+DO = token:"do" t:terminal { return node('keyword', { token, whitespace: t }); }
+ELSE = token:"else" t:terminal { return node('keyword', { token, whitespace: t }); }
+FOR = token:"for" t:terminal { return node('keyword', { token, whitespace: t }); }
+IF = token:"if" t:terminal { return node('keyword', { token, whitespace: t }); }
+DISCARD = token:"discard" t:terminal { return node('keyword', { token, whitespace: t }); }
+RETURN = token:"return" t:terminal { return node('keyword', { token, whitespace: t }); }
+SWITCH = token:"switch" t:terminal { return node('keyword', { token, whitespace: t }); }
+CASE = token:"case" t:terminal { return node('keyword', { token, whitespace: t }); }
+DEFAULT = token:"default" t:terminal { return node('keyword', { token, whitespace: t }); }
+SUBROUTINE = token:"subroutine" t:terminal { return node('keyword', { token, whitespace: t }); }
+BVEC2 = token:"bvec2" t:terminal { return node('keyword', { token, whitespace: t }); }
+BVEC3 = token:"bvec3" t:terminal { return node('keyword', { token, whitespace: t }); }
+BVEC4 = token:"bvec4" t:terminal { return node('keyword', { token, whitespace: t }); }
+IVEC2 = token:"ivec2" t:terminal { return node('keyword', { token, whitespace: t }); }
+IVEC3 = token:"ivec3" t:terminal { return node('keyword', { token, whitespace: t }); }
+IVEC4 = token:"ivec4" t:terminal { return node('keyword', { token, whitespace: t }); }
+UVEC2 = token:"uvec2" t:terminal { return node('keyword', { token, whitespace: t }); }
+UVEC3 = token:"uvec3" t:terminal { return node('keyword', { token, whitespace: t }); }
+UVEC4 = token:"uvec4" t:terminal { return node('keyword', { token, whitespace: t }); }
+VEC2 = token:"vec2" t:terminal { return node('keyword', { token, whitespace: t }); }
+VEC3 = token:"vec3" t:terminal { return node('keyword', { token, whitespace: t }); }
+VEC4 = token:"vec4" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT2 = token:"mat2" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT3 = token:"mat3" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT4 = token:"mat4" t:terminal { return node('keyword', { token, whitespace: t }); }
+CENTROID = token:"centroid" t:terminal { return node('keyword', { token, whitespace: t }); }
+IN = token:"in" t:terminal { return node('keyword', { token, whitespace: t }); }
+OUT = token:"out" t:terminal { return node('keyword', { token, whitespace: t }); }
+INOUT = token:"inout" t:terminal { return node('keyword', { token, whitespace: t }); }
+UNIFORM = token:"uniform" t:terminal { return node('keyword', { token, whitespace: t }); }
+PATCH = token:"patch" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLE = token:"sample" t:terminal { return node('keyword', { token, whitespace: t }); }
+BUFFER = token:"buffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+SHARED = token:"shared" t:terminal { return node('keyword', { token, whitespace: t }); }
+COHERENT = token:"coherent" t:terminal { return node('keyword', { token, whitespace: t }); }
+VOLATILE = token:"volatile" t:terminal { return node('keyword', { token, whitespace: t }); }
+RESTRICT = token:"restrict" t:terminal { return node('keyword', { token, whitespace: t }); }
+READONLY = token:"readonly" t:terminal { return node('keyword', { token, whitespace: t }); }
+WRITEONLY = token:"writeonly" t:terminal { return node('keyword', { token, whitespace: t }); }
+DVEC2 = token:"dvec2" t:terminal { return node('keyword', { token, whitespace: t }); }
+DVEC3 = token:"dvec3" t:terminal { return node('keyword', { token, whitespace: t }); }
+DVEC4 = token:"dvec4" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT2 = token:"dmat2" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT3 = token:"dmat3" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT4 = token:"dmat4" t:terminal { return node('keyword', { token, whitespace: t }); }
+NOPERSPECTIVE = token:"noperspective" t:terminal { return node('keyword', { token, whitespace: t }); }
+FLAT = token:"flat" t:terminal { return node('keyword', { token, whitespace: t }); }
+SMOOTH = token:"smooth" t:terminal { return node('keyword', { token, whitespace: t }); }
+LAYOUT = token:"layout" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT2X2 = token:"mat2x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT2X3 = token:"mat2x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT2X4 = token:"mat2x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT3X2 = token:"mat3x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT3X3 = token:"mat3x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT3X4 = token:"mat3x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT4X2 = token:"mat4x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT4X3 = token:"mat4x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+MAT4X4 = token:"mat4x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT2X2 = token:"dmat2x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT2X3 = token:"dmat2x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT2X4 = token:"dmat2x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT3X2 = token:"dmat3x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT3X3 = token:"dmat3x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT3X4 = token:"dmat3x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT4X2 = token:"dmat4x2" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT4X3 = token:"dmat4x3" t:terminal { return node('keyword', { token, whitespace: t }); }
+DMAT4X4 = token:"dmat4x4" t:terminal { return node('keyword', { token, whitespace: t }); }
+ATOMIC_UINT = token:"atomic_uint" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER1D = token:"sampler1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2D = token:"sampler2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER3D = token:"sampler3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLERCUBE = token:"samplerCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER1DSHADOW = token:"sampler1DShadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DSHADOW = token:"sampler2DShadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLERCUBESHADOW = token:"samplerCubeShadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER1DARRAY = token:"sampler1DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DARRAY = token:"sampler2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER1DARRAYSHADOW = token:"sampler1DArrayShadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DARRAYSHADOW = token:"sampler2DArrayshadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER1D = token:"isampler1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER2D = token:"isampler2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER3D = token:"isampler3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLERCUBE = token:"isamplerCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER1DARRAY = token:"isampler1Darray" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER2DARRAY = token:"isampler2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER1D = token:"usampler1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER2D = token:"usampler2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER3D = token:"usampler3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLERCUBE = token:"usamplerCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER1DARRAY = token:"usampler1DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER2DARRAY = token:"usampler2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DRECT = token:"sampler2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DRECTSHADOW = token:"sampler2DRectshadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER2DRECT = token:"isampler2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER2DRECT = token:"usampler2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLERBUFFER = token:"samplerBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLERBUFFER = token:"isamplerBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLERBUFFER = token:"usamplerBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLERCUBEARRAY = token:"samplerCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLERCUBEARRAYSHADOW = token:"samplerCubeArrayShadow" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLERCUBEARRAY = token:"isamplerCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLERCUBEARRAY = token:"usamplerCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DMS = token:"sampler2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER2DMS = token:"isampler2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER2DMS = token:"usampler2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+SAMPLER2DMSARRAY = token:"sampler2DMSArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+ISAMPLER2DMSARRAY = token:"isampler2DMSArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+USAMPLER2DMSARRAY = token:"usampler2DMSArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE1D = token:"image1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE1D = token:"iimage1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE1D = token:"uimage1D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE2D = token:"image2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE2D = token:"iimage2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE2D = token:"uimage2D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE3D = token:"image3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE3D = token:"iimage3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE3D = token:"uimage3D" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE2DRECT = token:"image2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE2DRECT = token:"iimage2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE2DRECT = token:"uimage2DRect" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGECUBE = token:"imageCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGECUBE = token:"iimageCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGECUBE = token:"uimageCube" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGEBUFFER = token:"imageBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGEBUFFER = token:"iimageBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGEBUFFER = token:"uimageBuffer" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE1DARRAY = token:"image1DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE1DARRAY = token:"iimage1DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE1DARRAY = token:"uimage1DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE2DARRAY = token:"image2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE2DARRAY = token:"iimage2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE2DARRAY = token:"uimage2DArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGECUBEARRAY = token:"imageCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGECUBEARRAY = token:"iimageCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGECUBEARRAY = token:"uimageCubeArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE2DMS = token:"image2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE2DMS = token:"iimage2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE2DMS = token:"uimage2DMS" t:terminal { return node('keyword', { token, whitespace: t }); }
+IMAGE2DMSARRAY = token:"image2DMArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+IIMAGE2DMSARRAY = token:"iimage2DMSArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+UIMAGE2DMSARRAY = token:"uimage2DMSArray" t:terminal { return node('keyword', { token, whitespace: t }); }
+STRUCT = token:"struct" t:terminal { return node('keyword', { token, whitespace: t }); }
+VOID = token:"void" t:terminal { return node('keyword', { token, whitespace: t }); }
+WHILE = token:"while" t:terminal { return node('keyword', { token, whitespace: t }); }
+IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
+
+INVARIANT = token:"invariant" t:terminal { return node('keyword', { token, whitespace: t }); }
+PRECISE = token:"precise" t:terminal { return node('keyword', { token, whitespace: t }); }
+HIGH_PRECISION = token:"highp" t:terminal { return node('keyword', { token, whitespace: t }); }
+MEDIUM_PRECISION = token:"mediump" t:terminal { return node('keyword', { token, whitespace: t }); }
+LOW_PRECISION = token:"lowp" t:terminal { return node('keyword', { token, whitespace: t }); }
+PRECISION = token:"precision" t:terminal { return node('keyword', { token, whitespace: t }); }
 
 // I renamed "type_name" to this because it only appears to be used for subroutines
 SUBROUTINE_TYPE_NAME = IDENTIFIER
 
-// TODO: Mark the token value as an attribute, not as a child, and move
-// whitespace into whitespace key
-FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', [token, _]); }
-DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', [token, _]); }
-INTCONSTANT = token:integer_constant _:_? { return node('int_constant', [token, _]); }
-UINTCONSTANT = token:integer_constant _:_? { return node('uint_constant', [token, _]); }
+FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
+DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
+INTCONSTANT = token:integer_constant _:_? { return node('int_constant', { token, whitespace: _ }); }
+UINTCONSTANT = token:integer_constant _:_? { return node('uint_constant', { token, whitespace: _ }); }
 BOOLCONSTANT
-  = token:"true" _:_ { return node(token, _); }
-  / token:"false" _:_ { return node(token, _); }
+  = token:("true" / "false") _:_ { return node('bool_constant', { token, whitespace:_ }); }
 FIELD_SELECTION = IDENTIFIER
 
-LEFT_OP = token:"<<" _:_? { return node(token, _); }
-RIGHT_OP = token:">>" _:_? { return node(token, _); }
-INC_OP = token:"++" _:_? { return node(token, _); }
-DEC_OP = token:"--" _:_? { return node(token, _); }
-LE_OP = token:"<=" _:_? { return node(token, _); }
-GE_OP = token:">=" _:_? { return node(token, _); }
-EQ_OP = token:"==" _:_? { return node(token, _); }
-NE_OP = token:"!=" _:_? { return node(token, _); }
-AND_OP = token:"&&" _:_? { return node(token, _); }
-OR_OP = token:"||" _:_? { return node(token, _); }
-XOR_OP = token:"^^" _:_? { return node(token, _); }
-MUL_ASSIGN = token:"*=" _:_? { return node(token, _); }
-DIV_ASSIGN = token:"/=" _:_? { return node(token, _); }
-ADD_ASSIGN = token:"+=" _:_? { return node(token, _); }
-MOD_ASSIGN = token:"%=" _:_? { return node(token, _); }
-LEFT_ASSIGN = token:"<<=" _:_? { return node(token, _); }
-RIGHT_ASSIGN = token:">>=" _:_? { return node(token, _); }
-AND_ASSIGN = token:"&=" _:_? { return node(token, _); }
-XOR_ASSIGN = token:"^=" _:_? { return node(token, _); }
-OR_ASSIGN = token:"|=" _:_? { return node(token, _); }
-SUB_ASSIGN = token:"-=" _:_? { return node(token, _); }
+LEFT_OP = token:"<<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_OP = token:">>" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+INC_OP = token:"++" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+DEC_OP = token:"--" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LE_OP = token:"<=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+GE_OP = token:">=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+EQ_OP = token:"==" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+NE_OP = token:"!=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+AND_OP = token:"&&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+OR_OP = token:"||" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+XOR_OP = token:"^^" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+MUL_ASSIGN = token:"*=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+DIV_ASSIGN = token:"/=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+ADD_ASSIGN = token:"+=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+MOD_ASSIGN = token:"%=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_ASSIGN = token:"<<=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_ASSIGN = token:">>=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+AND_ASSIGN = token:"&=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+XOR_ASSIGN = token:"^=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+OR_ASSIGN = token:"|=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+SUB_ASSIGN = token:"-=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 
-LEFT_PAREN = token:"(" _:_? { return node(token, _); }
-RIGHT_PAREN = token:")" _:_? { return node(token, _); }
-LEFT_BRACKET = token:"[" _:_? { return node(token, _); }
-RIGHT_BRACKET = token:"]" _:_? { return node(token, _); }
-LEFT_BRACE = token:"{" _:_? { return node(token, _); }
-RIGHT_BRACE = token:"}" _:_? { return node(token, _); }
-DOT = token:"." _:_? { return node(token, _); }
-COMMA = token:"," _:_? { return node(token, _); }
-COLON = token:":" _:_? { return node(token, _); }
-EQUAL = token:"=" _:_? { return node(token, _); }
-SEMICOLON = token:";" _:_? { return node(token, _); }
-BANG = token:"!" _:_? { return node(token, _); }
-DASH = token:"-" _:_? { return node(token, _); }
-TILDE = token:"~" _:_? { return node(token, _); }
-PLUS = token:"+" _:_? { return node(token, _); }
-STAR = token:"*" _:_? { return node(token, _); }
-SLASH = token:"/" _:_? { return node(token, _); }
-PERCENT = token:"%" _:_? { return node(token, _); }
-LEFT_ANGLE = token:"<" _:_? { return node(token, _); }
-RIGHT_ANGLE = token:">" _:_? { return node(token, _); }
-VERTICAL_BAR = token:"|" _:_? { return node(token, _); }
-CARET = token:"^" _:_? { return node(token, _); }
-AMPERSAND = token:"&" _:_? { return node(token, _); }
-QUESTION = token:"?" _:_? { return node(token, _); }
-
-INVARIANT = token:"invariant" t:terminal { return node(token, t); }
-PRECISE = token:"precise" t:terminal { return node(token, t); }
-HIGH_PRECISION = token:"highp" t:terminal { return node(token, t); }
-MEDIUM_PRECISION = token:"mediump" t:terminal { return node(token, t); }
-LOW_PRECISION = token:"lowp" t:terminal { return node(token, t); }
-PRECISION = token:"precision" t:terminal { return node(token, t); }
+LEFT_PAREN = token:"(" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_PAREN = token:")" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_BRACKET = token:"[" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_BRACKET = token:"]" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_BRACE = token:"{" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_BRACE = token:"}" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+DOT = token:"." _:_? { return node('literal', { literal: token, whitespace: _ }); }
+COMMA = token:"," _:_? { return node('literal', { literal: token, whitespace: _ }); }
+COLON = token:":" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+EQUAL = token:"=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+SEMICOLON = token:";" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+BANG = token:"!" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+DASH = token:"-" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+TILDE = token:"~" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+PLUS = token:"+" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+STAR = token:"*" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+SLASH = token:"/" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+PERCENT = token:"%" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_ANGLE = token:"<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+RIGHT_ANGLE = token:">" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+VERTICAL_BAR = token:"|" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+CARET = token:"^" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 
 // Spec note: "It is a compile-time error to provide a literal integer whose bit
 // pattern cannot fit in 32 bits." This and other ranges are not yet implemented
@@ -368,8 +360,8 @@ primary_expression "primary expression"
   / UINTCONSTANT
   / BOOLCONSTANT
   / DOUBLECONSTANT
-  / l:LEFT_PAREN expr:expression r:RIGHT_PAREN {
-    return node('group', [l, expr, r]);
+  / lp:LEFT_PAREN expression:expression rp:RIGHT_PAREN {
+    return node('group', { lp, expression, rp });
   }
   / IDENTIFIER
 
@@ -384,7 +376,7 @@ postfix_expression
       // Postfix becomes a left associative tree
       return body.flat().reduceRight((postfix, expr) =>
           postfix ?
-            node('postfix', [], { expr, postfix }) :
+            node('postfix', { expr, postfix }) :
             expr
         );
     }
@@ -397,10 +389,10 @@ postfix_expression_suffix
 // Note these are reused in function_identifier for the part of
 // postfix_expression that is inlined
 integer_index = lb:LEFT_BRACKET expr:integer_expression rb:RIGHT_BRACKET {
-  return node('quantifier', [], { lb, expr, rb });
+  return node('quantifier', { lb, expr, rb });
 }
 field_selection = dot:DOT selection:FIELD_SELECTION {
-  return node('field_selection', [], { dot, selection });
+  return node('field_selection', { dot, selection });
 }
 
 // The grammar only uses this for the index. I assume it's to evaluate something
@@ -410,22 +402,19 @@ integer_expression
 
 function_call
   = identifier:function_identifier
-    // lp:LEFT_PAREN
+    // The grammar has left_paren here. To help de-left-recurse
+    // function_identifier, it's moved into the function identifier above.
     args:function_arguments?
     rp:RIGHT_PAREN {
-      return node('function_call', [], { ...identifier, args, rp });
+      return node('function_call', { ...identifier, args, rp });
     }
 
 function_arguments =
   v:VOID {
     return [v];
   }
-  / head:assignment_expression tail:(
-      op:COMMA expr:assignment_expression {
-        // Enhancement: For optional whitespace capture, ignore op here
-        return [op, expr];
-      }
-    )* {
+  / head:assignment_expression
+    tail:(COMMA assignment_expression)* {
       // For convenience, we don't store commas as trees, but rather flatten
       // into an array
       return [head, ...tail.flat()];
@@ -442,25 +431,20 @@ function_arguments =
 
 function_identifier
   = identifier:(
-    // This is consuming "texture(iChannel0).rgb;" when the function
-    // name should only be "texture
+    // Handle a().length()
     head:chained_function_call suffix:function_suffix lp:LEFT_PAREN {
       return { head: [head, suffix], lp };
-    } // a().length()
+    }
+    // Handle texture().rgb
     / head:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
       return { head: [head, suffix], lp };
-    } // texture().rgb
-  )
-  // TODO cleanup you moved lp into above because if the first one
-  // matches texture().rgb even if that's it then the match ends
-  // there and it consumes it then expects "(" with left_paren
-  //lp:LEFT_PAREN
-  {
+    }
+  ) {
     return {
       lp: identifier.lp,
       identifier: [identifier.head].flat().reduceRight((postfix, expr) =>
         postfix ?
-          node('postfix', [], { expr, postfix }) :
+          node('postfix', { expr, postfix }) :
           expr
       )
     };
@@ -481,7 +465,7 @@ chained_function_call
     lp:LEFT_PAREN
     args:function_arguments?
     rp:RIGHT_PAREN {
-      return node('function_call', [], { identifier, lp, args, rp });
+      return node('function_call', { identifier, lp, args, rp });
     }
 
 unary_expression
@@ -490,7 +474,7 @@ unary_expression
     expression:unary_expression {
       // TODO: Unary "++" "+" "!" "~" etc are "right to left", verify
       // things like "++ ++" parse and that they're right to left
-      return node('unary', [], { operator, expression });
+      return node('unary', { operator, expression });
     }
 
 multiplicative_expression
@@ -605,7 +589,7 @@ ternary_expression
       // TODO: Make sure this is right associative, as grammar specifies
       // "right to left"
       return suffix ?
-        node('ternary', [], { expr, ...suffix }) :
+        node('ternary', { expr, ...suffix }) :
         expr
     }
 
@@ -617,7 +601,7 @@ assignment_expression
     right:assignment_expression {
       // TODO: Verify this is right to left, as specified in the grammar. Can you
       // even nest things like ">>=" or "*="
-      return node('assignment', [], { left, operator, right });
+      return node('assignment', { left, operator, right });
     }
     / ternary_expression
 
@@ -641,7 +625,7 @@ constant_expression
 
 // Just for consistency. Could be inlined
 declaration_statement = declaration:declaration semi:SEMICOLON {
-  return node('declaration_statement', [], { declaration, semi });
+  return node('declaration_statement', { declaration, semi });
 }
 
 // Note the grammar allows prototypes inside function bodies, but:
@@ -650,30 +634,36 @@ declaration_statement = declaration:declaration semi:SEMICOLON {
 //   global scope, otherwise a compile-time error results."
 declaration
   = function_prototype
-    / init_declarator_list
-    / interface_declarator
-    / precision_declarator
-    // TODO: I can't figure out how to hit this rule. Is something eating it first?
-    // This doesn't trigger it "const in a, b, c;"
-    // This doesn't trigger it "float a, b, c;"
-    / type_qualifiers IDENTIFIER? (COMMA IDENTIFIER)* {
-      return 'What is this?';
-    }
-
-interface_declarator
-  = qualifiers:type_qualifiers type:IDENTIFIER l:LEFT_BRACE body:struct_declaration_list r:RIGHT_BRACE identifier:quantified_identifier? {
-    return node('interface_declarator', [l, ...body, r], { identifier, qualifiers, type });
+  / precision_declarator
+  / init_declarator_list
+  / interface_declarator
+  // TODO: I can't figure out how to hit this rule. Is something eating it first?
+  // This doesn't trigger it "const in a, b, c;"
+  // This doesn't trigger it "float a, b, c;"
+  / type_qualifiers IDENTIFIER? (COMMA IDENTIFIER)* {
+    return 'What is this?';
   }
+
+// TODO: What triggers this? There is no generator for it.
+interface_declarator
+  = qualifiers:type_qualifiers
+    type:IDENTIFIER
+    lp:LEFT_BRACE
+    body:struct_declaration_list
+    rp:RIGHT_BRACE
+    identifier:quantified_identifier? {
+      return node('interface_declarator', { lp, body, rp, identifier, qualifiers, type });
+    }
 
 precision_declarator
   // As in "precision highp float"
   = prefix:PRECISION qualifier:precision_qualifier specifier:type_specifier {
-    return node('precision', [], { prefix, qualifier, specifier });
+    return node('precision', { prefix, qualifier, specifier });
   }
 
 function_prototype
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
-    return node('function_prototype', [], { header, params, rp });
+    return node('function_prototype', { header, params, rp });
   }
 
 function_parameters
@@ -686,22 +676,28 @@ function_header
   // "fully_specified_type" which can start with a "type_qualifiers" which can
   // be anything, including "const", but the definition of a function only
   // supports a precision qualifier before the return type
-  = precision:precision_qualifier? returnType:type_specifier name:IDENTIFIER lp:LEFT_PAREN {
-    return { ...precision && { precision }, returnType, name, lp };
-  }
+  = precision:precision_qualifier?
+    returnType:type_specifier
+    name:IDENTIFIER
+    lp:LEFT_PAREN {
+      return { ...precision && { precision }, returnType, name, lp };
+    }
 
 // Parameter note: You can declare (vec4[1] param), or vec4 param[1]) and they
 // are equivalent
 parameter_declaration
-  = qualifier:parameter_qualifier? rest:(parameter_declarator / type_specifier) {
-    return node('parameter_declarator', [], { qualifier, ...rest });
-  }
+  = qualifier:parameter_qualifier?
+    rest:(parameter_declarator / type_specifier) {
+      return node('parameter_declarator', { qualifier, ...rest });
+    }
 
 // Note array_specifier is "[const_expr]"
 parameter_declarator
-  = specifier:type_specifier identifier:IDENTIFIER quantifier:array_specifier? {
-    return { specifier, identifier, quantifier };
-  }
+  = specifier:type_specifier
+    identifier:IDENTIFIER
+    quantifier:array_specifier? {
+      return { specifier, identifier, quantifier };
+    }
 
 // I added this because on page 114, it says formal parameters can only have
 // memory qualifiers, but there's no rule for it
@@ -716,24 +712,26 @@ init_declarator_list
       op:COMMA
       expr:subsequent_declaration
     )* {
-      return node('declarator_list', leftAssociate(head, tail));
+      return node('declarator_list', { declarations: leftAssociate(head, tail) });
     }
 
 // declaration > init_declarator_list > single_declaration
 initial_declaration
   // Aparently "float;" is a legal declaration. I have no idea why
-  = specified_type:fully_specified_type suffix:(
+  = specified_type:fully_specified_type
+    suffix:(
       IDENTIFIER array_specifier? (EQUAL initializer)?
     )? {
       // No gaurantee of a suffix because fully_specified_type contains a
       // type_specifier which includes structs and type_names (IDENTIFIERs)
       const [identifier, quantifier, suffix_tail] = suffix || [];
-      const [op, initializer] = suffix_tail || [];
+      const [operator, initializer] = suffix_tail || [];
 
-      const declarator = node('declarator', [], { ...specified_type, identifier, quantifier });
+      const declarator = node('declarator', { ...specified_type, identifier, quantifier });
 
       return initializer ?
-        node(op.type, [declarator, op, initializer]) :
+        // TODO: What is op.type here? And below in subsequent_declaration
+        node('initial_declaration', { declarator, operator, initializer }) :
         declarator;
   }
 
@@ -743,11 +741,14 @@ subsequent_declaration
     suffix:(
       EQUAL initializer
     )? {
-      const declarator = node('declarator', [], { identifier, quantifier });
-      const [op, initializer] = suffix || [];
+      const declarator = node('declarator', { identifier, quantifier });
+      const [operator, initializer] = suffix || [];
 
+      // TODO: you made the type subsequent_declaration here to try to fix the
+      // tests. Look at what the AST generates and compare it to the output of
+      // ESTree and see if there's a node both of these fall under
       return initializer ?
-        node(op.type, [declarator, op, initializer]) :
+        node('subsequent_declaration', { declarator, operator, initializer }) :
         declarator;
   }
 
@@ -767,8 +768,11 @@ interpolation_qualifier
   = SMOOTH / FLAT / NOPERSPECTIVE
 
 layout_qualifier
-  = layout:LAYOUT l:LEFT_PAREN body:layout_qualifier_id_list r:RIGHT_PAREN {
-    return node(layout.type, [l, body, r]);
+  = layout:LAYOUT
+    lp:LEFT_PAREN
+    body:layout_qualifier_id_list
+    rp:RIGHT_PAREN {
+    return node('layout_qualifier', { lp, body, rp });
   }
 
 layout_qualifier_id_list
@@ -782,9 +786,9 @@ layout_qualifier_id_list
 // TODO: This looks weird, test it.
 layout_qualifier_id
   = identifier:IDENTIFIER tail:(EQUAL constant_expression)? {
-    const [op, expr] = tail || [];
+    const [op, expression] = tail || [];
     return tail ?
-      node(op.type, [identifier, op, expr]) :
+      node('layout_qualifier_id', { identifier, op, expression }) :
       identifier;
   }
   / SHARED
@@ -805,10 +809,10 @@ single_type_qualifier
 storage_qualifier "storage qualifier"
   = CONST / INOUT / IN / OUT / CENTROID / PATCH / SAMPLE / UNIFORM / BUFFER
   / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY / SUBROUTINE
-  // Note the grammar doesn't allow varying. To support GLSL ES 1.0, I've
-  // included it here
-  // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing? (same for attribute?)
-  / VARYING
+  // Note the grammar doesn't allow varying nor attribute. To support GLSL ES
+  // 1.0, I've included it here
+  // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing
+  / VARYING / ATTRIBUTE
   // TODO: Handle subroutine case
   // subroutine subroutineTypeName(type0 arg0); doesn't trigger the below
   // rule: is something out of order?
@@ -817,7 +821,7 @@ storage_qualifier "storage qualifier"
 subroutine_type_name_list = SUBROUTINE_TYPE_NAME (COMMA SUBROUTINE_TYPE_NAME)*
 
 type_specifier = specifier:type_specifier_nonarray quantifier:array_specifier? {
-  return node('type_specifier', [], { specifier, quantifier });
+  return node('type_specifier', { specifier, quantifier });
 }
 
 array_specifier
@@ -826,7 +830,7 @@ array_specifier
         return { lb, expr, rb };
       }
     )+ {
-      return node('array_specifier', [], { specifiers });
+      return node('array_specifier', { specifiers });
     }
 
 type_specifier_nonarray "type specifier"
@@ -856,21 +860,26 @@ type_specifier_nonarray "type specifier"
 precision_qualifier = HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION
 
 struct_specifier
-  = struct:STRUCT identifier:IDENTIFIER? lb:LEFT_BRACE body:struct_declaration_list rb:RIGHT_BRACE {
-    return node('struct', [], { lb, body, rb, struct, identifier })
-  }
+  = struct:STRUCT
+    identifier:IDENTIFIER?
+    lb:LEFT_BRACE
+    body:struct_declaration_list
+    rb:RIGHT_BRACE {
+      return node('struct', { lb, body, rb, struct, identifier })
+    }
 
 struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
-    return node('struct_stmt', [], { declaration, semi });
+    return node('struct_stmt', { declaration, semi });
   })+
 
 struct_declaration
   = specified_type:fully_specified_type
     field_declarator:quantified_identifier
-    tail:(
-      op:COMMA expr:quantified_identifier
-    )* {
-      const struct_declarator = node('struct_declarator', [], { ...specified_type, ...field_declarator });
+    tail:(op:COMMA expr:quantified_identifier)* {
+      const struct_declarator = node(
+        'struct_declarator', 
+        { ...specified_type, ...field_declarator }
+      );
 
       // TODO: You removed suffix() from the tail, verify this works
       return leftAssociate(struct_declarator, tail);
@@ -906,7 +915,10 @@ simple_statement
 
 // { block of statements }
 compound_statement = lb:LEFT_BRACE statements:statement_list? rb:RIGHT_BRACE {
-  return node('compound_statement', (statements || []).flat(), { lb, rb });
+  return node(
+    'compound_statement',
+    { lb, statements: (statements || []).flat(), rb }
+  );
 }
 
 // Keeping this no-new-scope rule as it could be a useful hint to the compiler
@@ -918,18 +930,20 @@ statement_no_new_scope
 statement_list = (statement / preprocessor)+
 
 expression_statement = expression:expression? semi:SEMICOLON {
-  return node('expression_statement', [], { expression, semi });
+  return node('expression_statement', { expression, semi });
 }
 
 // Note: The Khronos grammar calls this "selection statement"
 if_statement
-  = ifSymbol:IF lp:LEFT_PAREN condition:expression rp:RIGHT_PAREN tail:(
+  = ifSymbol:IF
+    lp:LEFT_PAREN
+    condition:expression
+    rp:RIGHT_PAREN tail:(
       statement (ELSE statement)?
     ) {
       const [body, elseBranch] = tail;
       return node(
         'if_statement',
-        [],
         {
           'if': ifSymbol,
           body,
@@ -950,7 +964,6 @@ switch_statement
     rb:RIGHT_BRACE {
       return node(
         'switch_statement',
-        [],
         {
           switch: switchSymbol,
           lp,
@@ -965,10 +978,10 @@ switch_statement
 
 case_label
   = caseSymbol:CASE test:expression colon:COLON {
-    return node('case_label', [], { 'case': caseSymbol, test, colon });
+    return node('case_label', { 'case': caseSymbol, test, colon });
   }
   / defaultSymbol:DEFAULT colon:COLON {
-    return node('default_label', [], { default: defaultSymbol, colon });
+    return node('default_label', { default: defaultSymbol, colon });
   }
 
 iteration_statement
@@ -979,7 +992,6 @@ iteration_statement
     body:statement_no_new_scope {
       return node(
         'while_statement',
-        [],
         {
           while: whileSymbol,
           lp,
@@ -998,7 +1010,6 @@ iteration_statement
     semi:SEMICOLON {
       return node(
         'do_statement',
-        [],
         {
           do: doSymbol,
           body,
@@ -1023,7 +1034,6 @@ iteration_statement
     body:statement_no_new_scope {
       return node(
         'for_statement',
-        [],
         {
           'for': forSymbol,
           body,
@@ -1043,31 +1053,34 @@ condition
   // A condition is used in a for loop middle case, and also a while loop (but
   // not a do-while loop). I don't think this case is valid for either? An
   // expression makes sense
-  = specified_type:fully_specified_type identifier:IDENTIFIER op:EQUAL initializer:initializer {
-      const declarator = node('declarator', [], { ...specified_type, identifier });
-      return node(op.type, [declarator, op, initializer])
-  }
-  / expression
+  = specified_type:fully_specified_type
+    identifier:IDENTIFIER
+    op:EQUAL
+    initializer:initializer {
+      const declarator = node('declarator', { ...specified_type, identifier });
+      return node('todo_condition_type', { declarator, op, initializer });
+    }
+    / expression
 
 jump_statement "jump statement"
   = jump:CONTINUE semi:SEMICOLON {
-    return node('continue_statement', [], { continue: jump, semi });
+    return node('continue_statement', { continue: jump, semi });
   }
   / jump:BREAK semi:SEMICOLON {
-    return node('break_statement', [], { break: jump, semi });
+    return node('break_statement', { break: jump, semi });
   }
   / jump:RETURN expression:expression? semi:SEMICOLON {
-    return node('return_statement', [], { return: jump, expression, semi });
+    return node('return_statement', { return: jump, expression, semi });
   }
   / jump:DISCARD semi:SEMICOLON { // Fragment shader only.
-    return node('discard_statement', [], { discard: jump, semi });
+    return node('discard_statement', { discard: jump, semi });
   }
 
 // TODO: This allows shaders with preprocessors to be parsed, and puts the
 // preprocessor line in the AST. Do I want to do this, or do I want to
 // always preprocess shaders before parsing? Not preprocessing will likely
 // break the ability to parse if there is wacky define using
-preprocessor = line:$('#' [^\n]*) _:_? { return node('preprocessor', [], { line, _ }); }
+preprocessor = line:$('#' [^\n]*) _:_? { return node('preprocessor', { line, _ }); }
 
 // Translation unit is start of grammar
 translation_unit = (external_declaration / preprocessor)+
@@ -1076,7 +1089,7 @@ external_declaration
   = function_definition / declaration_statement
 
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
-  return node('function', body, { prototype });
+  return node('function', { body, prototype });
 }
 
 // The whitespace is optional so that we can put comments immediately after

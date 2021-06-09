@@ -15,14 +15,7 @@ const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 const debugStatement = (stmt) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
-  console.log(
-    util.inspect(
-      ast.program[0].children[0].children[0].children[0],
-      false,
-      null,
-      true
-    )
-  );
+  console.log(util.inspect(ast.program[0], false, null, true));
 };
 
 const expectParsedStatement = (stmt) => {
@@ -30,14 +23,7 @@ const expectParsedStatement = (stmt) => {
   const ast = parser.parse(program);
   const glsl = generate(ast);
   if (glsl !== program) {
-    console.log(
-      util.inspect(
-        ast.program[0].children[0].children[0].children[0],
-        false,
-        null,
-        true
-      )
-    );
+    console.log(util.inspect(ast.program[0], false, null, true));
     expect(glsl.match(middle)[1]).toBe(stmt);
   }
 };
@@ -56,6 +42,22 @@ const expectParsedProgram = (sourceGlsl) => {
   }
 };
 
+test('headers', () => {
+  // The following includes the varying/attribute case which only works in GL
+  // ES 1.00, and will need to be updated when the switch is implemented
+  expectParsedProgram(`
+    precision mediump float;
+    precision highp int;
+
+    in vec4 varName;
+    out vec4 varName;
+
+    varying vec4 varName;
+    uniform vec4 varName;
+    attribute vec4 varName;
+  `);
+});
+
 test('if statement', () => {
   expectParsedStatement(`
     if(i != 0) { aFunction(); }
@@ -64,6 +66,8 @@ test('if statement', () => {
   `);
 });
 
+// TODO: You're working on removing .children -> and see the tests, now nodes
+// like '<=' are erroring. What should these nodes like <= be stored as?
 test('do while loop', () => {
   expectParsedStatement(`
     do {

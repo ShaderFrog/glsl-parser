@@ -20,11 +20,7 @@ const generators = {
   keyword: (node) => generate(node.token) + generate(node.whitespace),
 
   precision: (node) =>
-    node.prefix
-      ? generate(node.prefix) +
-        generate(node.qualifier) +
-        generate(node.specifier)
-      : generate(node.type) + generate(node.children),
+    generate(node.prefix) + generate(node.qualifier) + generate(node.specifier),
 
   // Statements
   expression_statement: (node) =>
@@ -85,25 +81,32 @@ const generators = {
     generate(node.default) + generate(node.colon) + generate(node.statements),
 
   declaration: (node) => generate(node.declaration) + generate(node.semi),
-  declarator_list: (node) => generate(node.children),
+  declarator_list: (node) => generate(node.declarations),
   declarator: (node) =>
     generate(node.qualifiers) +
     generate(node.specifier) +
     generate(node.identifier),
   type_specifier: (node) =>
     generate(node.specifier) + generate(node.quantifier),
-  identifier: (node) => node.identifier + generate(node.children),
+  identifier: (node) => node.identifier + generate(node.whitespace),
+  initial_declaration: (node) =>
+    generate(node.declarator) +
+    generate(node.operator) +
+    generate(node.initializer),
+  subsequent_declaration: (node) =>
+    generate(node.declarator) +
+    generate(node.operator) +
+    generate(node.initializer),
   function: (node) =>
-    generate(node['prototype']) + generate(node.children) + generate(node.rp),
+    generate(node['prototype']) + generate(node.body) + generate(node.rp),
   function_prototype: (node) =>
     generate(node.header.returnType) +
     generate(node.header.name) +
     generate(node.header.lp) +
     generate(node.params) +
-    generate(node.rp) +
-    generate(node.children),
+    generate(node.rp),
   compound_statement: (node) =>
-    generate(node.lb) + generate(node.children) + generate(node.rb),
+    generate(node.lb) + generate(node.statements) + generate(node.rb),
   function_call: (node) =>
     generate(node.identifier) +
     generate(node.lp) +
@@ -130,135 +133,17 @@ const generators = {
 
   binary: (node) =>
     generate(node.left) + generate(node.operator) + generate(node.right),
-  group: (node) => generate(node.children),
-  unary: (node) =>
-    generate(node.operator) +
-    generate(node.expression) +
-    generate(node.children),
+  group: (node) =>
+    generate(node.lp) + generate(node.expression) + generate(node.rp),
+  unary: (node) => generate(node.operator) + generate(node.expression),
 
-  float_constant: (node) => generate(node.children),
-  double_constant: (node) => generate(node.children),
-  int_constant: (node) => generate(node.children),
-  uint_constant: (node) => generate(node.children),
+  float_constant: (node) => generate(node.token) + generate(node.whitespace),
+  double_constant: (node) => generate(node.token) + generate(node.whitespace),
+  int_constant: (node) => generate(node.token) + generate(node.whitespace),
+  uint_constant: (node) => generate(node.token) + generate(node.whitespace),
+  bool_constant: (node) => generate(node.token) + generate(node.whitespace),
 
-  // Tokens - should these all be in "keyword" or other to avoid one node
-  // per thing? Compare to babel
-  '(': (node) => node.type + generate(node.children),
-  ')': (node) => node.type + generate(node.children),
-  '[': (node) => node.type + generate(node.children),
-  ']': (node) => node.type + generate(node.children),
-  '{': (node) => node.type + generate(node.children),
-  '}': (node) => node.type + generate(node.children),
-  '.': (node) => node.type + generate(node.children),
-  ',': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  ':': (node) => node.type + generate(node.children),
-  // This ugly ternary is the result of using '=' both as a tree, and as a
-  // token with whitespace after it. Definitely need to fix this
-  '=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  ';': (node) => node.type + generate(node.children),
-  '!': (node) => node.type + generate(node.children),
-  '-': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '~': (node) => node.type + generate(node.children),
-  '+': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '*': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '/': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '%': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '<': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '>': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '|': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '^': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '&': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '?': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-
-  '<<': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '>>': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '++': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '--': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '<=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '>=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '==': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '!=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '&&': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '||': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '^^': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '*=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '/=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '+=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '%=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '<<=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '>>=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '&=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '^=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '|=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
-  '-=': (node) =>
-    (node.children.length && node.children[0].type ? '' : generate(node.type)) +
-    generate(node.children),
+  literal: (node) => generate(node.literal) + generate(node.whitespace),
 };
 
 module.exports = { generate, generators };
