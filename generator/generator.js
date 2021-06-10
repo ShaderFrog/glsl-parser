@@ -71,6 +71,8 @@ const generators = {
     generate(node.body),
   declaration_statement: (node) =>
     generate(node.declaration) + generate(node.semi),
+  fully_specified_type: (node) =>
+    generate(node.qualifiers) + generate(node.specifier),
 
   switch_case: (node) =>
     generate(node.case) +
@@ -83,11 +85,13 @@ const generators = {
   declaration: (node) => generate(node.declaration) + generate(node.semi),
   declarator_list: (node) => generate(node.declarations),
   declarator: (node) =>
-    generate(node.qualifiers) +
-    generate(node.specifier) +
-    generate(node.identifier),
+    generate(node.specified_type) +
+    generate(node.identifier) +
+    generate(node.qualifiers),
   type_specifier: (node) =>
-    generate(node.specifier) + generate(node.quantifier),
+    generate(node.specifier) +
+    generate(node.quantifier) +
+    generate(node.declarations),
   identifier: (node) => node.identifier + generate(node.whitespace),
   initial_declaration: (node) =>
     generate(node.declarator) +
@@ -119,6 +123,8 @@ const generators = {
   postfix: (node) => generate(node.expr) + generate(node.postfix),
   quantifier: (node) =>
     generate(node.lb) + generate(node.expr) + generate(node.rb),
+  quantified_identifier: (node) =>
+    generate(node.identifier) + generate(node.quantifier),
   field_selection: (node) => generate(node.dot) + generate(node.selection),
 
   assignment: (node) =>
@@ -144,6 +150,19 @@ const generators = {
   bool_constant: (node) => generate(node.token) + generate(node.whitespace),
 
   literal: (node) => generate(node.literal) + generate(node.whitespace),
+
+  struct: (node) =>
+    generate(node.struct) +
+    generate(node.identifier) +
+    generate(node.lb) +
+    generate(node.declarations) +
+    generate(node.rb),
+
+  struct_declaration: (node) =>
+    generate(node.declaration) + generate(node.semi),
+
+  struct_declarator: (node) =>
+    generate(node.specified_type) + generate(node.field_declarator),
 };
 
 module.exports = { generate, generators };

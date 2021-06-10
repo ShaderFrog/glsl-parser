@@ -19,6 +19,11 @@ Do not use this
 - Figure out the preprocessor strategy
 - Verify every node type has a generator
 - "attribute" isn't used in GLSL ES 1.0 version parsing yet
+- Cleanup(?) of array_specifier, fully_specified_type, quantified_identifier, to
+  see if they need to be their own nodes, or if they can be inserted into parent
+  declarations instead.
+- "declarator" has three constructors, double check these are ok and shouldnt
+  be consolidated
 
 # What?
 

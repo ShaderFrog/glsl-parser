@@ -168,6 +168,15 @@ test('assignment', () => {
   expectParsedStatement('x |= 1.0;');
 });
 
+test('struct', () => {
+  expectParsedProgram(`
+    struct light {
+      float intensity;
+      vec3 position;
+    } lightVar;
+  `);
+});
+
 // test('debug', () => {
 //   // TODO: Make float a keyword (i'm not sure what else to do) and move things
 //   // into whitespace key

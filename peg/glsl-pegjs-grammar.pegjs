@@ -649,10 +649,10 @@ interface_declarator
   = qualifiers:type_qualifiers
     type:IDENTIFIER
     lp:LEFT_BRACE
-    body:struct_declaration_list
+    declarations:struct_declaration_list
     rp:RIGHT_BRACE
     identifier:quantified_identifier? {
-      return node('interface_declarator', { lp, body, rp, identifier, qualifiers, type });
+      return node('interface_declarator', { lp, declarations, rp, identifier, qualifiers, type });
     }
 
 precision_declarator
@@ -680,6 +680,7 @@ function_header
     returnType:type_specifier
     name:IDENTIFIER
     lp:LEFT_PAREN {
+      // TODO: test function_header, is this spread ok here?
       return { ...precision && { precision }, returnType, name, lp };
     }
 
@@ -688,7 +689,10 @@ function_header
 parameter_declaration
   = qualifier:parameter_qualifier?
     rest:(parameter_declarator / type_specifier) {
-      return node('parameter_declarator', { qualifier, ...rest });
+      return node(
+        'parameter_declarator_fixme_rest_not_spread_anymore',
+        { qualifier, rest }
+      );
     }
 
 // Note array_specifier is "[const_expr]"
@@ -712,6 +716,7 @@ init_declarator_list
       op:COMMA
       expr:subsequent_declaration
     )* {
+      // TODO: Make declarations an array, not associated
       return node('declarator_list', { declarations: leftAssociate(head, tail) });
     }
 
@@ -727,7 +732,7 @@ initial_declaration
       const [identifier, quantifier, suffix_tail] = suffix || [];
       const [operator, initializer] = suffix_tail || [];
 
-      const declarator = node('declarator', { ...specified_type, identifier, quantifier });
+      const declarator = node('declarator', { specified_type, identifier, quantifier });
 
       return initializer ?
         // TODO: What is op.type here? And below in subsequent_declaration
@@ -755,10 +760,10 @@ subsequent_declaration
 fully_specified_type
   // qualifier is like const, specifier is like float, and float[1]
   = qualifiers:type_qualifiers? specifier:type_specifier {
-    return {
-      qualifiers,
-      ...specifier && { specifier },
-    };
+    return node(
+      'fully_specified_type',
+      { qualifiers, specifier }
+    );
   }
 
 invariant_qualifier
@@ -820,11 +825,12 @@ storage_qualifier "storage qualifier"
 
 subroutine_type_name_list = SUBROUTINE_TYPE_NAME (COMMA SUBROUTINE_TYPE_NAME)*
 
-type_specifier = specifier:type_specifier_nonarray quantifier:array_specifier? {
-  return node('type_specifier', { specifier, quantifier });
-}
+type_specifier "type specifier"
+  = specifier:type_specifier_nonarray quantifier:array_specifier? {
+    return node('type_specifier', { specifier, quantifier });
+  }
 
-array_specifier
+array_specifier "array specifier"
   = specifiers:(
       lb:LEFT_BRACKET expr:constant_expression? rb:RIGHT_BRACKET {
         return { lb, expr, rb };
@@ -863,13 +869,13 @@ struct_specifier
   = struct:STRUCT
     identifier:IDENTIFIER?
     lb:LEFT_BRACE
-    body:struct_declaration_list
+    declarations:struct_declaration_list
     rb:RIGHT_BRACE {
-      return node('struct', { lb, body, rb, struct, identifier })
+      return node('struct', { lb, declarations, rb, struct, identifier })
     }
 
 struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
-    return node('struct_stmt', { declaration, semi });
+    return node('struct_declaration', { declaration, semi });
   })+
 
 struct_declaration
@@ -878,7 +884,7 @@ struct_declaration
     tail:(op:COMMA expr:quantified_identifier)* {
       const struct_declarator = node(
         'struct_declarator', 
-        { ...specified_type, ...field_declarator }
+        { specified_type, field_declarator }
       );
 
       // TODO: You removed suffix() from the tail, verify this works
@@ -887,7 +893,7 @@ struct_declaration
 
 quantified_identifier
   = identifier:IDENTIFIER quantifier:array_specifier? {
-    return { identifier, quantifier };
+    return node('quantified_identifier', { identifier, quantifier });
   }
 
 initializer
@@ -1057,7 +1063,7 @@ condition
     identifier:IDENTIFIER
     op:EQUAL
     initializer:initializer {
-      const declarator = node('declarator', { ...specified_type, identifier });
+      const declarator = node('declarator', { specified_type, identifier });
       return node('todo_condition_type', { declarator, op, initializer });
     }
     / expression
