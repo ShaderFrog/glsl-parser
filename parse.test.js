@@ -52,7 +52,7 @@ test('headers', () => {
     in vec4 varName;
     out vec4 varName;
 
-    varying vec4 varName;
+    varying vec4 varName, blarName;
     uniform vec4 varName;
     attribute vec4 varName;
   `);

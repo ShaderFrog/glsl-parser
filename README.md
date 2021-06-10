@@ -24,6 +24,16 @@ Do not use this
   declarations instead.
 - "declarator" has three constructors, double check these are ok and shouldnt
   be consolidated
+- Declarator also seems a little awkward when parsed, for example parsing a
+  uniform statement, it becomes:
+
+      type: 'declaration_statement',
+      declaration: {
+        type: 'declarator_list',
+        declarations: [{
+          type: 'declarator',
+
+
 
 # What?
 

@@ -717,8 +717,31 @@ init_declarator_list
       expr:subsequent_declaration
     )* {
       // TODO: Make declarations an array, not associated
-      return node('declarator_list', { declarations: leftAssociate(head, tail) });
+      return node(
+        'declarator_list',
+        {
+          declarations: [head, ...tail.map(t => t[1])],
+          commas: tail.map(t => t[0])
+        }
+      );
     }
+
+subsequent_declaration
+  = identifier:IDENTIFIER
+    quantifier:array_specifier?
+    suffix:(
+      EQUAL initializer
+    )? {
+      const declarator = node('declarator', { identifier, quantifier });
+      const [operator, initializer] = suffix || [];
+
+      // TODO: you made the type subsequent_declaration here to try to fix the
+      // tests. Look at what the AST generates and compare it to the output of
+      // ESTree and see if there's a node both of these fall under
+      return initializer ?
+        node('subsequent_declaration', { declarator, operator, initializer }) :
+        declarator;
+  }
 
 // declaration > init_declarator_list > single_declaration
 initial_declaration
@@ -735,25 +758,7 @@ initial_declaration
       const declarator = node('declarator', { specified_type, identifier, quantifier });
 
       return initializer ?
-        // TODO: What is op.type here? And below in subsequent_declaration
         node('initial_declaration', { declarator, operator, initializer }) :
-        declarator;
-  }
-
-subsequent_declaration
-  = identifier:IDENTIFIER
-    quantifier:array_specifier?
-    suffix:(
-      EQUAL initializer
-    )? {
-      const declarator = node('declarator', { identifier, quantifier });
-      const [operator, initializer] = suffix || [];
-
-      // TODO: you made the type subsequent_declaration here to try to fix the
-      // tests. Look at what the AST generates and compare it to the output of
-      // ESTree and see if there's a node both of these fall under
-      return initializer ?
-        node('subsequent_declaration', { declarator, operator, initializer }) :
         declarator;
   }
 

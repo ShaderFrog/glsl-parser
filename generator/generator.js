@@ -83,7 +83,16 @@ const generators = {
     generate(node.default) + generate(node.colon) + generate(node.statements),
 
   declaration: (node) => generate(node.declaration) + generate(node.semi),
-  declarator_list: (node) => generate(node.declarations),
+  declarator_list: (node) =>
+    node.declarations.reduce(
+      (output, decl, index) =>
+        output +
+        generate(decl) +
+        (index === node.declarations.length - 1
+          ? ''
+          : generate(node.commas[index])),
+      ''
+    ),
   declarator: (node) =>
     generate(node.specified_type) +
     generate(node.identifier) +
