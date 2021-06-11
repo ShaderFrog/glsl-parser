@@ -96,11 +96,15 @@ const generators = {
   declarator: (node) =>
     generate(node.specified_type) +
     generate(node.identifier) +
-    generate(node.qualifiers),
+    generate(node.qualifiers) +
+    generate(node.quantifier),
   type_specifier: (node) =>
     generate(node.specifier) +
     generate(node.quantifier) +
     generate(node.declarations),
+  array_specifiers: (node) => generate(node.specifiers),
+  array_specifier: (node) =>
+    generate(node.lb) + generate(node.expression) + generate(node.rb),
   identifier: (node) => node.identifier + generate(node.whitespace),
   initial_declaration: (node) =>
     generate(node.declarator) +
@@ -169,6 +173,14 @@ const generators = {
 
   struct_declaration: (node) =>
     generate(node.declaration) + generate(node.semi),
+
+  interface_declarator: (node) =>
+    generate(node.qualifiers) +
+    generate(node.interface_type) +
+    generate(node.lp) +
+    generate(node.declarations) +
+    generate(node.rp) +
+    generate(node.identifier),
 
   struct_declarator: (node) =>
     generate(node.specified_type) + generate(node.field_declarator),

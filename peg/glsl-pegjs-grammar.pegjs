@@ -635,8 +635,8 @@ declaration_statement = declaration:declaration semi:SEMICOLON {
 declaration
   = function_prototype
   / precision_declarator
-  / init_declarator_list
   / interface_declarator
+  / init_declarator_list
   // TODO: I can't figure out how to hit this rule. Is something eating it first?
   // This doesn't trigger it "const in a, b, c;"
   // This doesn't trigger it "float a, b, c;"
@@ -644,15 +644,19 @@ declaration
     return 'What is this?';
   }
 
-// TODO: What triggers this? There is no generator for it.
+// I believe this is to handle "Buffer Variables" from the grammar:
+// buffer BufferName { int count; } Name;
 interface_declarator
   = qualifiers:type_qualifiers
-    type:IDENTIFIER
+    interface_type:IDENTIFIER
     lp:LEFT_BRACE
     declarations:struct_declaration_list
     rp:RIGHT_BRACE
     identifier:quantified_identifier? {
-      return node('interface_declarator', { lp, declarations, rp, identifier, qualifiers, type });
+      return node(
+        'interface_declarator',
+        { qualifiers, interface_type, lp, declarations, rp, identifier }
+      );
     }
 
 precision_declarator
@@ -837,11 +841,11 @@ type_specifier "type specifier"
 
 array_specifier "array specifier"
   = specifiers:(
-      lb:LEFT_BRACKET expr:constant_expression? rb:RIGHT_BRACKET {
-        return { lb, expr, rb };
+      lb:LEFT_BRACKET expression:constant_expression? rb:RIGHT_BRACKET {
+        return node('array_specifier', { lb, expression, rb });
       }
     )+ {
-      return node('array_specifier', { specifiers });
+      return node('array_specifiers', { specifiers });
     }
 
 type_specifier_nonarray "type specifier"

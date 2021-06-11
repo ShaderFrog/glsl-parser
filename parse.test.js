@@ -12,6 +12,11 @@ const parser = pegjs.generate(grammar);
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
+const debugProgram = (program) => {
+  const ast = parser.parse(program);
+  console.log(util.inspect(ast.program[0], false, null, true));
+};
+
 const debugStatement = (stmt) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
@@ -172,13 +177,43 @@ test('struct', () => {
   expectParsedProgram(`
     struct light {
       float intensity;
-      vec3 position;
+      vec3 position, color;
+      
     } lightVar;
+
+    struct S { float f; };
+  `);
+});
+
+test('buffer variables', () => {
+  expectParsedProgram(`
+    buffer b {
+      float u[];
+      vec4 v[];
+    } name[3]; 
+  `);
+});
+
+test('arrays', () => {
+  expectParsedProgram(`
+    float frequencies[3];
+    uniform vec4 lightPosition[4];
+    light lights[];
+    const int numLights = 2;
+    light lights[numLights];
+
+    buffer b {
+      float u[]; 
+      vec4 v[];
+    } name[3]; 
   `);
 });
 
 // test('debug', () => {
-//   // TODO: Make float a keyword (i'm not sure what else to do) and move things
-//   // into whitespace key
-//   debugStatement('const float a = 1.0;');
+//   debugProgram(`
+//   buffer b {
+//     float u[];
+//     vec4 v[];
+//   } name[3];
+//   `);
 // });
