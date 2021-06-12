@@ -82,8 +82,14 @@ const generators = {
   default_case: (node) =>
     generate(node.default) + generate(node.colon) + generate(node.statements),
 
-  declaration: (node) => generate(node.declaration) + generate(node.semi),
+  declaration: (node) =>
+    generate(node.specified_type) +
+    generate(node.identifier) +
+    generate(node.quantifier) +
+    generate(node.operator) +
+    generate(node.initializer),
   declarator_list: (node) =>
+    generate(node.specified_type) +
     node.declarations.reduce(
       (output, decl, index) =>
         output +
@@ -106,14 +112,6 @@ const generators = {
   array_specifier: (node) =>
     generate(node.lb) + generate(node.expression) + generate(node.rb),
   identifier: (node) => node.identifier + generate(node.whitespace),
-  initial_declaration: (node) =>
-    generate(node.declarator) +
-    generate(node.operator) +
-    generate(node.initializer),
-  subsequent_declaration: (node) =>
-    generate(node.declarator) +
-    generate(node.operator) +
-    generate(node.initializer),
   function: (node) =>
     generate(node['prototype']) + generate(node.body) + generate(node.rp),
   function_prototype: (node) =>

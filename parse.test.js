@@ -20,7 +20,9 @@ const debugProgram = (program) => {
 const debugStatement = (stmt) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
-  console.log(util.inspect(ast.program[0], false, null, true));
+  console.log(
+    util.inspect(ast.program[0].body.statements[0], false, null, true)
+  );
 };
 
 const expectParsedStatement = (stmt) => {
@@ -46,6 +48,12 @@ const expectParsedProgram = (sourceGlsl) => {
     expect(glsl).toBe(sourceGlsl);
   }
 };
+
+test('declarations', () => {
+  expectParsedProgram(`
+    float a, b = 1.0, c = a;
+  `);
+});
 
 test('headers', () => {
   // The following includes the varying/attribute case which only works in GL
@@ -157,6 +165,10 @@ test('parses postfix_expression as function_identifier', () => {
   expectParsedStatement('a().length();');
 });
 
+test('postfix, unary, binary expressions', () => {
+  expectParsedStatement('x ++ + 1.0 + + 2.0;');
+});
+
 test('parses a test file', () => {
   expectParsedProgram(testFile);
 });
@@ -171,6 +183,10 @@ test('declaration', () => {
 
 test('assignment', () => {
   expectParsedStatement('x |= 1.0;');
+});
+
+test('ternary', () => {
+  expectParsedStatement('float y = x == 1.0 ? 2.0 : x == 3.0 ? 4.0 : 5.0;');
 });
 
 test('struct', () => {
@@ -209,11 +225,8 @@ test('arrays', () => {
   `);
 });
 
-// test('debug', () => {
-//   debugProgram(`
-//   buffer b {
-//     float u[];
-//     vec4 v[];
-//   } name[3];
-//   `);
-// });
+test('debug', () => {
+  debugStatement(`
+    float y = x == 1.0 ? 2.0 : x == 3.0 ? 4.0 : 5.0;
+  `);
+});

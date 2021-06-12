@@ -472,8 +472,6 @@ unary_expression
   = postfix_expression
   / operator:(INC_OP / DEC_OP / PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
-      // TODO: Unary "++" "+" "!" "~" etc are "right to left", verify
-      // things like "++ ++" parse and that they're right to left
       return node('unary', { operator, expression });
     }
 
@@ -720,11 +718,11 @@ init_declarator_list
       op:COMMA
       expr:subsequent_declaration
     )* {
-      // TODO: Make declarations an array, not associated
       return node(
         'declarator_list',
         {
-          declarations: [head, ...tail.map(t => t[1])],
+          specified_type: head.specified_type,
+          declarations: [head.declaration, ...tail.map(t => t[1])],
           commas: tail.map(t => t[0])
         }
       );
@@ -736,15 +734,11 @@ subsequent_declaration
     suffix:(
       EQUAL initializer
     )? {
-      const declarator = node('declarator', { identifier, quantifier });
       const [operator, initializer] = suffix || [];
-
-      // TODO: you made the type subsequent_declaration here to try to fix the
-      // tests. Look at what the AST generates and compare it to the output of
-      // ESTree and see if there's a node both of these fall under
-      return initializer ?
-        node('subsequent_declaration', { declarator, operator, initializer }) :
-        declarator;
+      return node(
+        'declaration',
+        { identifier, quantifier, operator, initializer }
+      );
   }
 
 // declaration > init_declarator_list > single_declaration
@@ -759,11 +753,15 @@ initial_declaration
       const [identifier, quantifier, suffix_tail] = suffix || [];
       const [operator, initializer] = suffix_tail || [];
 
-      const declarator = node('declarator', { specified_type, identifier, quantifier });
-
-      return initializer ?
-        node('initial_declaration', { declarator, operator, initializer }) :
-        declarator;
+      // Break out the specified type so it can be grouped into the
+      // declarator_list
+      return {
+        declaration: node(
+          'declaration',
+          { identifier, quantifier, operator, initializer }
+        ),
+        specified_type
+      };
   }
 
 fully_specified_type
