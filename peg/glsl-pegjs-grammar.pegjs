@@ -78,6 +78,7 @@
           }
         )
       ];
+    // It would be nice to encode this in the grammar instead of a manual check
     } else if(!cases.length) {
       throw new Error('A switch statement body must start with a case or default label');
     } else {
@@ -782,26 +783,26 @@ interpolation_qualifier
 layout_qualifier
   = layout:LAYOUT
     lp:LEFT_PAREN
-    body:layout_qualifier_id_list
+    qualifiers:(
+      head:layout_qualifier_id
+      tail:(COMMA layout_qualifier_id)* {
+        return {
+          qualifiers: [head, ...tail.map(t => t[1])],
+          commas: tail.map(t => t[0])
+        };
+      }
+    )
     rp:RIGHT_PAREN {
-    return node('layout_qualifier', { lp, body, rp });
-  }
-
-layout_qualifier_id_list
-  = head:layout_qualifier_id
-    tail:(
-      op:COMMA expr:layout_qualifier_id
-    )* {
-      return leftAssociate(head, tail);
+      return node(
+        'layout_qualifier',
+        { layout, lp, ...qualifiers, rp }
+      );
     }
 
-// TODO: This looks weird, test it.
 layout_qualifier_id
   = identifier:IDENTIFIER tail:(EQUAL constant_expression)? {
-    const [op, expression] = tail || [];
-    return tail ?
-      node('layout_qualifier_id', { identifier, op, expression }) :
-      identifier;
+    const [operator, expression] = tail || [];
+    return node('layout_qualifier_id', { identifier, operator, expression });
   }
   / SHARED
 

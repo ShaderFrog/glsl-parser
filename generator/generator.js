@@ -14,6 +14,15 @@ const generate = (ast) =>
     ? generators[ast.type](ast)
     : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
 
+const generateWithEveryOther = (nodes, everyOther) =>
+  nodes.reduce(
+    (output, node, index) =>
+      output +
+      generate(node) +
+      (index === nodes.length - 1 ? '' : generate(everyOther[index])),
+    ''
+  );
+
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
   preprocessor: (node) => generate(node.line) + generate(node._),
@@ -73,6 +82,15 @@ const generators = {
     generate(node.declaration) + generate(node.semi),
   fully_specified_type: (node) =>
     generate(node.qualifiers) + generate(node.specifier),
+  layout_qualifier: (node) =>
+    generate(node.layout) +
+    generate(node.lp) +
+    generateWithEveryOther(node.qualifiers, node.commas) +
+    generate(node.rp),
+  layout_qualifier_id: (node) =>
+    generate(node.identifier) +
+    generate(node.operator) +
+    generate(node.expression),
 
   switch_case: (node) =>
     generate(node.case) +
@@ -90,15 +108,7 @@ const generators = {
     generate(node.initializer),
   declarator_list: (node) =>
     generate(node.specified_type) +
-    node.declarations.reduce(
-      (output, decl, index) =>
-        output +
-        generate(decl) +
-        (index === node.declarations.length - 1
-          ? ''
-          : generate(node.commas[index])),
-      ''
-    ),
+    generateWithEveryOther(node.declarations, node.commas),
   declarator: (node) =>
     generate(node.specified_type) +
     generate(node.identifier) +

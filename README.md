@@ -32,8 +32,8 @@ Do not use this
         type: 'declarator_list',
         declarations: [{
           type: 'declarator',
-
-
+- Add location information to the output
+- Semantic analysis of scope of variables
 
 # What?
 

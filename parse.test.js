@@ -52,6 +52,20 @@ const expectParsedProgram = (sourceGlsl) => {
 test('declarations', () => {
   expectParsedProgram(`
     float a, b = 1.0, c = a;
+    vec2 texcoord1, texcoord2;
+    vec3 position;
+    vec4 myRGBA;
+    ivec2 textureLookup;
+    bvec3 less;
+  `);
+});
+
+test('thingies', () => {
+  expectParsedProgram(`
+  struct light {
+    float intensity;
+    vec3 position;
+  } lightVar;
   `);
 });
 
@@ -122,6 +136,7 @@ test('infinite for loop', () => {
 });
 
 test('switch error', () => {
+  // Test the semantic analysis case
   expect(() =>
     parseStatement(`
     switch (easingId) {
@@ -141,6 +156,17 @@ test('switch statement', () => {
           result = cubicOut();
           break;
       }
+  `);
+});
+
+test('layout', () => {
+  expectParsedProgram(`
+    // layout(location = 4, component = 2) in vec2 a;
+    // layout(location = 3) in vec4 normal;
+    // layout(location = 9) in mat4 transforms[2];
+    // layout(location = 3) in vec4 normal;
+    // const int start = 6;
+    layout(location = start + 2) int vec4 p;
   `);
 });
 
@@ -196,6 +222,7 @@ test('struct', () => {
       vec3 position, color;
       
     } lightVar;
+    light lightVar2;
 
     struct S { float f; };
   `);
@@ -221,12 +248,38 @@ test('arrays', () => {
     buffer b {
       float u[]; 
       vec4 v[];
-    } name[3]; 
+    } name[3];
+
+    // Array initializers
+    float array[3] = float[3](1.0, 2.0, 3.0);
+    float array[3] = float[](1.0, 2.0, 3.0);
+
+    // Function with array as return type
+    float[5] foo() { }
   `);
 });
 
 test('debug', () => {
   debugStatement(`
-    float y = x == 1.0 ? 2.0 : x == 3.0 ? 4.0 : 5.0;
+    // From page 72 lol
+    layout(location = 3) in struct S
+    {
+      vec3 a; // gets location 3
+      mat2 b; // gets locations 4 and 5
+      vec4 c[2]; // gets locations 6 and 7
+      layout(location = 8) vec2 A; // ERROR, can't use on struct member
+    } s;
+
+    layout(location = 4) in block
+    {
+      vec4 d; // gets location 4
+      vec4 e; // gets location 5
+      layout(location = 7) vec4 f; // gets location 7
+      vec4 g; // gets location 8
+      layout(location = 1) vec4 h; // gets location 1
+      vec4 i; // gets location 2
+      vec4 j; // gets location 3
+      vec4 k; // ERROR, location 4 already used
+    };
   `);
 });
