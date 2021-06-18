@@ -774,11 +774,6 @@ fully_specified_type
     );
   }
 
-invariant_qualifier
-  = INVARIANT
-
-interpolation_qualifier
-  = SMOOTH / FLAT / NOPERSPECTIVE
 
 layout_qualifier
   = layout:LAYOUT
@@ -806,9 +801,6 @@ layout_qualifier_id
   }
   / SHARED
 
-precise_qualifier
-  = PRECISE
-
 type_qualifiers = single_type_qualifier+
 
 single_type_qualifier
@@ -816,8 +808,11 @@ single_type_qualifier
   / layout_qualifier
   / precision_qualifier
   / interpolation_qualifier
-  / invariant_qualifier
-  / precise_qualifier
+  / INVARIANT
+  / PRECISE
+
+interpolation_qualifier
+  = SMOOTH / FLAT / NOPERSPECTIVE
 
 storage_qualifier "storage qualifier"
   = CONST / INOUT / IN / OUT / CENTROID / PATCH / SAMPLE / UNIFORM / BUFFER

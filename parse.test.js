@@ -161,12 +161,38 @@ test('switch statement', () => {
 
 test('layout', () => {
   expectParsedProgram(`
-    // layout(location = 4, component = 2) in vec2 a;
-    // layout(location = 3) in vec4 normal;
-    // layout(location = 9) in mat4 transforms[2];
-    // layout(location = 3) in vec4 normal;
-    // const int start = 6;
-    layout(location = start + 2) int vec4 p;
+    layout(location = 4, component = 2) in vec2 a;
+    layout(location = 3) in vec4 normal;
+    layout(location = 9) in mat4 transforms[2];
+    layout(location = 3) in vec4 normal;
+
+    const int start = 6;
+    layout(location = start + 2) in vec4 p;
+
+
+    layout(location = 3) in struct S
+    {
+      vec3 a; // gets location 3
+      mat2 b; // gets locations 4 and 5
+      vec4 c[2]; // gets locations 6 and 7
+      layout(location = 8) vec2 A; // ERROR, can't use on struct member
+    } s;
+
+    layout(location = 4) in block
+    {
+      vec4 d; // gets location 4
+      vec4 e; // gets location 5
+      layout(location = 7) vec4 f; // gets location 7
+      vec4 g; // gets location 8
+      layout(location = 1) vec4 h; // gets location 1
+      vec4 i; // gets location 2
+      vec4 j; // gets location 3
+      vec4 k; // ERROR, location 4 already used
+    };
+
+    // From the grammar but I think it's a typo
+    // https://github.com/KhronosGroup/GLSL/issues/161
+    // layout(location = start + 2) int vec4 p;
   `);
 });
 
