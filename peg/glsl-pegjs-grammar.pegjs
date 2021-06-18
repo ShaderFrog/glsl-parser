@@ -883,15 +883,16 @@ struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
 
 struct_declaration
   = specified_type:fully_specified_type
-    field_declarator:quantified_identifier
-    tail:(op:COMMA expr:quantified_identifier)* {
-      const struct_declarator = node(
+    head:quantified_identifier
+    tail:(COMMA quantified_identifier)* {
+      return node(
         'struct_declarator', 
-        { specified_type, field_declarator }
+        {
+          specified_type,
+          declarations: [head, ...tail.map(t => t[1])],
+          commas: tail.map(t => t[0])
+        }
       );
-
-      // TODO: You removed suffix() from the tail, verify this works
-      return leftAssociate(struct_declarator, tail);
     }
 
 quantified_identifier

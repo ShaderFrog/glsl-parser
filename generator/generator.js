@@ -191,7 +191,8 @@ const generators = {
     generate(node.identifier),
 
   struct_declarator: (node) =>
-    generate(node.specified_type) + generate(node.field_declarator),
+    generate(node.specified_type) +
+    generateWithEveryOther(node.declarations, node.commas),
 };
 
 module.exports = { generate, generators };

@@ -246,7 +246,6 @@ test('struct', () => {
     struct light {
       float intensity;
       vec3 position, color;
-      
     } lightVar;
     light lightVar2;
 
