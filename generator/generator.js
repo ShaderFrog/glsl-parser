@@ -193,6 +193,15 @@ const generators = {
   struct_declarator: (node) =>
     generate(node.specified_type) +
     generateWithEveryOther(node.declarations, node.commas),
+
+  initializer_list: (node) =>
+    generate(node.lb) +
+    generateWithEveryOther(node.initializers, node.commas) +
+    generate(node.rb),
+
+  qualifier_declarator: (node) =>
+    generate(node.qualifiers) +
+    generateWithEveryOther(node.declarations, node.commas),
 };
 
 module.exports = { generate, generators };

@@ -34,6 +34,7 @@ Do not use this
           type: 'declarator',
 - Add location information to the output
 - Semantic analysis of scope of variables
+- Subroutine as a type needs to know types in scope
 
 # What?
 

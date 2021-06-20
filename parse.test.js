@@ -60,15 +60,6 @@ test('declarations', () => {
   `);
 });
 
-test('thingies', () => {
-  expectParsedProgram(`
-  struct light {
-    float intensity;
-    vec3 position;
-  } lightVar;
-  `);
-});
-
 test('headers', () => {
   // The following includes the varying/attribute case which only works in GL
   // ES 1.00, and will need to be updated when the switch is implemented
@@ -159,6 +150,14 @@ test('switch statement', () => {
   `);
 });
 
+test('qualifier declarations', () => {
+  // The expected node here is "qualifier_declarator", which would be nice to
+  // test for at some point, maybe when doing more AST analysis
+  expectParsedProgram(`
+    invariant precise in a, b,c;
+  `);
+});
+
 test('layout', () => {
   expectParsedProgram(`
     layout(location = 4, component = 2) in vec2 a;
@@ -168,7 +167,6 @@ test('layout', () => {
 
     const int start = 6;
     layout(location = start + 2) in vec4 p;
-
 
     layout(location = 3) in struct S
     {
@@ -238,10 +236,12 @@ test('assignment', () => {
 });
 
 test('ternary', () => {
-  expectParsedStatement('float y = x == 1.0 ? 2.0 : x == 3.0 ? 4.0 : 5.0;');
+  expectParsedStatement(
+    'float y = x == 1.0 ? x == 2.0 ? 1.0 : 3.0 : x == 3.0 ? 4.0 : 5.0;'
+  );
 });
 
-test('struct', () => {
+test('structs', () => {
   expectParsedProgram(`
     struct light {
       float intensity;
@@ -284,27 +284,18 @@ test('arrays', () => {
   `);
 });
 
-test('debug', () => {
-  debugStatement(`
-    // From page 72 lol
-    layout(location = 3) in struct S
-    {
-      vec3 a; // gets location 3
-      mat2 b; // gets locations 4 and 5
-      vec4 c[2]; // gets locations 6 and 7
-      layout(location = 8) vec2 A; // ERROR, can't use on struct member
-    } s;
-
-    layout(location = 4) in block
-    {
-      vec4 d; // gets location 4
-      vec4 e; // gets location 5
-      layout(location = 7) vec4 f; // gets location 7
-      vec4 g; // gets location 8
-      layout(location = 1) vec4 h; // gets location 1
-      vec4 i; // gets location 2
-      vec4 j; // gets location 3
-      vec4 k; // ERROR, location 4 already used
+test('initializer list', () => {
+  expectParsedProgram(`
+    vec4 a[3][2] = {
+      vec4[2](vec4(0.0), vec4(1.0)),
+      vec4[2](vec4(0.0), vec4(1.0)),
+      vec4[2](vec4(0.0), vec4(1.0))
     };
+  `);
+});
+
+test('debug', () => {
+  expectParsedProgram(`
+    invariant centroid out vec3 Color, Color;
   `);
 });

@@ -21,12 +21,6 @@
   // Remove empty elements and return value if only 1 element remains
   const collapse = (...args) => ifOnly(xnil(args));
 
-  // Remove the first element of an array and return the rest. This is for the
-  // case where we get ["(", " "] back in a group, don't care about the first
-  // token since we know it's a group, but do care about the whitespace. a
-  // could be an array or a string of tokens
-  const noWs = a => [a].flat().slice(1);
-
   // Create a left associative tree of nodes
 	const leftAssociate = (...nodes) =>
     nodes.flat().reduce((current, [operator, expr]) => ({
@@ -35,15 +29,6 @@
       left: current,
       right: expr
     }));
-
-  // no longer needed?
-  // const rightAssociate = (...nodes) => {
-  //   const [last, penultimate, ...flat] = nodes.flat().reverse();
-  //   return flat.reduce((current, previous) => node(
-  //     current.type,
-  //     [...(previous.children || [previous]), current]
-  //   ), node(last.type, [...penultimate.children, ...last.children]));
-  // }
 
   // No longer needed?
   // const without = (obj, ...keys) => Object.entries(obj).reduce((acc, [key, value]) => ({
@@ -258,7 +243,6 @@ UIMAGE2DMSARRAY = token:"uimage2DMSArray" t:terminal { return node('keyword', { 
 STRUCT = token:"struct" t:terminal { return node('keyword', { token, whitespace: t }); }
 VOID = token:"void" t:terminal { return node('keyword', { token, whitespace: t }); }
 WHILE = token:"while" t:terminal { return node('keyword', { token, whitespace: t }); }
-IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
 
 INVARIANT = token:"invariant" t:terminal { return node('keyword', { token, whitespace: t }); }
 PRECISE = token:"precise" t:terminal { return node('keyword', { token, whitespace: t }); }
@@ -267,9 +251,6 @@ MEDIUM_PRECISION = token:"mediump" t:terminal { return node('keyword', { token, 
 LOW_PRECISION = token:"lowp" t:terminal { return node('keyword', { token, whitespace: t }); }
 PRECISION = token:"precision" t:terminal { return node('keyword', { token, whitespace: t }); }
 
-// I renamed "type_name" to this because it only appears to be used for subroutines
-SUBROUTINE_TYPE_NAME = IDENTIFIER
-
 FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
 DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
 INTCONSTANT = token:integer_constant _:_? { return node('int_constant', { token, whitespace: _ }); }
@@ -277,6 +258,35 @@ UINTCONSTANT = token:integer_constant _:_? { return node('uint_constant', { toke
 BOOLCONSTANT
   = token:("true" / "false") _:_ { return node('bool_constant', { token, whitespace:_ }); }
 FIELD_SELECTION = IDENTIFIER
+
+keyword "keyword" = ATTRIBUTE / VARYING / CONST / BOOL / FLOAT / DOUBLE / INT / UINT
+  / BREAK / CONTINUE / DO / ELSE / FOR / IF / DISCARD / RETURN / SWITCH / CASE
+  / DEFAULT / SUBROUTINE / BVEC2 / BVEC3 / BVEC4 / IVEC2 / IVEC3 / IVEC4 / UVEC2
+  / UVEC3 / UVEC4 / VEC2 / VEC3 / VEC4 / MAT2 / MAT3 / MAT4 / CENTROID / IN
+  / OUT / INOUT / UNIFORM / PATCH / SAMPLE / BUFFER / SHARED / COHERENT
+  / VOLATILE / RESTRICT / READONLY / WRITEONLY / DVEC2 / DVEC3 / DVEC4 / DMAT2
+  / DMAT3 / DMAT4 / NOPERSPECTIVE / FLAT / SMOOTH / LAYOUT / MAT2X2 / MAT2X3
+  / MAT2X4 / MAT3X2 / MAT3X3 / MAT3X4 / MAT4X2 / MAT4X3 / MAT4X4 / DMAT2X2
+  / DMAT2X3 / DMAT2X4 / DMAT3X2 / DMAT3X3 / DMAT3X4 / DMAT4X2 / DMAT4X3
+  / DMAT4X4 / ATOMIC_UINT / SAMPLER1D / SAMPLER2D / SAMPLER3D / SAMPLERCUBE
+  / SAMPLER1DSHADOW / SAMPLER2DSHADOW / SAMPLERCUBESHADOW / SAMPLER1DARRAY
+  / SAMPLER2DARRAY / SAMPLER1DARRAYSHADOW / SAMPLER2DARRAYSHADOW / ISAMPLER1D
+  / ISAMPLER2D / ISAMPLER3D / ISAMPLERCUBE / ISAMPLER1DARRAY / ISAMPLER2DARRAY
+  / USAMPLER1D / USAMPLER2D / USAMPLER3D / USAMPLERCUBE / USAMPLER1DARRAY
+  / USAMPLER2DARRAY / SAMPLER2DRECT / SAMPLER2DRECTSHADOW / ISAMPLER2DRECT
+  / USAMPLER2DRECT / SAMPLERBUFFER / ISAMPLERBUFFER / USAMPLERBUFFER
+  / SAMPLERCUBEARRAY / SAMPLERCUBEARRAYSHADOW / ISAMPLERCUBEARRAY
+  / USAMPLERCUBEARRAY / SAMPLER2DMS / ISAMPLER2DMS / USAMPLER2DMS
+  / SAMPLER2DMSARRAY / ISAMPLER2DMSARRAY / USAMPLER2DMSARRAY / IMAGE1D
+  / IIMAGE1D / UIMAGE1D / IMAGE2D / IIMAGE2D / UIMAGE2D / IMAGE3D / IIMAGE3D
+  / UIMAGE3D / IMAGE2DRECT / IIMAGE2DRECT / UIMAGE2DRECT / IMAGECUBE
+  / IIMAGECUBE / UIMAGECUBE / IMAGEBUFFER / IIMAGEBUFFER / UIMAGEBUFFER
+  / IMAGE1DARRAY / IIMAGE1DARRAY / UIMAGE1DARRAY / IMAGE2DARRAY / IIMAGE2DARRAY
+  / UIMAGE2DARRAY / IMAGECUBEARRAY / IIMAGECUBEARRAY / UIMAGECUBEARRAY
+  / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
+  / UIMAGE2DMSARRAY / STRUCT / VOID / WHILE / INVARIANT / PRECISE
+  / HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION / PRECISION
+  / FLOATCONSTANT / DOUBLECONSTANT / INTCONSTANT / UINTCONSTANT / BOOLCONSTANT
 
 LEFT_OP = token:"<<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 RIGHT_OP = token:">>" _:_? { return node('literal', { literal: token, whitespace: _ }); }
@@ -324,6 +334,9 @@ VERTICAL_BAR = token:"|" _:_? { return node('literal', { literal: token, whitesp
 CARET = token:"^" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+
+IDENTIFIER = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
+TYPE_NAME = !keyword IDENTIFIER
 
 // Spec note: "It is a compile-time error to provide a literal integer whose bit
 // pattern cannot fit in 32 bits." This and other ranges are not yet implemented
@@ -585,8 +598,8 @@ ternary_expression
         return { question, left, right, colon };
       }
     )? {
-      // TODO: Make sure this is right associative, as grammar specifies
-      // "right to left"
+      // ? and : operators are right associative, which happens automatically
+      // in pegjs grammar
       return suffix ?
         node('ternary', { expr, ...suffix }) :
         expr
@@ -598,8 +611,6 @@ assignment_expression
   = left:unary_expression
     operator:assignment_operator
     right:assignment_expression {
-      // TODO: Verify this is right to left, as specified in the grammar. Can you
-      // even nest things like ">>=" or "*="
       return node('assignment', { left, operator, right });
     }
     / ternary_expression
@@ -621,30 +632,51 @@ expression "expression"
 constant_expression
   = ternary_expression
 
-
-// Just for consistency. Could be inlined
-declaration_statement = declaration:declaration semi:SEMICOLON {
-  return node('declaration_statement', { declaration, semi });
+declaration_statement = declaration:declaration {
+  return node(
+    'declaration_statement',
+    {
+        declaration: declaration[0],
+        semi: declaration[1],
+      }
+  );
 }
 
 // Note the grammar allows prototypes inside function bodies, but:
 //  "Function declarations (prototypes) cannot occur inside of functions;
 //   they must be at global scope, or for the built-in functions, outside the
 //   global scope, otherwise a compile-time error results."
+
+// Don't factor out the semicolon from these lines up into
+// "declaration_statement". Doing so causes some productions to consume input
+// that's meant for a later production.
 declaration
-  = function_prototype
-  / precision_declarator
-  / interface_declarator
-  / init_declarator_list
-  // TODO: I can't figure out how to hit this rule. Is something eating it first?
-  // This doesn't trigger it "const in a, b, c;"
-  // This doesn't trigger it "float a, b, c;"
-  / type_qualifiers IDENTIFIER? (COMMA IDENTIFIER)* {
-    return 'What is this?';
+  = function_prototype SEMICOLON
+  // Statements starting with "precision", like "precision highp float"
+  / precision_declarator SEMICOLON
+  // Grouped in/out/uniform/buffer declarations with a { members } block after.
+  / interface_declarator SEMICOLON
+  // A statement starting with only qualifiers like "in precision a;"
+  / qualifier_declarator SEMICOLON
+  // Handles most identifiers. Interface declarator handles layout() {} blocks.
+  // init_declartor_list needs to come after it, otherwise it eats the layout
+  // part without handling the open brace after it
+  / init_declarator_list SEMICOLON
+
+qualifier_declarator =
+  qualifiers:type_qualifiers
+  head:IDENTIFIER?
+  tail:(COMMA IDENTIFIER)* {
+    return node(
+      'qualifier_declarator',
+      {
+        qualifiers,
+        declarations: [head, ...tail.map(t => t[1])],
+        commas: tail.map(t => t[0])
+      }
+    );
   }
 
-// I believe this is to handle "Buffer Variables" from the grammar:
-// buffer BufferName { int count; } Name;
 interface_declarator
   = qualifiers:type_qualifiers
     interface_type:IDENTIFIER
@@ -744,7 +776,7 @@ subsequent_declaration
 
 // declaration > init_declarator_list > single_declaration
 initial_declaration
-  // Aparently "float;" is a legal declaration. I have no idea why
+  // Apparently "float;" is a legal statement. I have no idea why.
   = specified_type:fully_specified_type
     suffix:(
       IDENTIFIER array_specifier? (EQUAL initializer)?
@@ -773,7 +805,6 @@ fully_specified_type
       { qualifiers, specifier }
     );
   }
-
 
 layout_qualifier
   = layout:LAYOUT
@@ -826,7 +857,7 @@ storage_qualifier "storage qualifier"
   // rule: is something out of order?
   / SUBROUTINE LEFT_PAREN subroutine_type_name_list RIGHT_PAREN
 
-subroutine_type_name_list = SUBROUTINE_TYPE_NAME (COMMA SUBROUTINE_TYPE_NAME)*
+subroutine_type_name_list = TYPE_NAME (COMMA TYPE_NAME)*
 
 type_specifier "type specifier"
   = specifier:type_specifier_nonarray quantifier:array_specifier? {
@@ -864,7 +895,7 @@ type_specifier_nonarray "type specifier"
   / IMAGE1DARRAY / IIMAGE1DARRAY / UIMAGE1DARRAY / IMAGE2DARRAY / IIMAGE2DARRAY
   / UIMAGE2DARRAY / IMAGECUBEARRAY / IIMAGECUBEARRAY / UIMAGECUBEARRAY
   / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
-  / UIMAGE2DMSARRAY / struct_specifier / SUBROUTINE_TYPE_NAME
+  / UIMAGE2DMSARRAY / struct_specifier / TYPE_NAME
 
 precision_qualifier = HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION
 
@@ -900,14 +931,25 @@ quantified_identifier
     return node('quantified_identifier', { identifier, quantifier });
   }
 
+// This is what comes after the equals sign in a variable initialization
 initializer
   = assignment_expression
-  // TODO What are these cases - when do I need to handle them?
-  / LEFT_BRACE initializer_list RIGHT_BRACE
-  / LEFT_BRACE initializer_list COMMA RIGHT_BRACE
-
-initializer_list
-  = initializer (COMMA initializer)*
+  // Example: mat2x2 b = { vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) };
+  / lb:LEFT_BRACE
+    head:initializer
+    tail:(COMMA initializer)*
+    trailing:COMMA?
+    rb:RIGHT_BRACE {
+      return node(
+        'initializer_list',
+        {
+          lb,
+          initializers: [head, ...tail.map(t => t[1])],
+          commas: xnil(tail.map(t => t[0]), trailing),
+          rb
+        }
+      );
+    }
 
 statement
   = compound_statement
@@ -1034,8 +1076,8 @@ iteration_statement
   / forSymbol:FOR
     lp:LEFT_PAREN
     init:(
-      expression? SEMICOLON /
-      declaration SEMICOLON
+      expression_statement /
+      declaration_statement
     )?
     condition:condition?
     conditionSemi:SEMICOLON
@@ -1048,8 +1090,8 @@ iteration_statement
           'for': forSymbol,
           body,
           lp,
-          init: init[0],
-          initSemi: init[1],
+          init: init.expression || init.declaration,
+          initSemi: init.semi,
           condition,
           conditionSemi,
           operation,
@@ -1105,7 +1147,9 @@ function_definition = prototype:function_prototype body:compound_statement_no_ne
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
-_ "whitespace" = w:whitespace? rest:(comment whitespace?)* { return collapse(w, rest); }
+_ "whitespace" = w:whitespace? rest:(comment whitespace?)* {
+  return collapse(w, rest);
+}
 
 comment
   = single_comment
