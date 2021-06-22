@@ -35,6 +35,8 @@ Do not use this
 - Add location information to the output
 - Semantic analysis of scope of variables
 - Subroutine as a type needs to know types in scope
+- Differentiate constructors from function calls?
+- ✅ todo_condition_type
 
 # What?
 

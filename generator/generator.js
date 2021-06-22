@@ -78,6 +78,12 @@ const generators = {
     generate(node.operation) +
     generate(node.rp) +
     generate(node.body),
+  condition_expression: (node) =>
+    generate(node.specified_type) +
+    generate(node.identifier) +
+    generate(node.declarator) +
+    generate(node.op) +
+    generate(node.initializer),
   declaration_statement: (node) =>
     generate(node.declaration) + generate(node.semi),
   fully_specified_type: (node) =>
@@ -124,12 +130,18 @@ const generators = {
   identifier: (node) => node.identifier + generate(node.whitespace),
   function: (node) =>
     generate(node['prototype']) + generate(node.body) + generate(node.rp),
+  function_header: (node) =>
+    generate(node.returnType) + generate(node.name) + generate(node.lp),
   function_prototype: (node) =>
     generate(node.header.returnType) +
     generate(node.header.name) +
     generate(node.header.lp) +
-    generate(node.params) +
+    (node.parameters
+      ? generateWithEveryOther(node.parameters, node.commas)
+      : '') +
     generate(node.rp),
+  parameter_declaration: (node) =>
+    generate(node.qualifier) + generate(node.declaration),
   compound_statement: (node) =>
     generate(node.lb) + generate(node.statements) + generate(node.rb),
   function_call: (node) =>

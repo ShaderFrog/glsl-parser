@@ -698,35 +698,34 @@ precision_declarator
 
 function_prototype
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
-    return node('function_prototype', { header, params, rp });
-  }
-
-function_parameters
-  = head:parameter_declaration tail:(COMMA parameter_declaration)* {
-    return [head, ...tail.flat()];
+    return node('function_prototype', { header, ...params, rp });
   }
 
 function_header
-  // Note: function_header in original grammar starts with a
-  // "fully_specified_type" which can start with a "type_qualifiers" which can
-  // be anything, including "const", but the definition of a function only
-  // supports a precision qualifier before the return type
-  = precision:precision_qualifier?
-    returnType:type_specifier
+  = returnType:type_specifier
     name:IDENTIFIER
     lp:LEFT_PAREN {
-      // TODO: test function_header, is this spread ok here?
-      return { ...precision && { precision }, returnType, name, lp };
+      return node(
+        'function_header',
+        { returnType, name, lp }
+      );
     }
 
-// Parameter note: You can declare (vec4[1] param), or vec4 param[1]) and they
-// are equivalent
+function_parameters
+  = head:parameter_declaration tail:(COMMA parameter_declaration)* {
+    return {
+      parameters: [head, ...tail.map(t => t[1])],
+      commas: tail.map(t => t[0])
+    }
+  }
+
+// Parameter note: vec4[1] param and vec4 param[1] are equivalent
 parameter_declaration
   = qualifier:parameter_qualifier?
-    rest:(parameter_declarator / type_specifier) {
+    declaration:(parameter_declarator / type_specifier) {
       return node(
-        'parameter_declarator_fixme_rest_not_spread_anymore',
-        { qualifier, rest }
+        'parameter_declaration',
+        { qualifier, declaration }
       );
     }
 
@@ -735,7 +734,10 @@ parameter_declarator
   = specifier:type_specifier
     identifier:IDENTIFIER
     quantifier:array_specifier? {
-      return { specifier, identifier, quantifier };
+      return node(
+        'parameter_declarator',
+        { specifier, identifier, quantifier }
+      );
     }
 
 // I added this because on page 114, it says formal parameters can only have
@@ -1036,7 +1038,7 @@ case_label
     return node('default_label', { default: defaultSymbol, colon });
   }
 
-iteration_statement
+iteration_statement "iteration statement"
   = whileSymbol:WHILE
     lp:LEFT_PAREN
     condition:condition
@@ -1109,8 +1111,10 @@ condition
     identifier:IDENTIFIER
     op:EQUAL
     initializer:initializer {
-      const declarator = node('declarator', { specified_type, identifier });
-      return node('todo_condition_type', { declarator, op, initializer });
+      return node(
+        'condition_expression',
+        { specified_type, identifier, op, initializer }
+      );
     }
     / expression
 

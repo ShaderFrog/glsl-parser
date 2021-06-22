@@ -108,7 +108,13 @@ test('while loop', () => {
   `);
 });
 
-test('for loop', () => {
+test('for loops', () => {
+  // Infinite for loop
+  expectParsedStatement(`
+    for(;;) {
+    }
+  `);
+  // For loop with jump statements
   expectParsedStatement(`
     for(int a = 0; b <= 99; c++) {
       break;
@@ -117,12 +123,9 @@ test('for loop', () => {
       aFunction();
     }
   `);
-});
-
-test('infinite for loop', () => {
+  // Loop with condition variable declaration (GLSL ES 3.00 only)
   expectParsedStatement(`
-    for(;;) {
-    }
+    for(int i = 0; bool x = false; i++) {}
   `);
 });
 
@@ -196,14 +199,24 @@ test('layout', () => {
 
 test('comments', () => {
   expectParsedProgram(`
-  /* starting comment */
-  // hi
-  void main() {
-    /* comment */// hi
-    /* comment */ // hi
-    statement(); // hi
-    /* start */ statement(); /* end */
-  }
+    /* starting comment */
+    // hi
+    void main() {
+      /* comment */// hi
+      /* comment */ // hi
+      statement(); // hi
+      /* start */ statement(); /* end */
+    }
+  `);
+});
+
+test('functions', () => {
+  expectParsedProgram(`
+    // Prototypes
+    vec4 f(in vec4 x, out vec4 y);
+    int newFunction(in bvec4 aBvec4,   // read-only
+      out vec3 aVec3,                  // write-only
+      inout int aInt);                 // read-write
   `);
 });
 
