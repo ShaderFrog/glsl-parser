@@ -3,7 +3,8 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.0.2",
+  "version": "0.0.21",
+  "main": "dist/parser.js",
   "description": "A GLSL ES 1.0 and 3.0 parser that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build",
