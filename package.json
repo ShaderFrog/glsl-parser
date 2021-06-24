@@ -6,10 +6,14 @@
   "version": "0.0.2",
   "description": "A GLSL ES 1.0 and 3.0 parser that can preserve whitespace and comments",
   "scripts": {
-    "build": "pegjs -o parser.js peg/glsl-pegjs-grammar.pegjs",
+    "prepare": "npm run build",
+    "build": "mkdir -p dist && pegjs -o dist/parser.js peg/glsl-pegjs-grammar.pegjs",
     "watch-test": "jest --watch",
     "test": "jest"
   },
+  "files": [
+    "dist/parser.js"
+  ],
   "jest": {
     "moduleFileExtensions": [
       "js",
