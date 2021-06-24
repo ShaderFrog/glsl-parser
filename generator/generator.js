@@ -160,6 +160,13 @@ const generators = {
     generate(node.identifier) + generate(node.quantifier),
   field_selection: (node) => generate(node.dot) + generate(node.selection),
 
+  subroutine_qualifier: (node) =>
+    generate(node.subroutine) +
+    generate(node.lp) +
+    generate(node.type_names) +
+    generate(node.commas) +
+    generate(node.rp),
+
   assignment: (node) =>
     generate(node.left) + generate(node.operator) + generate(node.right),
 

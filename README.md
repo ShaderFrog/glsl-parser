@@ -2,8 +2,8 @@ Do not use this
 
 # Fixme
 
+- ✅ Finish all the parsing
 - ✅ The shape of for/while statements
-- Finish all the parsing
 - ✅ What is leftAssociate doing again? Do I need it?
 - ✅ A + parses to {type: '+', chidlren: [left, '+', right]} - can I remove that
   middle child and put whitespace as a key of the top level +
@@ -13,7 +13,7 @@ Do not use this
   nodes with a left and right, as well as inline nodes in children arrays to
   support whitespace handling - have a "keyword" node - check what astparser
   does online for keywords
-- Impelement printing
+- ✅ Impelement printing
 - Implement optional whitespace flag
 - glsl version switch to support glsl es 3 vs 1?
 - Figure out the preprocessor strategy
@@ -34,7 +34,6 @@ Do not use this
           type: 'declarator',
 - Add location information to the output
 - Semantic analysis of scope of variables
-- Subroutine as a type needs to know types in scope
 - Differentiate constructors from function calls?
 - ✅ todo_condition_type
 

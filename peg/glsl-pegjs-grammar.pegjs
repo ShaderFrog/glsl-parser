@@ -651,7 +651,9 @@ declaration_statement = declaration:declaration {
 // "declaration_statement". Doing so causes some productions to consume input
 // that's meant for a later production.
 declaration
-  = function_prototype SEMICOLON
+  =
+  // qualifier_declarator SEMICOLON
+  function_prototype SEMICOLON
   // Statements starting with "precision", like "precision highp float"
   / precision_declarator SEMICOLON
   // Grouped in/out/uniform/buffer declarations with a { members } block after.
@@ -690,19 +692,19 @@ interface_declarator
       );
     }
 
-precision_declarator
+precision_declarator "precision statement"
   // As in "precision highp float"
   = prefix:PRECISION qualifier:precision_qualifier specifier:type_specifier {
     return node('precision', { prefix, qualifier, specifier });
   }
 
-function_prototype
+function_prototype "function prototype"
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
     return node('function_prototype', { header, ...params, rp });
   }
 
-function_header
-  = returnType:type_specifier
+function_header "function header"
+  = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
       return node(
@@ -711,7 +713,7 @@ function_header
       );
     }
 
-function_parameters
+function_parameters "function parameters"
   = head:parameter_declaration tail:(COMMA parameter_declaration)* {
     return {
       parameters: [head, ...tail.map(t => t[1])],
@@ -720,7 +722,7 @@ function_parameters
   }
 
 // Parameter note: vec4[1] param and vec4 param[1] are equivalent
-parameter_declaration
+parameter_declaration "parameter declaration"
   = qualifier:parameter_qualifier?
     declaration:(parameter_declarator / type_specifier) {
       return node(
@@ -730,7 +732,7 @@ parameter_declaration
     }
 
 // Note array_specifier is "[const_expr]"
-parameter_declarator
+parameter_declarator "parameter declarator"
   = specifier:type_specifier
     identifier:IDENTIFIER
     quantifier:array_specifier? {
@@ -836,7 +838,7 @@ layout_qualifier_id
 
 type_qualifiers = single_type_qualifier+
 
-single_type_qualifier
+single_type_qualifier "single type qualifier"
   = storage_qualifier
   / layout_qualifier
   / precision_qualifier
@@ -844,22 +846,37 @@ single_type_qualifier
   / INVARIANT
   / PRECISE
 
-interpolation_qualifier
+interpolation_qualifier "interpolation qualifier"
   = SMOOTH / FLAT / NOPERSPECTIVE
 
 storage_qualifier "storage qualifier"
   = CONST / INOUT / IN / OUT / CENTROID / PATCH / SAMPLE / UNIFORM / BUFFER
-  / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY / SUBROUTINE
+  / SHARED / COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY
   // Note the grammar doesn't allow varying nor attribute. To support GLSL ES
   // 1.0, I've included it here
   // TODO: Turn off in GLSL ES 1.00 vs 3.00 parsing
   / VARYING / ATTRIBUTE
-  // TODO: Handle subroutine case
-  // subroutine subroutineTypeName(type0 arg0); doesn't trigger the below
-  // rule: is something out of order?
-  / SUBROUTINE LEFT_PAREN subroutine_type_name_list RIGHT_PAREN
-
-subroutine_type_name_list = TYPE_NAME (COMMA TYPE_NAME)*
+  / subroutine:SUBROUTINE
+    type_names:(
+      lp:LEFT_PAREN
+      head:TYPE_NAME
+      tail:(COMMA TYPE_NAME)*
+      rp:RIGHT_PAREN {
+        return {
+          lp,
+          type_names: [head, ...tail.map(t => t[1])],
+          commas: tail.map(t => t[0]),
+          rp,
+        };
+      })? {
+        return node(
+          'subroutine_qualifier',
+          {
+            subroutine,
+            ...type_names,
+          }
+        );
+      }
 
 type_specifier "type specifier"
   = specifier:type_specifier_nonarray quantifier:array_specifier? {
@@ -899,9 +916,10 @@ type_specifier_nonarray "type specifier"
   / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
   / UIMAGE2DMSARRAY / struct_specifier / TYPE_NAME
 
-precision_qualifier = HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION
+precision_qualifier "precision qualifier"
+  = HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION
 
-struct_specifier
+struct_specifier "struct specifier"
   = struct:STRUCT
     identifier:IDENTIFIER?
     lb:LEFT_BRACE
@@ -1136,7 +1154,7 @@ jump_statement "jump statement"
 // preprocessor line in the AST. Do I want to do this, or do I want to
 // always preprocess shaders before parsing? Not preprocessing will likely
 // break the ability to parse if there is wacky define using
-preprocessor = line:$('#' [^\n]*) _:_? { return node('preprocessor', { line, _ }); }
+preprocessor "prepocessor" = line:$('#' [^\n]*) _:_? { return node('preprocessor', { line, _ }); }
 
 // Translation unit is start of grammar
 translation_unit = (external_declaration / preprocessor)+

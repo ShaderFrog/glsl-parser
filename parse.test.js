@@ -307,6 +307,22 @@ test('initializer list', () => {
   `);
 });
 
+test('subroutines', () => {
+  expectParsedProgram(`
+    subroutine vec4 colorRedBlue();
+
+    // option 1
+    subroutine (colorRedBlue ) vec4 redColor() {
+        return vec4(1.0, 0.0, 0.0, 1.0);
+    }
+
+    // // option 2
+    // subroutine (colorRedBlue ) vec4 blueColor() {
+    //     return vec4(0.0, 0.0, 1.0, 1.0);
+    // }
+  `);
+});
+
 test('debug', () => {
   expectParsedProgram(`
     invariant centroid out vec3 Color, Color;
