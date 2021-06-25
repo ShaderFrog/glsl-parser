@@ -36,6 +36,7 @@ Think about using this, maybe. Probably a bad idea.
 - Semantic analysis of scope of variables
 - Differentiate constructors from function calls?
 - ✅ todo_condition_type
+- This line is valid GLSL ES 1.0 but not 3.0: vec4 buffer	= texture2D(renderbuffer, uv);
 
 # What?
 

@@ -8,7 +8,7 @@ const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
 
 const grammar = file('peg/glsl-pegjs-grammar.pegjs');
 const testFile = file('glsltest.glsl');
-const parser = pegjs.generate(grammar);
+const parser = pegjs.generate(grammar, { cache: true });
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
