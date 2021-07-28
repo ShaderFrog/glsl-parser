@@ -38,6 +38,27 @@ Think about using this, maybe. Probably a bad idea.
 - ✅ todo_condition_type
 - This line is valid GLSL ES 1.0 but not 3.0: vec4 buffer	= texture2D(renderbuffer, uv);
 
+Import from Shadertoy / GLSL Sandbox
+- Rename variables to try to use shaderfrog engine
+- Change any math in AST that needs to be changed
+- Add shaderfrog engine uniforms
+
+If the shader has
+
+uniform vec2 resolution;
+#define iResolution resolution
+float minres = min(iResolution.x, iResolution.y);
+
+Then if I need to rename resolution to vUv, I need to know that it's aliased in the define statement. For any defines that **aren't numbers** I need to preprocess them. Maybe i need to preprocess everything since numbers can be used in #if statements
+
+#define _ iResolution.x;
+vec3 a = _
+
+gl_FragCoord > vUv
+
+
+This sounds like it requires a full preprocess to handle.
+
 # What?
 
 - Making this Babel ESTree compatible to use babel ecosystem

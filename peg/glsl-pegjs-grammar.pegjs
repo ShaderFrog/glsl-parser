@@ -286,7 +286,6 @@ keyword "keyword" = ATTRIBUTE / VARYING / CONST / BOOL / FLOAT / DOUBLE / INT / 
   / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
   / UIMAGE2DMSARRAY / STRUCT / VOID / WHILE / INVARIANT / PRECISE
   / HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION / PRECISION
-  / FLOATCONSTANT / DOUBLECONSTANT / INTCONSTANT / UINTCONSTANT / BOOLCONSTANT
 
 LEFT_OP = token:"<<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 RIGHT_OP = token:">>" _:_? { return node('literal', { literal: token, whitespace: _ }); }
