@@ -81,93 +81,7 @@
 
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
-start = program:dang_test_dang {
-  return { type: 'dang_test', program };
-}
-
-// dang_test_dang = (control_line / text)*
-dang_test_dang =
-  wsStart:_?
-  blocks:(
-    control_line
-    / text:text+ {
-      return node('text', { text: text.join('') });
-    }
-  )+ wsEnd:_? {
-    return { blocks, wsStart, wsEnd };
-  }
-
-control_line = 
-  wsStart:_?
-  line:(
-    conditional /
-    define:DEFINE identifier:IDENTIFIER definition:token_string? {
-      return node('define', { identifier, definition } )
-    } /
-    INCLUDE 'path_spec' / // TODO handle file types?
-    LINE digit_sequence "filename"? /
-    UNDEF IDENTIFIER /
-    ERROR token_string /
-    PRAGMA token_string
-  )
-  wsEnd:[\n]? {
-    return { type: 'control_line', wsStart, wsEnd, line };
-  }
-
-constant_expression_if =
-  DEFINED IDENTIFIER /
-  DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
-  constant_expression
-
-conditional =
-  if_part elif_parts? else_part? endif_line
-
-if_part =
-  if_line text
-
-if_line =
-  IF /
-  IF constant_expression_if /
-  IFDEF IDENTIFIER /
-  IFNDEF IDENTIFIER
-
-elif_parts =
-  (elif_line text)+
-  // elif_line text /
-  // elif_parts elif_line text
-
-elif_line =
-  ELIF constant_expression_if
-
-else_part =
-  else_line text
-
-else_line =
-  ELSE
-
-endif_line =
-  ENDIF
-
-// Defined from before
-// digit_sequence =
-//   digit /
-//   digit_sequence digit
-
-token_string = $([^\n]+)
-
-token =
-  // keyword / // What is this?
-  IDENTIFIER
-  // constant / // What is this?
-  // operator /
-  // punctuator
-
-filename = [\S]+
-
-path_spec = [\S]+
-
-// I made up this text rule. I have no idea what's going on
-text "text" = $(!"#" [^\n]+ [\n] / [\n])
+start = dang_test_dang
 
 // FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
 // DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
@@ -269,6 +183,105 @@ digit = [0-9]
 digit_sequence = $digit+
 // floating_suffix = [fF] / "lf" / "LF"
 
+
+// dang_test_dang = (control_line / text)*
+dang_test_dang =
+  wsStart:_?
+  blocks:(
+    control_line
+    / text:text+ {
+      return node('text', { text: text.join('') });
+    }
+  )+
+  wsEnd:_? {
+    return node('program', { blocks, wsStart, wsEnd });
+  }
+
+control_line
+  = wsStart:_?
+    line:(
+      conditional
+      / define:DEFINE
+        lp:LEFT_PAREN
+        args:IDENTIFIER*
+        rp:RIGHT_PAREN
+        definition:token_string? {
+        return node('define_arguments', { define, identifier, lp, args, rp, definition } )
+      }
+      / define:DEFINE identifier:IDENTIFIER definition:token_string? {
+        return node('define', { define, identifier, definition } )
+      }
+      / INCLUDE 'path_spec' // TODO handle file types?
+      / LINE digit_sequence "filename"?
+      / UNDEF IDENTIFIER
+      / ERROR token_string
+      / PRAGMA token_string
+    )
+    wsEnd:[\n]? {
+      return { ...line, wsStart, wsEnd };
+    }
+
+constant_expression_if =
+  DEFINED IDENTIFIER /
+  DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
+  constant_expression
+
+conditional
+  = ifPart:if_line
+    body:text
+    elseIfParts:(elif_line text)*
+    elsePart:else_part?
+    endif:endif_line {
+      return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
+    }
+
+// if_part =
+//   if_line text
+
+if_line =
+  IF /
+  IF constant_expression_if /
+  IFDEF IDENTIFIER /
+  IFNDEF IDENTIFIER
+
+elif_parts =
+  (elif_line text)+
+  // elif_line text /
+  // elif_parts elif_line text
+
+elif_line =
+  ELIF constant_expression_if
+
+else_part =
+  else_line text
+
+else_line =
+  ELSE
+
+endif_line =
+  ENDIF
+
+// Defined from before
+// digit_sequence =
+//   digit /
+//   digit_sequence digit
+
+token_string = $([^\n]+)
+
+token =
+  // keyword / // What is this?
+  IDENTIFIER
+  // constant / // What is this?
+  // operator /
+  // punctuator
+
+filename = [\S]+
+
+path_spec = [\S]+
+
+// I made up this text rule. I have no idea what's going on
+text "text" = $(!"#" [^\n]+ [\n] / [\n])
+
 primary_expression "primary expression"
   // FLOATCONSTANT
   = INTCONSTANT
@@ -284,7 +297,8 @@ primary_expression "primary expression"
 //   = expression
 
 unary_expression "unary expression"
-  = operator:(PLUS / DASH / BANG / TILDE)
+  = primary_expression
+  / operator:(PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
       return node('unary', { operator, expression });
     }

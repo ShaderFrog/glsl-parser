@@ -15,12 +15,44 @@ const generate = (ast) =>
     : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
 
 const generators = {
-  dang_test: (node) => generate(node.program),
+  program: (node) =>
+    generate(node.wsStart) + generate(node.blocks) + generate(node.wsEnd),
+  text: (node) => generate(node.text),
+  literal: (node) => generate(node.literal) + generate(node.whitespace),
+  identifier: (node) => generate(node.identifier) + generate(node.whitespace),
+
+  binary: (node) =>
+    generate(node.left) + generate(node.operator) + generate(node.right),
+  group: (node) =>
+    generate(node.lp) + generate(node.expression) + generate(node.rp),
+  unary: (node) => generate(node.operator) + generate(node.expression),
+  int_constant: (node) => generate(node.token) + generate(node.whitespace),
+
+  define: (node) =>
+    generate(node.define) +
+    generate(node.identifier) +
+    generate(node.definition) +
+    generate(node.wsEnd),
+  define_arguments: (node) =>
+    generate(node.define) +
+    generate(node.identifier) +
+    generate(node.lp) +
+    generate(node.args) +
+    generate(node.rp) +
+    generate(node.definition) +
+    generate(node.wsEnd),
+  conditional: (node) =>
+    generate(node.ifPart) +
+    generate(node.body) +
+    generate(node.elseIfParts) +
+    generate(node.elsePart) +
+    generate(node.endif) +
+    generate(node.wsEnd),
 };
 
 const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
 
-const grammar = file('peg/garf.pegjs');
+const grammar = file('peg/preprocessor.pegjs');
 const testFile = file('glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
 
@@ -28,7 +60,7 @@ const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
 const debugProgram = (program) => {
   const ast = parser.parse(program);
-  console.log(util.inspect(ast.program, false, null, true));
+  console.log(util.inspect(ast, false, null, true));
 };
 
 const debugStatement = (stmt) => {
@@ -65,6 +97,9 @@ const expectParsedProgram = (sourceGlsl) => {
 
 test('declarations', () => {
   debugProgram(`
+#if A == 1
+#elif A == 1 || defined(B)
+#endif
 #define A B laskdjflasdkfjasf
     float a;    
     vloat b;
