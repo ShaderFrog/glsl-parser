@@ -81,7 +81,7 @@
 
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
-start = dang_test_dang
+start = text_or_control_lines
 
 // FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
 // DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
@@ -119,7 +119,7 @@ RIGHT_PAREN = token:")" _:_? { return node('literal', { literal: token, whitespa
 // LEFT_BRACE = token:"{" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // RIGHT_BRACE = token:"}" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // DOT = token:"." _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// COMMA = token:"," _:_? { return node('literal', { literal: token, whitespace: _ }); }
+COMMA = token:"," _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // COLON = token:":" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // EQUAL = token:"=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // SEMICOLON = token:";" _:_? { return node('literal', { literal: token, whitespace: _ }); }
@@ -185,16 +185,16 @@ digit_sequence = $digit+
 
 
 // dang_test_dang = (control_line / text)*
-dang_test_dang =
-  wsStart:_?
+text_or_control_lines =
   blocks:(
     control_line
     / text:text+ {
-      return node('text', { text: text.join('') });
+      // return node('text', { text: text.join('') });
+      return node('text', { text });
     }
   )+
   wsEnd:_? {
-    return node('program', { blocks, wsStart, wsEnd });
+    return node('program', { blocks, wsEnd });
   }
 
 control_line
@@ -202,8 +202,14 @@ control_line
     line:(
       conditional
       / define:DEFINE
+        identifier:IDENTIFIER
         lp:LEFT_PAREN
-        args:IDENTIFIER*
+        args:(
+          head:IDENTIFIER
+          tail:(COMMA IDENTIFIER)* {
+            return [head, ...tail.flat()];
+          }
+        )
         rp:RIGHT_PAREN
         definition:token_string? {
         return node('define_arguments', { define, identifier, lp, args, rp, definition } )
@@ -221,6 +227,7 @@ control_line
       return { ...line, wsStart, wsEnd };
     }
 
+// TODO
 constant_expression_if =
   DEFINED IDENTIFIER /
   DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
@@ -228,8 +235,8 @@ constant_expression_if =
 
 conditional
   = ifPart:if_line
-    body:text
-    elseIfParts:(elif_line text)*
+    body:text_or_control_lines+
+    elseIfParts:(elif_line text_or_control_lines)*
     elsePart:else_part?
     endif:endif_line {
       return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
@@ -280,7 +287,8 @@ filename = [\S]+
 path_spec = [\S]+
 
 // I made up this text rule. I have no idea what's going on
-text "text" = $(!"#" [^\n]+ [\n] / [\n])
+// text "text" = a:$(!(whitespace? "#") [^\n]+ [\n]) { return { nonempty_line: a } } / b:$([\n]) { return { empty_line: b } }
+text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
 
 primary_expression "primary expression"
   // FLOATCONSTANT
