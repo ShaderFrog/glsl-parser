@@ -15,8 +15,8 @@ const generate = (ast) =>
     : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
 
 const generators = {
-  program: (node) =>
-    generate(node.wsStart) + generate(node.blocks) + generate(node.wsEnd),
+  program: (node) => generate(node.blocks) + generate(node.wsEnd),
+  segment: (node) => generate(node.blocks),
   text: (node) => generate(node.text),
   literal: (node) => generate(node.literal) + generate(node.whitespace),
   identifier: (node) => generate(node.identifier) + generate(node.whitespace),
@@ -99,22 +99,24 @@ const expectParsedProgram = (sourceGlsl) => {
 };
 
 test('preprocessor test', () => {
-  expectParsedProgram(`
-  #define MIN(a,b) (((a)<(b)) ? a : b)
-#if A == 1
+  debugProgram(`
+#if A == 1 || B == 2
  #define A
+    #elif A == 1 || defined(B)
+ #define B
 #endif`);
 });
 
-test('preprocessor test', () => {
-  expectParsedProgram(`
-  #define MIN(a,b) (((a)<(b)) ? a : b)
-#if A == 1
-  #define A
-#elif A == 1 || defined(B)
-#endif
-#define A B laskdjflasdkfjasf
-    float a;
-    vloat b;
-  `);
-});
+// test('preprocessor test', () => {
+//   debugProgram(`
+
+//   #define MIN (a,b) (((a)<(b)) ? a : b)
+// #if A == 1
+//   #define A
+// #elif A == 1 || defined(B)
+// #endif
+// #define A B laskdjflasdkfjasf
+//     float a;
+//     vloat b;
+//   `);
+// });

@@ -81,7 +81,13 @@
 
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
-start = text_or_control_lines
+start = program
+
+program = 
+  blocks:text_or_control_lines
+  wsEnd:_? {
+    return node('program', { blocks, wsEnd });
+  }
 
 // FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
 // DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
@@ -137,21 +143,22 @@ CARET = token:"^" _:_? { return node('literal', { literal: token, whitespace: _ 
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 // QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 
-DEFINE = token:"#define" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-INCLUDE = token:"#include" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-LINE = token:"#line" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-UNDEF = token:"#undef" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-ERROR = token:"#error" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-PRAGMA = token:"#pragma" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-DEFINED = token:"defined" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-IF = token:"#if" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-IFDEF = token:"#ifdef" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-IFNDEF = token:"#ifndef" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-ELIF = token:"#elif" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-ELSE = token:"#else" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-ENDIF = token:"#endif" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+DEFINE = wsStart:_? token:"#define" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+INCLUDE = wsStart:_? token:"#include" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+LINE = wsStart:_? token:"#line" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+UNDEF = wsStart:_? token:"#undef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+ERROR = wsStart:_? token:"#error" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+PRAGMA = wsStart:_? token:"#pragma" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+DEFINED = wsStart:_? token:"defined" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+IF = wsStart:_? token:"#if" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFDEF = wsStart:_? token:"#ifdef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFNDEF = wsStart:_? token:"#ifndef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELIF = wsStart:_? token:"#elif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELSE = wsStart:_? token:"#else" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+ENDIF = wsStart:_? token:"#endif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 
 IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
+IDENTIFIER_NO_WS = identifier:$([A-Za-z_] [A-Za-z_0-9]*) { return node('identifier', { identifier }); }
 
 // Spec note: "It is a compile-time error to provide a literal integer whose bit
 // pattern cannot fit in 32 bits." This and other ranges are not yet implemented
@@ -183,26 +190,23 @@ digit = [0-9]
 digit_sequence = $digit+
 // floating_suffix = [fF] / "lf" / "LF"
 
-
 // dang_test_dang = (control_line / text)*
 text_or_control_lines =
   blocks:(
     control_line
     / text:text+ {
-      // return node('text', { text: text.join('') });
-      return node('text', { text });
+      return node('text', { text: text.join('') });
+      // return node('text', { text });
     }
-  )+
-  wsEnd:_? {
-    return node('program', { blocks, wsEnd });
+  )+ {
+    return node('segment', { blocks });
   }
 
 control_line
-  = wsStart:_?
-    line:(
+  = line:(
       conditional
       / define:DEFINE
-        identifier:IDENTIFIER
+        identifier:IDENTIFIER_NO_WS
         lp:LEFT_PAREN
         args:(
           head:IDENTIFIER
@@ -212,61 +216,77 @@ control_line
         )
         rp:RIGHT_PAREN
         definition:token_string? {
-        return node('define_arguments', { define, identifier, lp, args, rp, definition } )
-      }
-      / define:DEFINE identifier:IDENTIFIER definition:token_string? {
-        return node('define', { define, identifier, definition } )
-      }
-      / INCLUDE 'path_spec' // TODO handle file types?
-      / LINE digit_sequence "filename"?
-      / UNDEF IDENTIFIER
-      / ERROR token_string
-      / PRAGMA token_string
+          return node('define_arguments', { define, identifier, lp, args, rp, definition } )
+        }
+        / define:DEFINE identifier:IDENTIFIER definition:token_string? {
+          return node('define', { define, identifier, definition } )
+        }
+        / INCLUDE path_spec // TODO handle file types?
+        / LINE digit_sequence "filename"?
+        / UNDEF IDENTIFIER
+        / ERROR token_string
+        / PRAGMA token_string
     )
     wsEnd:[\n]? {
-      return { ...line, wsStart, wsEnd };
+      return { ...line, wsEnd };
     }
 
 // TODO
-constant_expression_if =
-  DEFINED IDENTIFIER /
-  DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
-  constant_expression
+// constant_expression_if =
+//   DEFINED IDENTIFIER /
+//   DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
+//   constant_expression
 
 conditional
   = ifPart:if_line
-    body:text_or_control_lines+
-    elseIfParts:(elif_line text_or_control_lines)*
-    elsePart:else_part?
-    endif:endif_line {
+    body:text_or_control_lines?
+    elseIfParts:(
+      token:ELIF
+      expression:constant_expression
+      elseIfBody:text_or_control_lines? {
+        return node('elseif', { token, expression, body: elseIfBody });
+      }
+    )*
+    elsePart:(ELSE text)?
+    endif:ENDIF {
       return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
     }
 
 // if_part =
 //   if_line text
 
-if_line =
-  IF /
-  IF constant_expression_if /
-  IFDEF IDENTIFIER /
-  IFNDEF IDENTIFIER
+if_line
+  = line:(
+    token:IF expression:constant_expression? {
+      return node('if', { token, expression });
+    }
+    / token:IFDEF identifier:IDENTIFIER {
+      return node('ifdef', { token, identifier });
+    }
+    / token:IFNDEF identifier:IDENTIFIER {
+      return node('ifndef', { token, identifier });
+    }
+  )
+  wsEnd:[\n] {
+    return { ...line, wsEnd };
+  }
 
-elif_parts =
-  (elif_line text)+
+// elif_parts =
+//   (elif_line text)+
   // elif_line text /
   // elif_parts elif_line text
 
-elif_line =
-  ELIF constant_expression_if
+// elif_line =
+//   ELIF constant_expression_if
 
-else_part =
-  else_line text
+// else_part =
+//   else_line text
 
-else_line =
-  ELSE
+// else_line =
+//   ELSE
 
-endif_line =
-  ENDIF
+// endif_line =
+//   ENDIF
 
 // Defined from before
 // digit_sequence =
@@ -275,9 +295,9 @@ endif_line =
 
 token_string = $([^\n]+)
 
-token =
-  // keyword / // What is this?
-  IDENTIFIER
+// token =
+//   // keyword / // What is this?
+//   IDENTIFIER
   // constant / // What is this?
   // operator /
   // punctuator
@@ -306,7 +326,10 @@ primary_expression "primary expression"
 
 unary_expression "unary expression"
   = primary_expression
-  / operator:(PLUS / DASH / BANG / TILDE)
+  / operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
+    return node('unary_defined', { operator, lp, identifier, rp, });
+  }
+  / operator:(DEFINED / PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
       return node('unary', { operator, expression });
     }
@@ -392,8 +415,17 @@ logical_and_expression "logical and expression"
       return leftAssociate(head, tail);
     }
 
+logical_or_expression
+  = head:logical_and_expression
+    tail:(
+      op:OR_OP
+      expr:logical_and_expression
+    )* {
+      return leftAssociate(head, tail);
+    }
+
 // I added this as a maybe entry point to expressions
-constant_expression = logical_and_expression
+constant_expression = logical_or_expression
 
 // TODO: Compare with exclusive_or_expression
 // logical_xor_expression "logical xor expression"
@@ -413,15 +445,6 @@ constant_expression = logical_and_expression
 //     )* {
 //       return leftAssociate(head, tail);
 //     }
-
-logical_or_expression "logical or expression"
-  = head:logical_and_expression
-    tail:(
-      op:OR_OP
-      expr:logical_and_expression
-    )* {
-      return leftAssociate(head, tail);
-    }
 
 // ternary_expression
 //   = expr:logical_or_expression
