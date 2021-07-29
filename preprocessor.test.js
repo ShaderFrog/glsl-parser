@@ -18,15 +18,28 @@ const generators = {
   program: (node) => generate(node.blocks) + generate(node.wsEnd),
   segment: (node) => generate(node.blocks),
   text: (node) => generate(node.text),
-  literal: (node) => generate(node.literal) + generate(node.whitespace),
-  identifier: (node) => generate(node.identifier) + generate(node.whitespace),
+  literal: (node) =>
+    generate(node.wsStart) + generate(node.literal) + generate(node.wsEnd),
+  identifier: (node) => generate(node.identifier) + generate(node.wsEnd),
 
   binary: (node) =>
     generate(node.left) + generate(node.operator) + generate(node.right),
   group: (node) =>
     generate(node.lp) + generate(node.expression) + generate(node.rp),
   unary: (node) => generate(node.operator) + generate(node.expression),
-  int_constant: (node) => generate(node.token) + generate(node.whitespace),
+  int_constant: (node) => generate(node.token) + generate(node.wsEnd),
+
+  elseif: (node) =>
+    generate(node.token) +
+    generate(node.expression) +
+    generate(node.body) +
+    generate(node.wsEnd),
+  if: (node) =>
+    generate(node.token) + generate(node.expression) + generate(node.wsEnd),
+  ifdef: (node) =>
+    generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
+  ifndef: (node) =>
+    generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
 
   define: (node) =>
     generate(node.wsStart) +
@@ -99,24 +112,19 @@ const expectParsedProgram = (sourceGlsl) => {
 };
 
 test('preprocessor test', () => {
-  debugProgram(`
-#if A == 1 || B == 2
+  expectParsedProgram(`
+#if A == 1 || (B == 2)
+      #if A == 1 || B == 2
+      #define A
+          #elif A == 1 || defined(B) && C == 2
+          float a;
+          #elif A == 1 || defined(B) && C == 2
+          float a;
+      #define B
+      #endif
  #define A
     #elif A == 1 || defined(B)
  #define B
-#endif`);
+#endif
+`);
 });
-
-// test('preprocessor test', () => {
-//   debugProgram(`
-
-//   #define MIN (a,b) (((a)<(b)) ? a : b)
-// #if A == 1
-//   #define A
-// #elif A == 1 || defined(B)
-// #endif
-// #define A B laskdjflasdkfjasf
-//     float a;
-//     vloat b;
-//   `);
-// });

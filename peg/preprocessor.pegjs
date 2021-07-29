@@ -29,54 +29,6 @@
       left: current,
       right: expr
     }));
-
-  // No longer needed?
-  // const without = (obj, ...keys) => Object.entries(obj).reduce((acc, [key, value]) => ({
-  //   ...acc,
-  //   ...(!keys.includes(key) && { [key]: value })
-  // }), {});
-
-  // Group the statements in a switch statement into cases / default arrays
-  const groupCases = (statements) => statements.reduce((cases, stmt) => {
-    if(stmt.type === 'case_label') {
-      return [
-        ...cases,
-        node(
-          'switch_case',
-          {
-            statements: [],
-            case: stmt.case,
-            test: stmt.test,
-            colon: stmt.colon,
-          }
-        )
-      ];
-    } else if(stmt.type === 'default_label') {
-      return [
-        ...cases,
-        node(
-          'default_case',
-          {
-            statements: [],
-            default: stmt.default,
-            colon: stmt.colon,
-          }
-        )
-      ];
-    // It would be nice to encode this in the grammar instead of a manual check
-    } else if(!cases.length) {
-      throw new Error('A switch statement body must start with a case or default label');
-    } else {
-      const tail = cases.slice(-1)[0];
-      return [...cases.slice(0, -1), {
-        ...tail,
-        statements: [
-          ...tail.statements,
-          stmt
-        ]
-      }];
-    }
-  }, []);
 }
 
 // Extra whitespace here at start is to help with screenshots by adding
@@ -89,59 +41,33 @@ program =
     return node('program', { blocks, wsEnd });
   }
 
-// FLOATCONSTANT = token:floating_constant _:_? { return node('float_constant', { token, whitespace: _ }); }
-// DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', { token, whitespace: _ }); }
-INTCONSTANT = token:integer_constant _:_? { return node('int_constant', { token, whitespace: _ }); }
-// UINTCONSTANT = token:integer_constant _:_? { return node('uint_constant', { token, whitespace: _ }); }
-// BOOLCONSTANT
-//   = token:("true" / "false") _:_ { return node('bool_constant', { token, whitespace:_ }); }
+// GLSL only allows for integers in constant expressions
+INTCONSTANT = token:integer_constant _:_? { return node('int_constant', { token, wsEnd: _ }); }
 
-LEFT_OP = token:"<<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-RIGHT_OP = token:">>" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// INC_OP = token:"++" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// DEC_OP = token:"--" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-LE_OP = token:"<=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-GE_OP = token:">=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-EQ_OP = token:"==" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-NE_OP = token:"!=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-AND_OP = token:"&&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-OR_OP = token:"||" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// XOR_OP = token:"^^" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// MUL_ASSIGN = token:"*=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// DIV_ASSIGN = token:"/=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// ADD_ASSIGN = token:"+=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// MOD_ASSIGN = token:"%=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// LEFT_ASSIGN = token:"<<=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// RIGHT_ASSIGN = token:">>=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// AND_ASSIGN = token:"&=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// XOR_ASSIGN = token:"^=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// OR_ASSIGN = token:"|=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// SUB_ASSIGN = token:"-=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_OP = token:"<<" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+RIGHT_OP = token:">>" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+LE_OP = token:"<=" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+GE_OP = token:">=" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+EQ_OP = token:"==" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+NE_OP = token:"!=" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+AND_OP = token:"&&" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+OR_OP = token:"||" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 
-LEFT_PAREN = token:"(" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-RIGHT_PAREN = token:")" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// LEFT_BRACKET = token:"[" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// RIGHT_BRACKET = token:"]" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// LEFT_BRACE = token:"{" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// RIGHT_BRACE = token:"}" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// DOT = token:"." _:_? { return node('literal', { literal: token, whitespace: _ }); }
-COMMA = token:"," _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// COLON = token:":" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// EQUAL = token:"=" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// SEMICOLON = token:";" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-BANG = token:"!" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-DASH = token:"-" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-TILDE = token:"~" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-PLUS = token:"+" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-STAR = token:"*" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-SLASH = token:"/" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-PERCENT = token:"%" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-LEFT_ANGLE = token:"<" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-RIGHT_ANGLE = token:">" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-VERTICAL_BAR = token:"|" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-CARET = token:"^" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
-// QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
+LEFT_PAREN = token:"(" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+RIGHT_PAREN = token:")" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+COMMA = token:"," _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+BANG = token:"!" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+DASH = token:"-" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+TILDE = token:"~" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+PLUS = token:"+" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+STAR = token:"*" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+SLASH = token:"/" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+PERCENT = token:"%" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+LEFT_ANGLE = token:"<" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+RIGHT_ANGLE = token:">" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+VERTICAL_BAR = token:"|" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+CARET = token:"^" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 
 DEFINE = wsStart:_? token:"#define" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 INCLUDE = wsStart:_? token:"#include" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
@@ -157,12 +83,8 @@ ELIF = wsStart:_? token:"#elif" wsEnd:_? { return node('literal', { literal: tok
 ELSE = wsStart:_? token:"#else" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 ENDIF = wsStart:_? token:"#endif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 
-IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
+IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, wsEnd: _ }); }
 IDENTIFIER_NO_WS = identifier:$([A-Za-z_] [A-Za-z_0-9]*) { return node('identifier', { identifier }); }
-
-// Spec note: "It is a compile-time error to provide a literal integer whose bit
-// pattern cannot fit in 32 bits." This and other ranges are not yet implemented
-// here
 
 // Integers
 integer_constant
@@ -178,19 +100,9 @@ octal_constant = "0" [0-7]*
 hexadecimal_constant = "0" [xX] [0-9a-fA-F]*
 
 digit = [0-9]
-
-// Floating point
-// floating_constant
-//   = $(fractional_constant exponent_part? floating_suffix?)
-//   / $(digit_sequence exponent_part floating_suffix?)
-// fractional_constant = $(digit_sequence? "." digit_sequence?)
-// exponent_part "exponent" = $([eE] [+-]? digit_sequence)
-
-// digit_sequence
 digit_sequence = $digit+
-// floating_suffix = [fF] / "lf" / "LF"
 
-// dang_test_dang = (control_line / text)*
+// Basically any valid source code
 text_or_control_lines =
   blocks:(
     control_line
@@ -202,6 +114,7 @@ text_or_control_lines =
     return node('segment', { blocks });
   }
 
+// Any preprocessor or directive line
 control_line
   = line:(
       conditional
@@ -221,6 +134,7 @@ control_line
         / define:DEFINE identifier:IDENTIFIER definition:token_string? {
           return node('define', { define, identifier, definition } )
         }
+        // TODO
         / INCLUDE path_spec // TODO handle file types?
         / LINE digit_sequence "filename"?
         / UNDEF IDENTIFIER
@@ -230,12 +144,6 @@ control_line
     wsEnd:[\n]? {
       return { ...line, wsEnd };
     }
-
-// TODO
-// constant_expression_if =
-//   DEFINED IDENTIFIER /
-//   DEFINED LEFT_PAREN IDENTIFIER RIGHT_PAREN /
-//   constant_expression
 
 conditional
   = ifPart:if_line
@@ -251,9 +159,6 @@ conditional
     endif:ENDIF {
       return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
     }
-
-// if_part =
-//   if_line text
 
 if_line
   = line:(
@@ -271,61 +176,31 @@ if_line
     return { ...line, wsEnd };
   }
 
-// elif_parts =
-//   (elif_line text)+
-  // elif_line text /
-  // elif_parts elif_line text
-
-// elif_line =
-//   ELIF constant_expression_if
-
-// else_part =
-//   else_line text
-
-// else_line =
-//   ELSE
-
-// endif_line =
-//   ENDIF
-
-// Defined from before
-// digit_sequence =
-//   digit /
-//   digit_sequence digit
-
+// Any series of characters on the same line,
+// for example "abc 123" in "#define A abc 123"
 token_string = $([^\n]+)
 
-// token =
-//   // keyword / // What is this?
-//   IDENTIFIER
-  // constant / // What is this?
-  // operator /
-  // punctuator
-
 filename = [\S]+
-
 path_spec = [\S]+
 
-// I made up this text rule. I have no idea what's going on
-// text "text" = a:$(!(whitespace? "#") [^\n]+ [\n]) { return { nonempty_line: a } } / b:$([\n]) { return { empty_line: b } }
+// Any non-control line
 text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
 
+// The following encodes the operator precedence for preprocessor #if
+// expressions, as defined on page 12 of
+// https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
+
 primary_expression "primary expression"
-  // FLOATCONSTANT
   = INTCONSTANT
-  // / UINTCONSTANT
-  // / BOOLCONSTANT
-  // / DOUBLECONSTANT
   / lp:LEFT_PAREN expression:constant_expression rp:RIGHT_PAREN {
     return node('group', { lp, expression, rp });
   }
   / IDENTIFIER
 
-// integer_expression "integer expression"
-//   = expression
-
 unary_expression "unary expression"
   = primary_expression
+  // "defined" is a unary operator, it can appear with optional parens. I'm not
+  // sure if it makes sense to have it in the unary_expression section
   / operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
     return node('unary_defined', { operator, lp, identifier, rp, });
   }
@@ -427,85 +302,6 @@ logical_or_expression
 // I added this as a maybe entry point to expressions
 constant_expression = logical_or_expression
 
-// TODO: Compare with exclusive_or_expression
-// logical_xor_expression "logical xor expression"
-//   = head:logical_and_expression
-//     tail:(
-//       op:XOR_OP
-//       expr:logical_and_expression
-//     )* {
-//       return leftAssociate(head, tail);
-//     }
-
-// logical_or_expression "logical or expression"
-//   = head:logical_xor_expression
-//     tail:(
-//       op:OR_OP
-//       expr:logical_xor_expression
-//     )* {
-//       return leftAssociate(head, tail);
-//     }
-
-// ternary_expression
-//   = expr:logical_or_expression
-//     suffix:(
-//       question:QUESTION
-//       left:expression
-//       colon:COLON
-//       right:assignment_expression {
-//         return { question, left, right, colon };
-//       }
-//     )? {
-//       // ? and : operators are right associative, which happens automatically
-//       // in pegjs grammar
-//       return suffix ?
-//         node('ternary', { expr, ...suffix }) :
-//         expr
-//     }
-
-// assignment_expression
-//   // Note, I switched the order of these because a conditional expression can
-//   // hijack the production because it can also be a unary_expression
-//   = left:unary_expression
-//     operator:assignment_operator
-//     right:assignment_expression {
-//       return node('assignment', { left, operator, right });
-//     }
-//     / ternary_expression
-
-// assignment_operator "asignment"
-//   = EQUAL / MUL_ASSIGN / DIV_ASSIGN / MOD_ASSIGN / ADD_ASSIGN / SUB_ASSIGN
-//   / LEFT_ASSIGN / RIGHT_ASSIGN / AND_ASSIGN / XOR_ASSIGN / OR_ASSIGN
-
-// expression "expression"
-//   = head:assignment_expression
-//     tail:(
-//       op:COMMA expr:assignment_expression
-//     )* {
-//       return leftAssociate(head, tail);
-//     }
-
-// I'm leaving this in because there might be future use in hinting to the
-// compiler the expression must only be constant
-// constant_expression
-//   = ternary_expression
-
-// declaration_statement = declaration:declaration {
-//   return node(
-//     'declaration_statement',
-//     {
-//         declaration: declaration[0],
-//         semi: declaration[1],
-//       }
-//   );
-// }
-
-// TODO: This allows shaders with preprocessors to be parsed, and puts the
-// preprocessor line in the AST. Do I want to do this, or do I want to
-// always preprocess shaders before parsing? Not preprocessing will likely
-// break the ability to parse if there is wacky define using
-preprocessor "prepocessor" = line:$('#' [^\n]*) _:_? { return node('preprocessor', { line, _ }); }
-
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
@@ -530,9 +326,3 @@ whitespace
   // I removed linebreaks from whitespace to prevent
   // #identifier A \n float from picking up "float"
   // = $[ \t\n\r]+
-
-// A terminal node is something like "void" with optional whitespace and/or
-// comments after it. By convention whitespace is stored as children of
-// terminals in the AST.
-// We need to avoid the case of "voidsomething" hence the negative lookahead
-terminal = ![A-Za-z_0-9] _:_? { return _; }
