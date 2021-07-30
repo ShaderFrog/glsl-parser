@@ -1,5 +1,7 @@
 Think about using this, maybe. Probably a bad idea.
 
+# Parser
+
 # Fixme
 
 - ✅ Finish all the parsing
@@ -84,3 +86,13 @@ This sounds like it requires a full preprocess to handle.
 - The grammar has a left paren "(" in the function_call production. Due to how
   I de-left-recursed the function_call -> postfix_expression loop, I moved the
   left paren into the function_identifier production.
+
+# Preprocessor
+
+No `#include` as it's not part of the standard grammar
+
+# Fixme
+
+- Token pasting operator ##
+- #version
+- What is #pragma?

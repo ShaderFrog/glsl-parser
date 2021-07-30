@@ -40,7 +40,11 @@ const generators = {
     generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
   ifndef: (node) =>
     generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
+  error: (node) =>
+    generate(node.error) + generate(node.message) + generate(node.wsEnd),
 
+  undef: (node) =>
+    generate(node.undef) + generate(node.identifier) + generate(node.wsEnd),
   define: (node) =>
     generate(node.wsStart) +
     generate(node.define) +
@@ -56,6 +60,7 @@ const generators = {
     generate(node.rp) +
     generate(node.definition) +
     generate(node.wsEnd),
+
   conditional: (node) =>
     generate(node.wsStart) +
     generate(node.ifPart) +
@@ -64,6 +69,9 @@ const generators = {
     generate(node.elsePart) +
     generate(node.endif) +
     generate(node.wsEnd),
+
+  line: (node) =>
+    generate(node.line) + generate(node.value) + generate(node.wsEnd),
 };
 
 const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
@@ -113,6 +121,8 @@ const expectParsedProgram = (sourceGlsl) => {
 
 test('preprocessor test', () => {
   expectParsedProgram(`
+#line 0
+#error whoopsie
 #if A == 1 || (B == 2)
       #if A == 1 || B == 2
       #define A
@@ -123,6 +133,8 @@ test('preprocessor test', () => {
       #define B
       #endif
  #define A
+    #line 10
+    #undef A
     #elif A == 1 || defined(B)
  #define B
 #endif

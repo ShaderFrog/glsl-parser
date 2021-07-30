@@ -1,5 +1,4 @@
-// https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.40.pdf
-// https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
+// https://docs.microsoft.com/en-us/cpp/preprocessor/grammar-summary-c-cpp?view=msvc-160
 
 {
   const node = (type, attrs) => ({
@@ -11,10 +10,6 @@
   const xnil = (...args) => args.flat().filter(e =>
     e !== undefined && e !== null && e !== '' && e.length !== 0
   )
-
-  // Given an array of nodes with potential null empty values, convert to text.
-  // Kind of like $(rule) but filters out empty rules
-  const toText = (...args) => xnil(args).join('');
 
   const ifOnly = arr => arr.length > 1 ? arr : arr[0];
 
@@ -134,11 +129,15 @@ control_line
         / define:DEFINE identifier:IDENTIFIER definition:token_string? {
           return node('define', { define, identifier, definition } )
         }
-        // TODO
-        / INCLUDE path_spec // TODO handle file types?
-        / LINE digit_sequence "filename"?
-        / UNDEF IDENTIFIER
-        / ERROR token_string
+        / line:LINE value:digit_sequence {
+          return node('line', { line, value });
+        }
+        / undef:UNDEF identifier:IDENTIFIER {
+          return node('undef', { undef, identifier });
+        }
+        / error:ERROR message:token_string {
+          return node('error', { error, message });
+        }
         / PRAGMA token_string
     )
     wsEnd:[\n]? {
@@ -181,7 +180,6 @@ if_line
 token_string = $([^\n]+)
 
 filename = [\S]+
-path_spec = [\S]+
 
 // Any non-control line
 text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
