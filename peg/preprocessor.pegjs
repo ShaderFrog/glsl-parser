@@ -317,7 +317,7 @@ constant_expression "constant expression" = logical_or_expression
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
-_ "whitespace" = w:whitespace? rest:(comment whitespace?)* {
+_ "whitespace or comment" = w:whitespace? rest:(comment whitespace?)* {
   return collapse(w, rest);
 }
 
