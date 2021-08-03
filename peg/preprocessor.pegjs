@@ -1,4 +1,11 @@
-// https://docs.microsoft.com/en-us/cpp/preprocessor/grammar-summary-c-cpp?view=msvc-160
+/**
+ * This grammar is based on:
+ * Khronos Shading Language Version 4.60.7
+ * https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
+ *
+ * And I used some Microsoft preprocessor documentation for the grammar base:
+ * https://docs.microsoft.com/en-us/cpp/preprocessor/grammar-summary-c-cpp?view=msvc-160
+ */
 
 {
   const node = (type, attrs) => ({
@@ -26,8 +33,6 @@
     }));
 }
 
-// Extra whitespace here at start is to help with screenshots by adding
-// extra linebreaks
 start = program
 
 program = 
@@ -63,6 +68,7 @@ RIGHT_ANGLE = token:">" _:_? { return node('literal', { literal: token, wsEnd: _
 VERTICAL_BAR = token:"|" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 CARET = token:"^" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
+COLON = token:":" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 
 DEFINE = wsStart:_? token:"#define" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 INCLUDE = wsStart:_? token:"#include" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
@@ -77,12 +83,14 @@ IFNDEF = wsStart:_? token:"#ifndef" wsEnd:_? { return node('literal', { literal:
 ELIF = wsStart:_? token:"#elif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 ELSE = wsStart:_? token:"#else" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 ENDIF = wsStart:_? token:"#endif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+VERSION = wsStart:_? token:"#version" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+EXTENSION = wsStart:_? token:"#extension" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 
 IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, wsEnd: _ }); }
 IDENTIFIER_NO_WS = identifier:$([A-Za-z_] [A-Za-z_0-9]*) { return node('identifier', { identifier }); }
 
 // Integers
-integer_constant
+integer_constant "number"
   = $(decimal_constant integer_suffix?)
   / $(octal_constant integer_suffix?)
   / $(hexadecimal_constant integer_suffix?)
@@ -95,7 +103,6 @@ octal_constant = "0" [0-7]*
 hexadecimal_constant = "0" [xX] [0-9a-fA-F]*
 
 digit = [0-9]
-digit_sequence = $digit+
 
 // Basically any valid source code
 text_or_control_lines =
@@ -103,7 +110,6 @@ text_or_control_lines =
     control_line
     / text:text+ {
       return node('text', { text: text.join('') });
-      // return node('text', { text });
     }
   )+ {
     return node('segment', { blocks });
@@ -129,7 +135,7 @@ control_line
         / define:DEFINE identifier:IDENTIFIER definition:token_string? {
           return node('define', { define, identifier, definition } )
         }
-        / line:LINE value:digit_sequence {
+        / line:LINE value:$digit+ {
           return node('line', { line, value });
         }
         / undef:UNDEF identifier:IDENTIFIER {
@@ -138,11 +144,28 @@ control_line
         / error:ERROR message:token_string {
           return node('error', { error, message });
         }
-        / PRAGMA token_string
+        / pragma:PRAGMA body:token_string {
+          return node('pragma', { pragma, body });
+        }
+        // The cpp preprocessor spec doesn't have version in it, I added it.
+        // "profile" is defined on page 14 of GLSL spec
+        / version:VERSION value:integer_constant profile:token_string? {
+          return node('version', { version, value, profile });
+        }
+        / extension:EXTENSION name:IDENTIFIER colon:COLON behavior:token_string {
+          return node('extension', { extension, name, colon, behavior });
+        }
     )
     wsEnd:[\n]? {
       return { ...line, wsEnd };
     }
+
+// Any series of characters on the same line,
+// for example "abc 123" in "#define A abc 123"
+token_string "token string" = $([^\n]+)
+
+// Any non-control line
+text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
 
 conditional
   = ifPart:if_line
@@ -159,7 +182,7 @@ conditional
       return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
     }
 
-if_line
+if_line "if"
   = line:(
     token:IF expression:constant_expression? {
       return node('if', { token, expression });
@@ -174,15 +197,6 @@ if_line
   wsEnd:[\n] {
     return { ...line, wsEnd };
   }
-
-// Any series of characters on the same line,
-// for example "abc 123" in "#define A abc 123"
-token_string = $([^\n]+)
-
-filename = [\S]+
-
-// Any non-control line
-text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
 
 // The following encodes the operator precedence for preprocessor #if
 // expressions, as defined on page 12 of
@@ -288,7 +302,7 @@ logical_and_expression "logical and expression"
       return leftAssociate(head, tail);
     }
 
-logical_or_expression
+logical_or_expression "logical or expression"
   = head:logical_and_expression
     tail:(
       op:OR_OP
@@ -298,7 +312,7 @@ logical_or_expression
     }
 
 // I added this as a maybe entry point to expressions
-constant_expression = logical_or_expression
+constant_expression "constant expression" = logical_or_expression
 
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
@@ -319,8 +333,4 @@ comment
 single_comment = $('//' [^\n]*)
 multiline_comment = $("/*" inner:(!"*/" i:. { return i; })* "*/")
 
-whitespace
-  = $[ \t]+
-  // I removed linebreaks from whitespace to prevent
-  // #identifier A \n float from picking up "float"
-  // = $[ \t\n\r]+
+whitespace "whitespace" = $[ \t]+

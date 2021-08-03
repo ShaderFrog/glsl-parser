@@ -70,8 +70,21 @@ const generators = {
     generate(node.endif) +
     generate(node.wsEnd),
 
+  version: (node) =>
+    generate(node.version) +
+    generate(node.value) +
+    generate(node.profile) +
+    generate(node.wsEnd),
+  pragma: (node) =>
+    generate(node.pragma) + generate(node.body) + generate(node.wsEnd),
   line: (node) =>
     generate(node.line) + generate(node.value) + generate(node.wsEnd),
+  extension: (node) =>
+    generate(node.extension) +
+    generate(node.name) +
+    generate(node.colon) +
+    generate(node.behavior) +
+    generate(node.wsEnd),
 };
 
 const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
@@ -122,6 +135,9 @@ const expectParsedProgram = (sourceGlsl) => {
 test('preprocessor test', () => {
   expectParsedProgram(`
 #line 0
+#version 100 "hi"
+#define GL_es_profile 1
+#extension all : disable
 #error whoopsie
 #if A == 1 || (B == 2)
       #if A == 1 || B == 2
@@ -132,6 +148,7 @@ test('preprocessor test', () => {
           float a;
       #define B
       #endif
+      #pragma mypragma: something(else)
  #define A
     #line 10
     #undef A
