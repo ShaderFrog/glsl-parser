@@ -183,19 +183,14 @@ conditional
     }
 
 if_line "if"
-  = line:(
-    token:IF expression:constant_expression? {
-      return node('if', { token, expression });
-    }
-    / token:IFDEF identifier:IDENTIFIER {
-      return node('ifdef', { token, identifier });
-    }
-    / token:IFNDEF identifier:IDENTIFIER {
-      return node('ifndef', { token, identifier });
-    }
-  )
-  wsEnd:[\n] {
-    return { ...line, wsEnd };
+  = token:IF expression:constant_expression? {
+    return node('if', { token, expression });
+  }
+  / token:IFDEF identifier:IDENTIFIER {
+    return node('ifdef', { token, identifier });
+  }
+  / token:IFNDEF identifier:IDENTIFIER {
+    return node('ifndef', { token, identifier });
   }
 
 // The following encodes the operator precedence for preprocessor #if

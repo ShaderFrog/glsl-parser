@@ -93,34 +93,9 @@ const grammar = file('peg/preprocessor.pegjs');
 const testFile = file('glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
 
-const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
-
 const debugProgram = (program) => {
   const ast = parser.parse(program);
   console.log(util.inspect(ast, false, null, true));
-};
-
-const debugStatement = (stmt) => {
-  const program = `void main() {/* start */${stmt}/* end */}`;
-  const ast = parser.parse(program);
-  console.log(
-    util.inspect(ast.program[0].body.statements[0], false, null, true)
-  );
-};
-
-const expectParsedStatement = (stmt) => {
-  const program = `void main() {/* start */${stmt}/* end */}`;
-  const ast = parser.parse(program);
-  const glsl = generate(ast);
-  if (glsl !== program) {
-    console.log(util.inspect(ast.program[0], false, null, true));
-    expect(glsl.match(middle)[1]).toBe(stmt);
-  }
-};
-
-const parseStatement = (stmt) => {
-  const program = `void main() {${stmt}}`;
-  return parser.parse(program);
 };
 
 const expectParsedProgram = (sourceGlsl) => {
@@ -156,4 +131,61 @@ test('preprocessor test', () => {
  #define B
 #endif
 `);
+});
+
+const isNode = (node) => !!node?.type;
+const isTraversable = (node) => isNode(node) || Array.isArray(node);
+
+const visit = (ast, visitors) => {
+  const visitNode = (node, parent, key, index) => {
+    const visitor = visitors[node.type];
+    visitor?.enter(node, parent, key, index);
+
+    Object.entries(node)
+      .filter(([nodeKey, nodeValue]) => isTraversable(nodeValue))
+      .forEach(([nodeKey, nodeValue]) => {
+        if (Array.isArray(nodeValue)) {
+          nodeValue
+            .filter(isNode)
+            .forEach((child, index) => visitNode(child, node, nodeKey, index));
+        } else if (isNode(nodeValue)) {
+          visitNode(nodeValue, node, nodeKey);
+        }
+      });
+
+    visitor?.exit(node, parent, key, index);
+  };
+
+  visitNode(ast);
+};
+
+test('what is going on', () => {
+  const program = `
+    #define B 2
+    #if B == 1 || defined(B)
+      success
+    #endif
+  `;
+  const ast = parser.parse(program);
+  visit(ast, {
+    literal: {
+      enter: (node) => {
+        console.log('enter literal!', node.literal);
+      },
+      exit: (node) => {
+        console.log('exit literal!', node.literal);
+      },
+    },
+    define: {
+      enter: (node) => {
+        console.log('enter define!', node.identifier.identifier);
+      },
+      exit: (node) => {
+        console.log('exit define!', node.identifier.identifier);
+      },
+    },
+  });
+  console.log('done');
+
+  // debugProgram(program);
 });
