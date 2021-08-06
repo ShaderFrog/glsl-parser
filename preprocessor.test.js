@@ -27,6 +27,11 @@ const generators = {
   group: (node) =>
     generate(node.lp) + generate(node.expression) + generate(node.rp),
   unary: (node) => generate(node.operator) + generate(node.expression),
+  unary_defined: (node) =>
+    generate(node.operator) +
+    generate(node.lp) +
+    generate(node.identifier) +
+    generate(node.rp),
   int_constant: (node) => generate(node.token) + generate(node.wsEnd),
 
   elseif: (node) =>
@@ -49,7 +54,7 @@ const generators = {
     generate(node.wsStart) +
     generate(node.define) +
     generate(node.identifier) +
-    generate(node.definition) +
+    generate(node.body) +
     generate(node.wsEnd),
   define_arguments: (node) =>
     generate(node.wsStart) +
@@ -58,7 +63,7 @@ const generators = {
     generate(node.lp) +
     generate(node.args) +
     generate(node.rp) +
-    generate(node.definition) +
+    generate(node.body) +
     generate(node.wsEnd),
 
   conditional: (node) =>
@@ -136,10 +141,24 @@ test('preprocessor test', () => {
 const isNode = (node) => !!node?.type;
 const isTraversable = (node) => isNode(node) || Array.isArray(node);
 
+const borf = (ast, visitors) => {
+  const visit = (node) => {
+    const visitor = visitors[node.type];
+    if (!visitor) {
+      throw new Error(`ERROR: NO VISITOR FOR ${node.type}`);
+    }
+    return visitors[node.type](node, visit);
+  };
+  return visit(ast);
+};
+
 const visit = (ast, visitors) => {
   const visitNode = (node, parent, key, index) => {
     const visitor = visitors[node.type];
-    visitor?.enter(node, parent, key, index);
+    if (visitor?.skip) {
+      return;
+    }
+    visitor?.enter?.(node, parent, key, index);
 
     Object.entries(node)
       .filter(([nodeKey, nodeValue]) => isTraversable(nodeValue))
@@ -148,44 +167,158 @@ const visit = (ast, visitors) => {
           nodeValue
             .filter(isNode)
             .forEach((child, index) => visitNode(child, node, nodeKey, index));
-        } else if (isNode(nodeValue)) {
+        } else {
           visitNode(nodeValue, node, nodeKey);
         }
       });
 
-    visitor?.exit(node, parent, key, index);
+    return visitor?.exit?.(node, parent, key, index);
   };
 
-  visitNode(ast);
+  return visitNode(ast);
 };
 
 test('what is going on', () => {
   const program = `
-    #define B 2
+    #define B C
+    #define C 3
+    // TODO is defined(B) subject to macro expansion?
     #if B == 1 || defined(B)
-      success
+      success B B
+      #undef C
     #endif
+    success B B
   `;
+
+  const defines = {};
+
+  const expand = (text, defines) =>
+    Object.entries(defines).reduce(
+      (result, [key, value]) =>
+        result.replace(new RegExp(`\\b${key}\\b`, 'g'), value),
+      text
+    );
+
   const ast = parser.parse(program);
+
+  // Preprocess macros... TODO evaluate expressions? TODO delete nodes?
+  // This is the "preprocessing" phase
   visit(ast, {
-    literal: {
+    if: {
       enter: (node) => {
-        console.log('enter literal!', node.literal);
+        visit(node.expression, {
+          unary_defined: {
+            skip: true,
+          },
+          identifier: {
+            enter: (node) => {
+              node.identifier = expand(node.identifier, defines);
+            },
+          },
+        });
+
+        const result = borf(node.expression, {
+          int_constant: (node) => parseInt(node.token, 10),
+          unary_defined: (node) => node.identifier in defines,
+          identifier: (node) => node.identifier,
+          binary: ({ left, right, operator: { literal } }, visit) => {
+            switch (literal) {
+              // multiplicative
+              case '*': {
+                return visit(left) * visit(right);
+              }
+              // multiplicative
+              case '/': {
+                return visit(left) / visit(right);
+              }
+              // multiplicative
+              case '%': {
+                return visit(left) % visit(right);
+              }
+              // additive +
+              case '-': {
+                return visit(left) - visit(right);
+              }
+              // additive
+              case '-': {
+                return visit(left) - visit(right);
+              }
+              // bit-wise shift
+              case '<<': {
+                return visit(left) << visit(right);
+              }
+              // bit-wise shift
+              case '>>': {
+                return visit(left) >> visit(right);
+              }
+              // relational
+              case '<': {
+                return visit(left) < visit(right);
+              }
+              // relational
+              case '>': {
+                return visit(left) > visit(right);
+              }
+              // relational
+              case '<=': {
+                return visit(left) <= visit(right);
+              }
+              // relational
+              case '>=': {
+                return visit(left) >= visit(right);
+              }
+              // equality
+              case '==': {
+                return visit(left) == visit(right);
+              }
+              // equality
+              case '!=': {
+                return visit(left) != visit(right);
+              }
+              // bit-wise and
+              case '&': {
+                return visit(left) & visit(right);
+              }
+              // bit-wise exclusive or
+              case '^': {
+                return visit(left) ^ visit(right);
+              }
+              // bit-wise inclusive or
+              case '|': {
+                return visit(left) | visit(right);
+              }
+              // logical and
+              case '&&': {
+                return visit(left) && visit(right);
+              }
+              // inclusive or
+              case '||': {
+                return visit(left) || visit(right);
+              }
+            }
+          },
+        });
+
+        console.log('result', result);
       },
-      exit: (node) => {
-        console.log('exit literal!', node.literal);
+    },
+    text: {
+      enter: (node) => {
+        node.text = expand(node.text, defines);
       },
     },
     define: {
       enter: (node) => {
-        console.log('enter define!', node.identifier.identifier);
+        defines[node.identifier.identifier] = node.body;
       },
-      exit: (node) => {
-        console.log('exit define!', node.identifier.identifier);
+    },
+    undef: {
+      enter: (node) => {
+        delete defines[node.identifier.identifier];
       },
     },
   });
-  console.log('done');
+  console.log(generate(ast));
 
   // debugProgram(program);
 });

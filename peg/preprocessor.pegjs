@@ -129,11 +129,11 @@ control_line
           }
         )
         rp:RIGHT_PAREN
-        definition:token_string? {
-          return node('define_arguments', { define, identifier, lp, args, rp, definition } )
+        body:token_string? {
+          return node('define_arguments', { define, identifier, lp, args, rp, body } )
         }
-        / define:DEFINE identifier:IDENTIFIER definition:token_string? {
-          return node('define', { define, identifier, definition } )
+        / define:DEFINE identifier:IDENTIFIER body:token_string? {
+          return node('define', { define, identifier, body } )
         }
         / line:LINE value:$digit+ {
           return node('line', { line, value });
@@ -205,16 +205,16 @@ primary_expression "primary expression"
   / IDENTIFIER
 
 unary_expression "unary expression"
-  = primary_expression
   // "defined" is a unary operator, it can appear with optional parens. I'm not
   // sure if it makes sense to have it in the unary_expression section
-  / operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
+  = operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
     return node('unary_defined', { operator, lp, identifier, rp, });
   }
-  / operator:(DEFINED / PLUS / DASH / BANG / TILDE)
+  / operator:(PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
       return node('unary', { operator, expression });
     }
+  / primary_expression
 
 multiplicative_expression "multiplicative expression"
   = head:unary_expression
