@@ -117,44 +117,44 @@ text_or_control_lines =
 
 // Any preprocessor or directive line
 control_line
-  = line:(
-      conditional
-      / define:DEFINE
-        identifier:IDENTIFIER_NO_WS
-        lp:LEFT_PAREN
-        args:(
-          head:IDENTIFIER
-          tail:(COMMA IDENTIFIER)* {
-            return [head, ...tail.flat()];
-          }
-        )
-        rp:RIGHT_PAREN
-        body:token_string? {
-          return node('define_arguments', { define, identifier, lp, args, rp, body } )
+  = conditional
+  / line:(
+    define:DEFINE
+      identifier:IDENTIFIER_NO_WS
+      lp:LEFT_PAREN
+      args:(
+        head:IDENTIFIER
+        tail:(COMMA IDENTIFIER)* {
+          return [head, ...tail.flat()];
         }
-        / define:DEFINE identifier:IDENTIFIER body:token_string? {
-          return node('define', { define, identifier, body } )
-        }
-        / line:LINE value:$digit+ {
-          return node('line', { line, value });
-        }
-        / undef:UNDEF identifier:IDENTIFIER {
-          return node('undef', { undef, identifier });
-        }
-        / error:ERROR message:token_string {
-          return node('error', { error, message });
-        }
-        / pragma:PRAGMA body:token_string {
-          return node('pragma', { pragma, body });
-        }
-        // The cpp preprocessor spec doesn't have version in it, I added it.
-        // "profile" is defined on page 14 of GLSL spec
-        / version:VERSION value:integer_constant profile:token_string? {
-          return node('version', { version, value, profile });
-        }
-        / extension:EXTENSION name:IDENTIFIER colon:COLON behavior:token_string {
-          return node('extension', { extension, name, colon, behavior });
-        }
+      )
+      rp:RIGHT_PAREN
+      body:token_string? {
+        return node('define_arguments', { define, identifier, lp, args, rp, body } )
+      }
+      / define:DEFINE identifier:IDENTIFIER body:token_string? {
+        return node('define', { define, identifier, body } )
+      }
+      / line:LINE value:$digit+ {
+        return node('line', { line, value });
+      }
+      / undef:UNDEF identifier:IDENTIFIER {
+        return node('undef', { undef, identifier });
+      }
+      / error:ERROR message:token_string {
+        return node('error', { error, message });
+      }
+      / pragma:PRAGMA body:token_string {
+        return node('pragma', { pragma, body });
+      }
+      // The cpp preprocessor spec doesn't have version in it, I added it.
+      // "profile" is defined on page 14 of GLSL spec
+      / version:VERSION value:integer_constant profile:token_string? {
+        return node('version', { version, value, profile });
+      }
+      / extension:EXTENSION name:IDENTIFIER colon:COLON behavior:token_string {
+        return node('extension', { extension, name, colon, behavior });
+      }
     )
     wsEnd:[\n]? {
       return { ...line, wsEnd };
@@ -168,8 +168,13 @@ token_string "token string" = $([^\n]+)
 text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
 
 conditional
-  = ifPart:if_line
-    body:text_or_control_lines?
+  = ifPart:(
+      ifLine:if_line
+      wsEnd:[\n]
+      body:text_or_control_lines? {
+        return { ...ifLine, body, wsEnd };
+      }
+    )
     elseIfParts:(
       token:ELIF
       expression:constant_expression
@@ -177,9 +182,15 @@ conditional
         return node('elseif', { token, expression, body: elseIfBody });
       }
     )*
-    elsePart:(ELSE text)?
-    endif:ENDIF {
-      return node('conditional', { ifPart, body, elseIfParts, elsePart, endif, });
+    elsePart:(
+      token:ELSE
+      elseBody:text {
+        return node('else', { token, body: elseBody });
+      }
+    )?
+    endif:ENDIF
+    wsEnd:[\n] {
+      return node('conditional', { ifPart, elseIfParts, elsePart, endif, wsEnd, });
     }
 
 if_line "if"
