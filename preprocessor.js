@@ -14,6 +14,7 @@ const generate = (ast) =>
     ? generators[ast.type](ast)
     : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
 
+// TODO: How to organize this code? The shader AST will need similar abstractions
 const generators = {
   program: (node) => generate(node.blocks) + generate(node.wsEnd),
   segment: (node) => generate(node.blocks),
@@ -118,6 +119,12 @@ const expectParsedProgram = (sourceGlsl) => {
 const isNode = (node) => !!node?.type;
 const isTraversable = (node) => isNode(node) || Array.isArray(node);
 
+/**
+ * Converts an AST to a singe value, visiting nodes and using visitor callbacks
+ * to generate the node's value. TODO: Could this be done with a reducetree
+ * function? Also this is different than the enter/exit visitors in the ast
+ * visitor function. Can these be merged into the same strategy?
+ */
 const evaluate = (ast, visitors) => {
   const visit = (node) => {
     const visitor = visitors[node.type];
@@ -129,8 +136,9 @@ const evaluate = (ast, visitors) => {
   return visit(ast);
 };
 
-const makePath = (node, key, index) => ({
+const makePath = (node, parent, key, index) => ({
   node,
+  parent,
   key,
   index,
   skip: function () {
@@ -144,21 +152,27 @@ const makePath = (node, key, index) => ({
   },
 });
 
-const replaceDefines = (text, defines) =>
+const expandMacros = (text, defines) =>
   Object.entries(defines).reduce(
     (result, [key, value]) =>
       result.replace(new RegExp(`\\b${key}\\b`, 'g'), value),
     text
   );
 
-const expandInExpression = (expression, defines) => {
-  visit(expression, {
-    unary_defined: { enter: (path) => path.skip() },
-    identifier: {
-      enter: (path) => {
-        path.node.identifier = replaceDefines(path.node.identifier, defines);
+const identity = (x) => x;
+
+// Given an expression AST node, visit it to expand the macro defines to in the
+// right places
+const expandInExpressions = (defines, ...expressions) => {
+  expressions.filter(identity).forEach((expression) => {
+    visit(expression, {
+      unary_defined: { enter: (path) => path.skip() },
+      identifier: {
+        enter: (path) => {
+          path.node.identifier = expandMacros(path.node.identifier, defines);
+        },
       },
-    },
+    });
   });
 };
 
@@ -169,12 +183,12 @@ const visit = (ast, visitors) => {
       const path = makePath(node, parent, key, index);
       visitor.enter(path);
       if (path.removed) {
-        if (index) {
+        if (typeof index === 'number') {
           parent[key].splice(index, 1);
         } else {
           parent[key] = null;
         }
-        return;
+        return path;
       }
       if (path.replaced) {
         if (typeof index === 'number') {
@@ -183,7 +197,7 @@ const visit = (ast, visitors) => {
           parent[key] = path.replaced;
         }
         if (path.skipped) {
-          return;
+          return path;
         }
       }
     }
@@ -192,22 +206,28 @@ const visit = (ast, visitors) => {
       .filter(([nodeKey, nodeValue]) => isTraversable(nodeValue))
       .forEach(([nodeKey, nodeValue]) => {
         if (Array.isArray(nodeValue)) {
-          nodeValue
-            .filter(isNode)
-            .forEach((child, index) => visitNode(child, node, nodeKey, index));
+          for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
+            const child = nodeValue[i - offset];
+            const path = visitNode(child, node, nodeKey, i - offset);
+            if (path?.removed) {
+              offset += 1;
+            }
+          }
         } else {
           visitNode(nodeValue, node, nodeKey);
         }
       });
 
-    return visitor?.exit?.(node, parent, key, index);
+    visitor?.exit?.(node, parent, key, index);
   };
 
   return visitNode(ast);
 };
 
+// TODO: Are all of these operators equivalent between javascript and GLSL?
 const evaluteExpression = (node, defines) =>
   evaluate(node, {
+    // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
     unary_defined: (node) => node.identifier in defines,
     identifier: (node) => node.identifier,
@@ -289,22 +309,41 @@ const evaluteExpression = (node, defines) =>
     },
   });
 
-const preprocess = (ast) => {
-  const defines = {};
+const shouldPreserve = (preserve) => (path) => {
+  const test = preserve?.[path.node.type];
+  return typeof test === 'function' ? test(path) : test;
+};
 
-  // Preprocess macros... TODO evaluate expressions? TODO delete nodes?
-  // This is the "preprocessing" phase
+/**
+ * Perform the preprocessing logic, aka the "preprocessing" phase of the compiler.
+ * Expand macros, evaluate conditionals, etc
+ * TODO: Define the strategy for conditionally removing certain macro types
+ * and conditionally expanding certain expressions. And take in optiona list
+ * of pre defined thigns?
+ * TODO: Handle __LINE__ and other constants.
+ */
+const preprocess = (ast, options = {}) => {
+  const defines = { ...options.defines };
+  const { preserve } = options;
+  const preserveNode = shouldPreserve(preserve);
+
   visit(ast, {
     conditional: {
       enter: (path) => {
-        // Expand macros
-        expandInExpression(path.node.ifPart.expression, defines);
-        path.node.elseIfParts.forEach((elif) => {
-          expandInExpression(elif.expression, defines);
-        });
-        path.node.elsePart &&
-          expandInExpression(path.node.elsePart.expression, defines);
+        // TODO: Determining if we need to handle edge case conditionals here
+        if (preserveNode(path)) {
+          return;
+        }
 
+        // Expand macros
+        expandInExpressions(
+          defines,
+          path.node.ifPart.expression,
+          ...path.node.elseIfParts.map((elif) => elif.expression),
+          path.node.elsePart?.expression
+        );
+
+        // TODO: Evalute elseif and else parts
         const ifResult = evaluteExpression(
           path.node.ifPart.expression,
           defines
@@ -321,17 +360,48 @@ const preprocess = (ast) => {
     },
     text: {
       enter: (path) => {
-        path.node.text = replaceDefines(path.node.text, defines);
+        path.node.text = expandMacros(path.node.text, defines);
       },
     },
     define: {
       enter: (path) => {
         defines[path.node.identifier.identifier] = path.node.body;
+        !preserveNode(path) && path.remove();
       },
     },
     undef: {
       enter: (path) => {
         delete defines[path.node.identifier.identifier];
+        !preserveNode(path) && path.remove();
+      },
+    },
+    error: {
+      enter: (path) => {
+        if (options.stopOnError) {
+          throw new Error(path.node.message);
+        }
+        !preserveNode(path) && path.remove();
+      },
+    },
+    pragma: {
+      enter: (path) => {
+        !preserveNode(path) && path.remove();
+      },
+    },
+    version: {
+      enter: (path) => {
+        !preserveNode(path) && path.remove();
+      },
+    },
+    extension: {
+      enter: (path) => {
+        !preserveNode(path) && path.remove();
+      },
+    },
+    // TODO: Causes a failure
+    line: {
+      enter: (path) => {
+        !preserveNode(path) && path.remove();
       },
     },
   });
