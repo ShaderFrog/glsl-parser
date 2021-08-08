@@ -3,10 +3,13 @@ const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
 
+/**
+ * Stringify an AST
+ */
 const generate = (ast) =>
   typeof ast === 'string'
     ? ast
-    : !ast
+    : ast === null || ast === undefined
     ? ''
     : Array.isArray(ast)
     ? ast.map(generate).join('')
@@ -223,4 +226,4 @@ const generators = {
     generateWithEveryOther(node.declarations, node.commas),
 };
 
-module.exports = { generate, generators };
+module.exports = generate;

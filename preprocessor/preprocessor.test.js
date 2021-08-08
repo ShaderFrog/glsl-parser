@@ -2,12 +2,14 @@ const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
-const { preprocess, generate } = require('./preprocessor.js');
+const preprocess = require('./preprocessor.js');
+const generate = require('./generator.js');
 
-const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
+const file = (filePath) =>
+  fs.readFileSync(path.join(__dirname, filePath)).toString();
 
-const grammar = file('peg/preprocessor.pegjs');
-const testFile = file('glsltest.glsl');
+const grammar = file('preprocessor.pegjs');
+// const testFile = file('../glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
 
 const debugProgram = (program) => {
