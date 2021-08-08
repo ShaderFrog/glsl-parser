@@ -96,26 +96,6 @@ const generators = {
     generate(node.wsEnd),
 };
 
-const file = (filePath) => fs.readFileSync(path.join('.', filePath)).toString();
-
-const grammar = file('peg/preprocessor.pegjs');
-const testFile = file('glsltest.glsl');
-const parser = pegjs.generate(grammar, { cache: true });
-
-const debugProgram = (program) => {
-  const ast = parser.parse(program);
-  console.log(util.inspect(ast, false, null, true));
-};
-
-const expectParsedProgram = (sourceGlsl) => {
-  const ast = parser.parse(sourceGlsl);
-  const glsl = generate(ast);
-  if (glsl !== sourceGlsl) {
-    console.log(util.inspect(ast, false, null, true));
-    expect(glsl).toBe(sourceGlsl);
-  }
-};
-
 const isNode = (node) => !!node?.type;
 const isTraversable = (node) => isNode(node) || Array.isArray(node);
 
@@ -166,7 +146,11 @@ const identity = (x) => x;
 const expandInExpressions = (defines, ...expressions) => {
   expressions.filter(identity).forEach((expression) => {
     visit(expression, {
-      unary_defined: { enter: (path) => path.skip() },
+      unary_defined: {
+        enter: (path) => {
+          path.skip();
+        },
+      },
       identifier: {
         enter: (path) => {
           path.node.identifier = expandMacros(path.node.identifier, defines);
@@ -196,9 +180,9 @@ const visit = (ast, visitors) => {
         } else {
           parent[key] = path.replaced;
         }
-        if (path.skipped) {
-          return path;
-        }
+      }
+      if (path.skipped) {
+        return path;
       }
     }
 
@@ -224,12 +208,22 @@ const visit = (ast, visitors) => {
   return visitNode(ast);
 };
 
+const evaluateIfPart = (defines, ifPart) => {
+  if (ifPart.type === 'if') {
+    return evaluteExpression(ifPart.expression, defines);
+  } else if (ifPart.type === 'ifdef') {
+    return ifPart.identifier.identifier in defines;
+  } else if (ifPart.type === 'ifndef') {
+    return !(ifPart.identifier.identifier in defines);
+  }
+};
+
 // TODO: Are all of these operators equivalent between javascript and GLSL?
 const evaluteExpression = (node, defines) =>
   evaluate(node, {
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
-    unary_defined: (node) => node.identifier in defines,
+    unary_defined: (node) => node.identifier.identifier in defines,
     identifier: (node) => node.identifier,
     binary: ({ left, right, operator: { literal } }, visit) => {
       switch (literal) {
@@ -324,12 +318,14 @@ const shouldPreserve = (preserve) => (path) => {
  */
 const preprocess = (ast, options = {}) => {
   const defines = { ...options.defines };
-  const { preserve } = options;
+  // const defineValues = { ...options.defines };
+  const { preserve, ignoreMacro } = options;
   const preserveNode = shouldPreserve(preserve);
 
   visit(ast, {
     conditional: {
       enter: (path) => {
+        const { node } = path;
         // TODO: Determining if we need to handle edge case conditionals here
         if (preserveNode(path)) {
           return;
@@ -338,24 +334,31 @@ const preprocess = (ast, options = {}) => {
         // Expand macros
         expandInExpressions(
           defines,
-          path.node.ifPart.expression,
-          ...path.node.elseIfParts.map((elif) => elif.expression),
-          path.node.elsePart?.expression
+          node.ifPart.expression,
+          ...node.elseIfParts.map((elif) => elif.expression),
+          node.elsePart?.expression
         );
 
-        // TODO: Evalute elseif and else parts
-        const ifResult = evaluteExpression(
-          path.node.ifPart.expression,
-          defines
-        );
-
-        path.replaceWith({
-          ...path.node,
-          ifPart: ifResult ? path.node.ifPart.body : null,
-          elsePart: null,
-          endif: null,
-          wsEnd: null, // Remove linebreak after endif
-        });
+        if (evaluateIfPart(defines, node.ifPart)) {
+          path.replaceWith(node.ifPart.body);
+          // path.replaceWith({
+          //   ...node,
+          //   ifPart: node.ifPart.body,
+          //   elsePart: null,
+          //   endif: null,
+          //   wsEnd: null, // Remove linebreak after endif
+          // });
+        } else {
+          !node.elseIfParts.reduce(
+            (res, elif) =>
+              res ||
+              (evaluteExpression(elif.expression, defines) &&
+                (path.replaceWith(elif.body) || true)),
+            false
+          ) &&
+            node.elsePart &&
+            path.replaceWith(node.elsePart.body);
+        }
       },
     },
     text: {
@@ -365,8 +368,19 @@ const preprocess = (ast, options = {}) => {
     },
     define: {
       enter: (path) => {
-        defines[path.node.identifier.identifier] = path.node.body;
+        const {
+          identifier: { identifier },
+          body,
+        } = path.node;
+
+        // TODO: Abandoning this for now until I know more concrete use cases
+        // const shouldIgnore = ignoreMacro?.(identifier, body);
+        // defineValues[identifier] = body;
+
+        // if (!shouldIgnore) {
+        defines[identifier] = body;
         !preserveNode(path) && path.remove();
+        // }
       },
     },
     undef: {

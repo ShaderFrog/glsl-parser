@@ -43,6 +43,48 @@ test('preprocessor test', () => {
 `);
 });
 
+test('if body', () => {
+  const program = `
+#define A
+before if
+#if defined(A)
+inside if
+#endif
+`;
+  // TODO: Something after if breaks parsing. why?
+  // after if`;
+
+  const ast = parser.parse(program);
+  // console.log(util.inspect(ast, false, null, true));
+
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+before if
+inside if
+`);
+});
+
+test('elseif body', () => {
+  const program = `
+#define A
+before if
+#if defined(B)
+inside if
+#elif defined(A)
+inside else
+#endif`;
+
+  const ast = parser.parse(program);
+  // console.log(util.inspect(ast, false, null, true));
+
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+before if
+
+inside else
+`);
+});
+
 test('what is going on', () => {
   const program = `#line 0
   #version 100 "hi"
@@ -69,6 +111,9 @@ test('what is going on', () => {
   // console.log(util.inspect(ast, false, null, true));
 
   preprocess(ast, {
+    // ignoreMacro: (identifier, body) => {
+    //   // return identifier === 'A';
+    // },
     preserve: {
       conditional: (path) => false,
       line: (path) => false,

@@ -116,7 +116,7 @@ text_or_control_lines =
   }
 
 // Any preprocessor or directive line
-control_line
+control_line "control line"
   = conditional
   / line:(
     define:DEFINE
@@ -189,7 +189,7 @@ conditional
       }
     )?
     endif:ENDIF
-    wsEnd:[\n] {
+    wsEnd:[\n]? { // optional because the program can end with endif
       return node('conditional', { ifPart, elseIfParts, elsePart, endif, wsEnd, });
     }
 
