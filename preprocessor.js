@@ -1,6 +1,8 @@
 const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
+// TODO: Test if faster
+// const pegjs = require('peggy');
 const util = require('util');
 
 const generate = (ast) =>
@@ -38,8 +40,8 @@ const generators = {
   elseif: (node) =>
     generate(node.token) +
     generate(node.expression) +
-    generate(node.body) +
-    generate(node.wsEnd),
+    generate(node.wsEnd) +
+    generate(node.body),
   if: (node) =>
     generate(node.token) +
     generate(node.expression) +

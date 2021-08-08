@@ -164,8 +164,9 @@ control_line "control line"
 // for example "abc 123" in "#define A abc 123"
 token_string "token string" = $([^\n]+)
 
-// Any non-control line
-text "text" = $(!(whitespace? "#") [^\n]+ [\n] / [\n])
+// Any non-control line. Ending newline for text is optional because program
+// might end on a non-newline
+text "text" = $(!(whitespace? "#") [^\n]+ [\n]? / [\n])
 
 conditional
   = ifPart:(
@@ -178,14 +179,16 @@ conditional
     elseIfParts:(
       token:ELIF
       expression:constant_expression
+      wsEnd: [\n]
       elseIfBody:text_or_control_lines? {
-        return node('elseif', { token, expression, body: elseIfBody });
+        return node('elseif', { token, expression, wsEnd, body: elseIfBody });
       }
     )*
     elsePart:(
       token:ELSE
+      wsEnd: [\n]
       elseBody:text {
-        return node('else', { token, body: elseBody });
+        return node('else', { token, wsEnd, body: elseBody });
       }
     )?
     endif:ENDIF

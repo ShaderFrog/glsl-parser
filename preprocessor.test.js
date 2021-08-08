@@ -10,8 +10,11 @@ const grammar = file('peg/preprocessor.pegjs');
 const testFile = file('glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
 
-const c = (program) => {
-  const ast = parser.parse(program);
+const debugProgram = (program) => {
+  debugAst(parser.parse(program));
+};
+
+const debugAst = (ast) => {
   console.log(util.inspect(ast, false, null, true));
 };
 
@@ -19,19 +22,22 @@ const expectParsedProgram = (sourceGlsl) => {
   const ast = parser.parse(sourceGlsl);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
-    console.log(util.inspect(ast, false, null, true));
+    debugAst(ast);
     expect(glsl).toBe(sourceGlsl);
   }
 };
 
-test('preprocessor test', () => {
+test('preprocessor ast', () => {
   expectParsedProgram(`
 #line 0
 #version 100 "hi"
 #define GL_es_profile 1
 #extension all : disable
 #error whoopsie
+#define A 1
+before if
       #if A == 1 || B == 2
+      inside if
       #define A
           #elif A == 1 || defined(B) && C == 2
           float a;
@@ -39,53 +45,74 @@ test('preprocessor test', () => {
           float a;
       #define B
       #endif
-      #pragma mypragma: something(else)
+outside endif
+#pragma mypragma: something(else)
+final line after program
 `);
 });
 
-test('if body', () => {
+test('evaluate if branch', () => {
   const program = `
 #define A
 before if
 #if defined(A)
 inside if
 #endif
+after if
 `;
-  // TODO: Something after if breaks parsing. why?
-  // after if`;
 
   const ast = parser.parse(program);
-  // console.log(util.inspect(ast, false, null, true));
-
   preprocess(ast);
   expect(generate(ast)).toBe(`
 before if
 inside if
+after if
 `);
 });
 
-test('elseif body', () => {
+test('evaluate elseif branch', () => {
   const program = `
 #define A
 before if
 #if defined(B)
 inside if
 #elif defined(A)
-inside else
-#endif`;
+inside elif
+#else
+else body
+#endif
+after if`;
 
   const ast = parser.parse(program);
-  // console.log(util.inspect(ast, false, null, true));
-
   preprocess(ast);
   expect(generate(ast)).toBe(`
 before if
-
-inside else
-`);
+inside elif
+after if`);
 });
 
-test('what is going on', () => {
+test('evaluate else branch', () => {
+  const program = `
+#define A
+before if
+#if defined(D)
+inside if
+#elif defined(E)
+inside elif
+#else
+else body
+#endif
+after if`;
+
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+before if
+else body
+after if`);
+});
+
+test('debug preprocesor', () => {
   const program = `#line 0
   #version 100 "hi"
   #define GL_es_profile 1
@@ -108,7 +135,7 @@ test('what is going on', () => {
   `;
 
   const ast = parser.parse(program);
-  // console.log(util.inspect(ast, false, null, true));
+  // debugAst(ast);
 
   preprocess(ast, {
     // ignoreMacro: (identifier, body) => {
@@ -119,5 +146,5 @@ test('what is going on', () => {
       line: (path) => false,
     },
   });
-  console.log(generate(ast));
+  // console.log(generate(ast));
 });
