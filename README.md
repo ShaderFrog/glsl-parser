@@ -65,12 +65,11 @@ preprocess(ast);
 
 // Then convert it back into a program string, which can be passed to the
 // core glsl parser
-
 const preprocessed = preprocessorGenerate(ast);
-
-// To turn a parsed AST back into a source program
-const program = generate(ast);
 ```
+
+A preprocssed program, when converted back into source code form (generated),
+can be handed off to the main GLSL parser.
 
 # WIP Notes
 
