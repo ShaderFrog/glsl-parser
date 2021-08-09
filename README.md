@@ -1,15 +1,19 @@
+# Shaderfrog GLSL Parser and Preprocessor
+
 The [Shaderfrog](https://shaderfrog.com/app) GLSL parser is an open source GLSL
-1.00 and 3.00 parser and preprocessor. Both the preprocessor and parser can
-preserve comments and whitespace in the generated programs.
+1.00 and 3.00 parser and preprocessor. Both the parser and preprocessor can
+preserve comments and whitespace in the ASTs and generated programs.
 
 In general, a parser is designed to analyze source code and turn it into a data
 structure called an "abstract syntax tree" (AST). The AST is a tree
 representation of the source program, which can be analyzed or manipulated. A
-use of this GLSL parser could be to parse the AST, find all variable names in
-the AST, and rename them.
+use of this GLSL parser could be to parse a program into an AST, find all
+variable names in the AST, rename them, and generate new GLSL source code with
+renamed variables.
 
-GLSL supports "preprocessing," a compiler text processing step, and GLSL is
-similar to the C++ preprocessor. This library supports limited preprocessing.
+GLSL supports "preprocessing," a compiler text manipulation step. GLSL's
+preprocessor is based on the C++ preprocessor. This library supports limited
+preprocessing.
 
 This parser is built using a PEG grammar and using the Peggy Javascript library
 (formerly Peg.js). The PEG grammars for both the preprocessor and main parser
@@ -17,13 +21,12 @@ are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
 
 # State of this library
 
-This library is not ready for public use. Both the preprocessor and parser can
+This library isn't ready for public use. Both the preprocessor and parser can
 handle a significant portion of GLSL input. There are still many missing
 features of this library to make it fully usable. Additionally, this library
-will likely never support the full range of semantic analysis expected by Angle
-or other GLSL compilers that implement the full spec. This library is mainly for
-manipulating ASTs before handing off a generated program to a downstream
-compiler such as Angle.
+will likely never support the full range of semantic analysis as required by
+the Khronos GLSL specification. This library is mainly for manipulating ASTs
+before handing off a generated program to a downstream compiler such as Angle.
 
 # Usage
 
@@ -71,8 +74,12 @@ const program = generate(ast);
 
 # WIP Notes
 
-# Fixme
+## Fixme
 
+- Token pasting operator ##
+- #version
+- What is #pragma?
+- Handle backslash newlines in preprocessor (fml)
 - ✅ Finish all the parsing
 - ✅ The shape of for/while statements
 - ✅ What is leftAssociate doing again? Do I need it?
@@ -135,8 +142,6 @@ This sounds like it requires a full preprocess to handle.
 - Making this Babel ESTree compatible to use babel ecosystem
   - Huh maybe not, since ESTree is JS specific
 - Shaderfrog engine for switching testing
-- I may have to preprocess?
-
 - Write shader vertex / fragment
 - Auto parse constants, variables, uniforms, let them be used
 
@@ -160,10 +165,3 @@ This sounds like it requires a full preprocess to handle.
 # Preprocessor
 
 No `#include` as it's not part of the standard grammar
-
-# Fixme
-
-- Token pasting operator ##
-- #version
-- What is #pragma?
-- Handle backslash newlines in preprocessor (fml)
