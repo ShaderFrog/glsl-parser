@@ -114,30 +114,27 @@ else body
 after if`);
 });
 
-test('debug preprocesor', () => {
-  const program = `#line 0
-  #version 100 "hi"
-  #define GL_es_profile 1
-  #extension all : disable
-  #error whoopsie
-  #define A 1
-  before if
-        #if A == 1 || B == 2
-        inside if
-        #define A
-            #elif A == 1 || defined(B) && C == 2
-            float a;
-            #elif A == 1 || defined(B) && C == 2
-            float a;
-        #define B
-        #endif
-        outside endif
-        #pragma mypragma: something(else)
-        final line after program
-  `;
+test('preservation', () => {
+  const program = `
+#line 0
+#version 100 "hi"
+#define GL_es_profile 1
+#extension all : disable
+#error whoopsie
+#define  A 1
+before if
+#if A == 1 || B == 2
+inside if
+#define A
+#elif A == 1 || defined(B) && C == 2
+float a;
+#define B
+#endif
+outside endif
+#pragma mypragma: something(else)
+function_call line after program`;
 
   const ast = parser.parse(program);
-  // debugAst(ast);
 
   preprocess(ast, {
     // ignoreMacro: (identifier, body) => {
@@ -145,8 +142,21 @@ test('debug preprocesor', () => {
     // },
     preserve: {
       conditional: (path) => false,
-      line: (path) => false,
+      line: (path) => true,
+      error: (path) => true,
+      extension: (path) => true,
+      pragma: (path) => true,
+      version: (path) => true,
     },
   });
-  // console.log(generate(ast));
+  expect(generate(ast)).toBe(`
+#line 0
+#version 100 "hi"
+#extension all : disable
+#error whoopsie
+before if
+inside if
+outside endif
+#pragma mypragma: something(else)
+function_call line after program`);
 });

@@ -1,9 +1,3 @@
-const fs = require('fs');
-const path = require('path');
-const pegjs = require('pegjs');
-// TODO: Test if faster
-// const pegjs = require('peggy');
-const util = require('util');
 const { visit, evaluate } = require('../core/ast.js');
 
 const expandMacros = (text, defines) =>
