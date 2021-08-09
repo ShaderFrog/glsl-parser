@@ -5,11 +5,10 @@ const util = require('util');
 const preprocess = require('./preprocessor.js');
 const generate = require('./generator.js');
 
-const file = (filePath) =>
+const fileContents = (filePath) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
-const grammar = file('preprocessor.pegjs');
-// const testFile = file('../glsltest.glsl');
+const grammar = fileContents('preprocessor.pegjs');
 const parser = pegjs.generate(grammar, { cache: true });
 
 const debugProgram = (program) => {
@@ -159,4 +158,18 @@ inside if
 outside endif
 #pragma mypragma: something(else)
 function_call line after program`);
+});
+
+test('empty branch', () => {
+  const program = `before if
+#ifdef GL_ES
+precision mediump float;
+#endif
+after if`;
+
+  const ast = parser.parse(program);
+
+  preprocess(ast);
+  expect(generate(ast)).toBe(`before if
+after if`);
 });

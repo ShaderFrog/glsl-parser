@@ -161,6 +161,8 @@ const preprocess = (ast, options = {}) => {
 
         if (evaluateIfPart(defines, node.ifPart)) {
           path.replaceWith(node.ifPart.body);
+          // Keeping this commented out block in case I can find a way to
+          // conditionally evaluate shaders
           // path.replaceWith({
           //   ...node,
           //   ifPart: node.ifPart.body,
@@ -169,15 +171,20 @@ const preprocess = (ast, options = {}) => {
           //   wsEnd: null, // Remove linebreak after endif
           // });
         } else {
-          !node.elseIfParts.reduce(
+          const elseBranchHit = node.elseIfParts.reduce(
             (res, elif) =>
               res ||
               (evaluteExpression(elif.expression, defines) &&
                 (path.replaceWith(elif.body) || true)),
             false
-          ) &&
-            node.elsePart &&
-            path.replaceWith(node.elsePart.body);
+          );
+          if (!elseBranchHit) {
+            if (node.elsePart) {
+              path.replaceWith(node.elsePart.body);
+            } else {
+              path.remove();
+            }
+          }
         }
       },
     },
@@ -239,6 +246,9 @@ const preprocess = (ast, options = {}) => {
       },
     },
   });
+
+  // Even though it mutates, useful for passing around functions
+  return ast;
 };
 
 module.exports = preprocess;

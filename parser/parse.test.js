@@ -4,11 +4,23 @@ const pegjs = require('pegjs');
 const util = require('util');
 const generate = require('./generator.js');
 
-const file = (filePath) =>
+const fileContents = (filePath) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
-const grammar = file('./glsl-pegjs-grammar.pegjs');
-const testFile = file('../glsltest.glsl');
+// Preprocessor setup
+const preprocessorGrammar = fileContents('../preprocessor/preprocessor.pegjs');
+const preprocessParser = pegjs.generate(preprocessorGrammar, { cache: true });
+const preprocessAst = require('../preprocessor/preprocessor.js');
+const generatePreprocess = require('../preprocessor/generator.js');
+
+const preprocess = (program) => {
+  const ast = preprocessParser.parse(program);
+  preprocessAst(ast);
+  return generatePreprocess(ast);
+};
+
+const grammar = fileContents('./glsl-pegjs-grammar.pegjs');
+const testFile = fileContents('../glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
@@ -234,7 +246,8 @@ test('postfix, unary, binary expressions', () => {
 });
 
 test('parses a test file', () => {
-  expectParsedProgram(testFile);
+  console.log(preprocess(testFile));
+  expectParsedProgram(preprocess(testFile));
 });
 
 test('operators', () => {
