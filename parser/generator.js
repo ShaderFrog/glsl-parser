@@ -1,30 +1,4 @@
-const fs = require('fs');
-const path = require('path');
-const pegjs = require('pegjs');
-const util = require('util');
-
-/**
- * Stringify an AST
- */
-const generate = (ast) =>
-  typeof ast === 'string'
-    ? ast
-    : ast === null || ast === undefined
-    ? ''
-    : Array.isArray(ast)
-    ? ast.map(generate).join('')
-    : ast.type in generators
-    ? generators[ast.type](ast)
-    : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
-
-const generateWithEveryOther = (nodes, everyOther) =>
-  nodes.reduce(
-    (output, node, index) =>
-      output +
-      generate(node) +
-      (index === nodes.length - 1 ? '' : generate(everyOther[index])),
-    ''
-  );
+const { makeGenerator, makeEveryOtherGenerator } = require('../core/ast.js');
 
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
@@ -225,5 +199,8 @@ const generators = {
     generate(node.qualifiers) +
     generateWithEveryOther(node.declarations, node.commas),
 };
+
+const generate = makeGenerator(generators);
+const generateWithEveryOther = makeEveryOtherGenerator(generate);
 
 module.exports = generate;

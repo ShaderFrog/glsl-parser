@@ -87,4 +87,33 @@ const visit = (ast, visitors) => {
   return visitNode(ast);
 };
 
-module.exports = { evaluate, visit };
+/**
+ * Stringify an AST
+ */
+const makeGenerator = (generators) => {
+  const gen = (ast) =>
+    typeof ast === 'string'
+      ? ast
+      : ast === null || ast === undefined
+      ? ''
+      : Array.isArray(ast)
+      ? ast.map(gen).join('')
+      : ast.type in generators
+      ? generators[ast.type](ast)
+      : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
+  return gen;
+};
+
+const makeEveryOtherGenerator = (generate) => {
+  const everyOther = (nodes, everyOther) =>
+    nodes.reduce(
+      (output, node, index) =>
+        output +
+        generate(node) +
+        (index === nodes.length - 1 ? '' : generate(everyOther[index])),
+      ''
+    );
+  return everyOther;
+};
+
+module.exports = { evaluate, visit, makeGenerator, makeEveryOtherGenerator };

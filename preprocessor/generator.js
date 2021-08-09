@@ -1,21 +1,4 @@
-const pegjs = require('pegjs');
-// TODO: Test if faster
-// const pegjs = require('peggy');
-const util = require('util');
-
-/**
- * Stringify an AST
- */
-const generate = (ast) =>
-  typeof ast === 'string'
-    ? ast
-    : ast === null || ast === undefined
-    ? ''
-    : Array.isArray(ast)
-    ? ast.map(generate).join('')
-    : ast.type in generators
-    ? generators[ast.type](ast)
-    : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
+const { makeGenerator, makeEveryOtherGenerator } = require('../core/ast.js');
 
 const generators = {
   program: (node) => generate(node.blocks) + generate(node.wsEnd),
@@ -97,5 +80,7 @@ const generators = {
     generate(node.behavior) +
     generate(node.wsEnd),
 };
+
+const generate = makeGenerator(generators);
 
 module.exports = generate;
