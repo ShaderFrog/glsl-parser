@@ -3,17 +3,24 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.0.22",
-  "main": "dist/parser.js",
+  "version": "0.0.23",
+  "main": "index.js",
   "description": "A GLSL ES 1.0 and 3.0 parser that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build",
-    "build": "mkdir -p dist && pegjs -o dist/parser.js peg/glsl-pegjs-grammar.pegjs",
+    "build": "mkdir -p dist && pegjs -o dist/parser.js parser/glsl-pegjs-grammar.pegjs && pegjs -o dist/preprocssorParser.js preprocessor/preprocessor.pegjs",
     "watch-test": "jest --watch",
     "test": "jest"
   },
   "files": [
-    "dist/parser.js"
+    "index.js",
+    "core/ast.js",
+    "parser/generator.js",
+    "preprocessor/generator.js",
+    "preprocessor/preprocessor.js",
+    "preprocessor/index.js",
+    "dist/parser.js",
+    "dist/preprocssorParser.js"
   ],
   "jest": {
     "moduleFileExtensions": [
