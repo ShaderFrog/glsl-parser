@@ -1,5 +1,5 @@
-const generator = require('./generator.js');
+const generate = require('./generator.js');
 const preprocessor = require('./preprocessor.js');
 const parser = require('../dist/preprocssorParser.js');
 
-module.exports = { generator, preprocessor, parser };
+module.exports = { generate, preprocessor, parser };
