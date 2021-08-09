@@ -1,6 +1,75 @@
-Think about using this, maybe. Probably a bad idea.
+The [Shaderfrog](https://shaderfrog.com/app) GLSL parser is an open source GLSL
+1.00 and 3.00 parser and preprocessor. Both the preprocessor and parser can
+preserve comments and whitespace in the generated programs.
 
-# Parser
+In general, a parser is designed to analyze source code and turn it into a data
+structure called an "abstract syntax tree" (AST). The AST is a tree
+representation of the source program, which can be analyzed or manipulated. A
+use of this GLSL parser could be to parse the AST, find all variable names in
+the AST, and rename them.
+
+GLSL supports "preprocessing," a compiler text processing step, and GLSL is
+similar to the C++ preprocessor. This library supports limited preprocessing.
+
+This parser is built using a PEG grammar and using the Peggy Javascript library
+(formerly Peg.js). The PEG grammars for both the preprocessor and main parser
+are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
+
+# State of this library
+
+This library is not ready for public use. Both the preprocessor and parser can
+handle a significant portion of GLSL input. There are still many missing
+features of this library to make it fully usable. Additionally, this library
+will likely never support the full range of semantic analysis expected by Angle
+or other GLSL compilers that implement the full spec. This library is mainly for
+manipulating ASTs before handing off a generated program to a downstream
+compiler such as Angle.
+
+# Usage
+
+## Installation
+
+```bash
+npm install --save @shaderfrog/glsl-parser
+```
+
+## Parsing
+
+```javascript
+const { parser, generate } = require('@shaderfrog/glsl-parser');
+
+// To parse a GLSL program's source code into an AST:
+const ast = parser.parse('float a = 1.0;');
+
+// To turn a parsed AST back into a source program
+const program = generate(ast);
+```
+
+## Preprocessing
+
+```javascript
+const {
+  generate: preprocessorGenerate,
+  preprocess,
+  parser: preprocessorParser
+} = require('@shaderfrog/glsl-parser/preprocessor');
+
+// First convert the input source code into a preprocessor-ready AST
+const ast = preprocessorParser.parse('float a = 1.0;');
+
+// Then preproces it, expanding #defines, evaluating #ifs, etc
+preprocess(ast);
+
+// Then convert it back into a program string, which can be passed to the
+// core glsl parser
+
+const preprocessed = preprocessorGenerate(ast);
+
+// To turn a parsed AST back into a source program
+const program = generate(ast);
+```
+
+# WIP Notes
 
 # Fixme
 
@@ -64,6 +133,7 @@ This sounds like it requires a full preprocess to handle.
 # What?
 
 - Making this Babel ESTree compatible to use babel ecosystem
+  - Huh maybe not, since ESTree is JS specific
 - Shaderfrog engine for switching testing
 - I may have to preprocess?
 

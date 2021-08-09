@@ -3,9 +3,9 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.0.27",
+  "version": "0.0.28",
   "main": "index.js",
-  "description": "A GLSL ES 1.0 and 3.0 parser that can preserve whitespace and comments",
+  "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build",
     "build": "mkdir -p dist && pegjs -o dist/parser.js parser/glsl-pegjs-grammar.pegjs && pegjs -o dist/preprocssorParser.js preprocessor/preprocessor.pegjs",
