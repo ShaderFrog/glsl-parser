@@ -4,8 +4,14 @@ The [Shaderfrog](https://shaderfrog.com/app) GLSL parser is an open source GLSL
 1.00 and 3.00 parser and preprocessor. Both the parser and preprocessor can
 preserve comments and whitespace in the ASTs and generated programs.
 
-In general, a parser is designed to analyze source code and turn it into a data
-structure called an "abstract syntax tree" (AST). The AST is a tree
+This parser is built using a PEG grammar and using the Peggy Javascript library
+(formerly Peg.js). The PEG grammars for both the preprocessor and main parser
+are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
+
+## What are "parsing" and "preprocessing"?
+
+In general, a parser is a computer program that analyzes source code and turn it
+into a data structure called an "abstract syntax tree" (AST). The AST is a tree
 representation of the source program, which can be analyzed or manipulated. A
 use of this GLSL parser could be to parse a program into an AST, find all
 variable names in the AST, rename them, and generate new GLSL source code with
@@ -15,9 +21,9 @@ GLSL supports "preprocessing," a compiler text manipulation step. GLSL's
 preprocessor is based on the C++ preprocessor. This library supports limited
 preprocessing.
 
-This parser is built using a PEG grammar and using the Peggy Javascript library
-(formerly Peg.js). The PEG grammars for both the preprocessor and main parser
-are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
+Parsing, preprocesing, and code generation, are all phases of a compiler. This
+library is technically a source code > source code compiler, also known as a
+"transpiler." The input and output source code are both GLSL.
 
 # State of this library
 
@@ -50,15 +56,59 @@ const program = generate(ast);
 
 ## Preprocessing
 
+See the [GLSL Langauge Spec](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf) to learn more about GLSL preprocessing. Some notable 
+differences from the C++ parser are no "stringize" operator (#) and #if
+expressions can only operate on integer constants, not other types of data. The
+Shaderfrog GLSL preprocessor can't be used as a C/C++ preprocessor without
+modification.
+
+```javascript
+const preprocess = require('@shaderfrog/glsl-parser/preprocessor');
+
+// Preprocess a program
+console.log(preprocess(`
+  #define a 1
+  float b = a;
+`, options));
+```
+
+Where `options` is:
+
+```js
+{
+  // Don't strip comments before preprocessing
+  preserveComments: boolean,
+  // Macro definitions to use when preprocessing
+  defines: {
+    SOME_MACRO_NAME: 'macro body'
+  },
+  // A list of callbacks evaluted for each node type, and returns whether or not
+  // this AST node is subject to preprocessing
+  preserve: {
+    ast_node_name: (path) => boolean
+  }
+}
+```
+
+A preprocessed program string can be handed off to the main GLSL parser.
+
+If you want more  control over preprocessing, the `preprocess` function above is
+a convenience method for approximately the following:
+
 ```javascript
 const {
-  generate: preprocessorGenerate,
+  preprocessAst,
+  preprocessComments,
+  generate,
   preprocess,
-  parser: preprocessorParser
+  parser,
 } = require('@shaderfrog/glsl-parser/preprocessor');
 
-// First convert the input source code into a preprocessor-ready AST
-const ast = preprocessorParser.parse('float a = 1.0;');
+// Remove comments before preprocessing
+const commentsRemoved = preprocessComments(`float a = 1.0;`)
+
+// Parse the source text into an AST
+const ast = parser.parse(commentsRemoved);
 
 // Then preproces it, expanding #defines, evaluating #ifs, etc
 preprocess(ast);
@@ -67,9 +117,6 @@ preprocess(ast);
 // core glsl parser
 const preprocessed = preprocessorGenerate(ast);
 ```
-
-A preprocssed program, when converted back into source code form (generated),
-can be handed off to the main GLSL parser.
 
 # WIP Notes
 

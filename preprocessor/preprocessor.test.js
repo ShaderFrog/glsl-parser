@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
-const { preprocessComments, preprocess } = require('./preprocessor.js');
+const { preprocessComments, preprocessAst } = require('./preprocessor.js');
 const generate = require('./generator.js');
 
 const fileContents = (filePath) =>
@@ -58,7 +58,7 @@ test('nested expand macro', () => {
 X`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`Z`);
 });
 
@@ -73,7 +73,7 @@ after if
 `;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
 inside if
@@ -95,7 +95,7 @@ else body
 after if`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
 inside elif
@@ -116,7 +116,7 @@ else body
 after if`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
 else body
@@ -132,7 +132,7 @@ after if`;
 
   const ast = parser.parse(program);
 
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`before if
 after if`);
 });
@@ -145,7 +145,7 @@ second`;
 
   // If this has an infinte loop, the test will never finish
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 first second`);
 });
@@ -157,7 +157,7 @@ foo()`;
 
   // If this has an infinte loop, the test will never finish
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 foo()`);
 });
@@ -171,7 +171,7 @@ second`;
 
   // If this has an infinte loop, the test will never finish
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 1 + c`);
 });
@@ -183,7 +183,7 @@ foo`;
 
   const ast = parser.parse(program);
   // debugAst(ast);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 foo`);
 });
@@ -195,7 +195,7 @@ foo`;
 
   const ast = parser.parse(program);
   // debugAst(ast);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 () yes expand`);
 });
@@ -207,7 +207,9 @@ foo(
 foo()`;
 
   const ast = parser.parse(program);
-  expect(() => preprocess(ast)).toThrow('foo( unterminated macro invocation');
+  expect(() => preprocessAst(ast)).toThrow(
+    'foo( unterminated macro invocation'
+  );
 });
 
 test('macro function calls with no arguments', () => {
@@ -218,7 +220,7 @@ foo
 ()`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 yes expand
 yes expand`);
@@ -226,7 +228,7 @@ yes expand`);
 
 test('macro function calls with bad arguments', () => {
   expect(() => {
-    preprocess(
+    preprocessAst(
       parser.parse(`
       #define foo( a, b ) a + b
       foo(1,2,3)`)
@@ -234,7 +236,7 @@ test('macro function calls with bad arguments', () => {
   }).toThrow("'foo': Too many arguments for macro");
 
   expect(() => {
-    preprocess(
+    preprocessAst(
       parser.parse(`
       #define foo( a ) a + b
       foo(,)`)
@@ -242,7 +244,7 @@ test('macro function calls with bad arguments', () => {
   }).toThrow("'foo': Too many arguments for macro");
 
   expect(() => {
-    preprocess(
+    preprocessAst(
       parser.parse(`
       #define foo( a, b ) a + b
       foo(1)`)
@@ -260,7 +262,7 @@ r)
 foo(,)`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 x + y + (z-t + vec3(0.0, 1.0))
 q + r
@@ -274,7 +276,7 @@ test('nested function macro expansion', () => {
 foo (foo (a, X), c)`;
 
   const ast = parser.parse(program);
-  preprocess(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe(`
 a + Z + c`);
 });
@@ -301,7 +303,7 @@ function_call line after program`;
 
   const ast = parser.parse(program);
 
-  preprocess(ast, {
+  preprocessAst(ast, {
     // ignoreMacro: (identifier, body) => {
     //   // return identifier === 'A';
     // },

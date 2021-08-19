@@ -1,4 +1,5 @@
 const { visit, evaluate } = require('../core/ast.js');
+const { generate } = require('./generator.js');
 
 const without = (obj, ...keys) =>
   Object.entries(obj).reduce(
@@ -191,13 +192,13 @@ const expandObjectMacro = (macros, macroName, macro, text) => {
 };
 
 const expandMacros = (text, macros) =>
-  Object.entries(macros).reduce((result, [macroName, macro]) => {
-    if (macro.args) {
-      return expandFunctionMacro(macros, macroName, macro, result);
-    } else {
-      return expandObjectMacro(macros, macroName, macro, result);
-    }
-  }, text);
+  Object.entries(macros).reduce(
+    (result, [macroName, macro]) =>
+      macro.args
+        ? expandFunctionMacro(macros, macroName, macro, result)
+        : expandObjectMacro(macros, macroName, macro, result),
+    text
+  );
 
 const identity = (x) => x;
 
@@ -328,7 +329,7 @@ const shouldPreserve = (preserve) => (path) => {
  * of pre defined thigns?
  * TODO: Handle __LINE__ and other constants.
  */
-const preprocess = (ast, options = {}) => {
+const preprocessAst = (ast, options = {}) => {
   const macros = Object.entries(options.defines || {}).reduce(
     (defines, [name, body]) => ({ ...defines, [name]: { body } }),
     {}
@@ -461,4 +462,4 @@ const preprocess = (ast, options = {}) => {
   return ast;
 };
 
-module.exports = { preprocess, preprocessComments };
+module.exports = { preprocessAst, preprocessComments };
