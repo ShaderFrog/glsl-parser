@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
-const preprocess = require('./preprocessor.js');
+const { preprocessComments, preprocess } = require('./preprocessor.js');
 const generate = require('./generator.js');
 
 const fileContents = (filePath) =>
@@ -50,6 +50,16 @@ outside endif
 #pragma mypragma: something(else)
 final line after program
 `);
+});
+
+test('nested expand macro', () => {
+  const program = `#define X Y
+#define Y Z
+X`;
+
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`Z`);
 });
 
 test('evaluate if branch', () => {
@@ -113,6 +123,162 @@ else body
 after if`);
 });
 
+test('empty branch', () => {
+  const program = `before if
+#ifdef GL_ES
+precision mediump float;
+#endif
+after if`;
+
+  const ast = parser.parse(program);
+
+  preprocess(ast);
+  expect(generate(ast)).toBe(`before if
+after if`);
+});
+
+test('self referential object macro', () => {
+  const program = `
+#define first first second
+#define second first
+second`;
+
+  // If this has an infinte loop, the test will never finish
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+first second`);
+});
+
+test('self referential function macro', () => {
+  const program = `
+#define foo() foo()
+foo()`;
+
+  // If this has an infinte loop, the test will never finish
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+foo()`);
+});
+
+test('self referential macro combinations', () => {
+  const program = `
+#define b c
+#define first(a,b) a + b
+#define second first(1,b)
+second`;
+
+  // If this has an infinte loop, the test will never finish
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+1 + c`);
+});
+
+test("function call macro isn't expanded", () => {
+  const program = `
+#define foo() no expand
+foo`;
+
+  const ast = parser.parse(program);
+  // debugAst(ast);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+foo`);
+});
+
+test("macro that isn't macro function call call is expanded", () => {
+  const program = `
+#define foo () yes expand
+foo`;
+
+  const ast = parser.parse(program);
+  // debugAst(ast);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+() yes expand`);
+});
+
+test('unterminated macro function call', () => {
+  const program = `
+#define foo() yes expand
+foo(
+foo()`;
+
+  const ast = parser.parse(program);
+  expect(() => preprocess(ast)).toThrow('foo( unterminated macro invocation');
+});
+
+test('macro function calls with no arguments', () => {
+  const program = `
+#define foo() yes expand
+foo()
+foo
+()`;
+
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+yes expand
+yes expand`);
+});
+
+test('macro function calls with bad arguments', () => {
+  expect(() => {
+    preprocess(
+      parser.parse(`
+      #define foo( a, b ) a + b
+      foo(1,2,3)`)
+    );
+  }).toThrow("'foo': Too many arguments for macro");
+
+  expect(() => {
+    preprocess(
+      parser.parse(`
+      #define foo( a ) a + b
+      foo(,)`)
+    );
+  }).toThrow("'foo': Too many arguments for macro");
+
+  expect(() => {
+    preprocess(
+      parser.parse(`
+      #define foo( a, b ) a + b
+      foo(1)`)
+    );
+  }).toThrow("'foo': Not enough arguments for macro");
+});
+
+test('macro function calls with arguments', () => {
+  const program = `
+#define foo( a, b ) a + b
+foo(x + y, (z-t + vec3(0.0, 1.0)))
+foo
+(q,
+r)
+foo(,)`;
+
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+x + y + (z-t + vec3(0.0, 1.0))
+q + r
+ + `);
+});
+
+test('nested function macro expansion', () => {
+  const program = `
+#define X Z
+#define foo(x, y) x + y
+foo (foo (a, X), c)`;
+
+  const ast = parser.parse(program);
+  preprocess(ast);
+  expect(generate(ast)).toBe(`
+a + Z + c`);
+});
+
 test('preservation', () => {
   const program = `
 #line 0
@@ -158,18 +324,4 @@ inside if
 outside endif
 #pragma mypragma: something(else)
 function_call line after program`);
-});
-
-test('empty branch', () => {
-  const program = `before if
-#ifdef GL_ES
-precision mediump float;
-#endif
-after if`;
-
-  const ast = parser.parse(program);
-
-  preprocess(ast);
-  expect(generate(ast)).toBe(`before if
-after if`);
 });

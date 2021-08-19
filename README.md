@@ -114,6 +114,7 @@ can be handed off to the main GLSL parser.
 - Differentiate constructors from function calls?
 - ✅ todo_condition_type
 - This line is valid GLSL ES 1.0 but not 3.0: vec4 buffer	= texture2D(renderbuffer, uv);
+- Add preprocessComments to the preprocessor as option
 
 Import from Shadertoy / GLSL Sandbox
 - Rename variables to try to use shaderfrog engine

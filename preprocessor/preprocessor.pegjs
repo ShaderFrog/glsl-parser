@@ -127,10 +127,10 @@ control_line "control line"
         tail:(COMMA IDENTIFIER)* {
           return [head, ...tail.flat()];
         }
-      )
+      )?
       rp:RIGHT_PAREN
       body:token_string? {
-        return node('define_arguments', { define, identifier, lp, args, rp, body } )
+        return node('define_arguments', { define, identifier, lp, args: args || [], rp, body } )
       }
       / define:DEFINE identifier:IDENTIFIER body:token_string? {
         return node('define', { define, identifier, body } )

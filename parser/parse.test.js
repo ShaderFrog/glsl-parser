@@ -338,7 +338,7 @@ test('subroutines', () => {
 });
 
 test('debug', () => {
-  expectParsedProgram(`
+  debugProgram(`
     invariant centroid out vec3 Color, Color;
   `);
 });
