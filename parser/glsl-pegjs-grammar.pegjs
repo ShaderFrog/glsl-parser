@@ -2,6 +2,18 @@
 // https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
 
 {
+  const makeScope = (parent) => ({
+    parent,
+    bindings: {}
+  });
+  const addBindings = (scope, ...bindings) => {
+    bindings.forEach(([identifier, binding]) => {
+      scope.bindings[identifier] = binding;
+    });
+  };
+
+  let scope = makeScope();
+
   const node = (type, attrs) => ({
     type,
     ...attrs
@@ -82,7 +94,7 @@
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
 start = ws:_ program:translation_unit {
-  return { type: 'program', ws, program };
+  return { type: 'program', ws, program, scope };
 }
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
@@ -754,14 +766,18 @@ init_declarator_list
       op:COMMA
       expr:subsequent_declaration
     )* {
-      return node(
+      const declarations = [head.declaration, ...tail.map(t => t[1])];
+      console.log('declarations', declarations);
+      const n = node(
         'declarator_list',
         {
           specified_type: head.specified_type,
-          declarations: [head.declaration, ...tail.map(t => t[1])],
+          declarations,
           commas: tail.map(t => t[0])
         }
       );
+      addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
+      return n;
     }
 
 subsequent_declaration

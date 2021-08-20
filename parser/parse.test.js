@@ -62,6 +62,28 @@ const expectParsedProgram = (sourceGlsl) => {
   }
 };
 
+test('what a dope pope', () => {
+  const ast = parser.parse(`
+    float a, b = 1.0, c = a;
+    vec2 texcoord1, texcoord2;
+    vec3 position;
+    vec4 myRGBA;
+    ivec2 textureLookup;
+    bvec3 less;
+  `);
+  expect(Object.keys(ast.scope.bindings)).toEqual([
+    'a',
+    'b',
+    'c',
+    'texcoord1',
+    'texcoord2',
+    'position',
+    'myRGBA',
+    'textureLookup',
+    'less',
+  ]);
+});
+
 test('declarations', () => {
   expectParsedProgram(`
     float a, b = 1.0, c = a;
