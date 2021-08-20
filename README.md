@@ -57,10 +57,10 @@ const program = generate(ast);
 ## Preprocessing
 
 See the [GLSL Langauge Spec](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf) to learn more about GLSL preprocessing. Some notable 
-differences from the C++ parser are no "stringize" operator (#) and #if
-expressions can only operate on integer constants, not other types of data. The
-Shaderfrog GLSL preprocessor can't be used as a C/C++ preprocessor without
-modification.
+differences from the C++ parser are no "stringize" operator (`#`), no `#include`
+operator, and `#if` expressions can only operate on integer constants, not other
+types of data. The Shaderfrog GLSL preprocessor can't be used as a C/C++
+preprocessor without modification.
 
 ```javascript
 const preprocess = require('@shaderfrog/glsl-parser/preprocessor');
@@ -100,7 +100,6 @@ const {
   preprocessAst,
   preprocessComments,
   generate,
-  preprocess,
   parser,
 } = require('@shaderfrog/glsl-parser/preprocessor');
 
@@ -111,34 +110,45 @@ const commentsRemoved = preprocessComments(`float a = 1.0;`)
 const ast = parser.parse(commentsRemoved);
 
 // Then preproces it, expanding #defines, evaluating #ifs, etc
-preprocess(ast);
+preprocessAst(ast);
 
 // Then convert it back into a program string, which can be passed to the
 // core glsl parser
 const preprocessed = preprocessorGenerate(ast);
 ```
 
+# Limitations of the Parser and Preprocessor
+
+## Known missing semantic analysis compared to the specification
+
+- Compilers are supposed to raise an error if a switch body ends in a case or
+  default label.
+- Currently no semantic analysis of vertex vs fragment shaders
+
+## Deviations from the Khronos Grammar
+
+- `selection_statement` is renamed to `if_statement`
+- The grammar specifies `declaration` itself ends with a semicolon. I moved the
+  semicolon into the `declaration_statement` rule.
+- The grammar has a left paren "(" in the function_call production. Due to how
+  I de-left-recursed the function_call -> postfix_expression loop, I moved the
+  left paren into the function_identifier production.
+
 # WIP Notes
 
 ## Fixme
 
-- Token pasting operator ##
-- #version
-- What is #pragma?
+Preprocessor 
+
 - Handle backslash newlines in preprocessor (fml)
-- ✅ Finish all the parsing
-- ✅ The shape of for/while statements
-- ✅ What is leftAssociate doing again? Do I need it?
-- ✅ A + parses to {type: '+', chidlren: [left, '+', right]} - can I remove that
-  middle child and put whitespace as a key of the top level +
-- ✅ Renamed "name" to "type"
-- ✅ Can I move all trailing whitespace into a ws key instead of in children?
-- ✅ (related to whitespace) Fix the problem with tokens like "+" being both
-  nodes with a left and right, as well as inline nodes in children arrays to
-  support whitespace handling - have a "keyword" node - check what astparser
-  does online for keywords
-- ✅ Impelement printing
 - Implement optional whitespace flag
+- `__LINE__` - others?
+- ✅ Token pasting operator ##
+- ✅ #version
+- ✅ What is #pragma?
+
+Parser
+
 - glsl version switch to support glsl es 3 vs 1?
 - Figure out the preprocessor strategy
 - Verify every node type has a generator
@@ -159,9 +169,18 @@ const preprocessed = preprocessorGenerate(ast);
 - Add location information to the output
 - Semantic analysis of scope of variables
 - Differentiate constructors from function calls?
-- ✅ todo_condition_type
 - This line is valid GLSL ES 1.0 but not 3.0: vec4 buffer	= texture2D(renderbuffer, uv);
 - Add preprocessComments to the preprocessor as option
+- ✅ Finish all the parsing
+- ✅ The shape of for/while statements
+- ✅ What is leftAssociate doing again? Do I need it?
+- ✅ A + parses to {type: '+', chidlren: [left, '+', right]} - can I remove that
+  middle child and put whitespace as a key of the top level +
+- ✅ Can I move all trailing whitespace into a ws key instead of in children?
+- ✅ (related to whitespace) Fix the problem with tokens like "+" being both
+  nodes with a left and right, as well as inline nodes in children arrays to
+  support whitespace handling - have a "keyword" node - check what astparser
+  does online for keywords
 
 Import from Shadertoy / GLSL Sandbox
 - Rename variables to try to use shaderfrog engine
@@ -181,7 +200,6 @@ vec3 a = _
 
 gl_FragCoord > vUv
 
-
 This sounds like it requires a full preprocess to handle.
 
 # What?
@@ -191,24 +209,3 @@ This sounds like it requires a full preprocess to handle.
 - Shaderfrog engine for switching testing
 - Write shader vertex / fragment
 - Auto parse constants, variables, uniforms, let them be used
-
-# Limitations
-
-## Known missing semantic analysis compared to the specification
-
-- Compilers are supposed to raise an error if a switch body ends in a case or
-  default label.
-- Currently no semantic analysis of vertex vs fragment shaders
-
-## Deviations from the Khronos Grammar
-
-- `selection_statement` is renamed to `if_statement`
-- The grammar specifies `declaration` itself ends with a semicolon. I moved the
-  semicolon into the `declaration_statement` rule.
-- The grammar has a left paren "(" in the function_call production. Due to how
-  I de-left-recursed the function_call -> postfix_expression loop, I moved the
-  left paren into the function_identifier production.
-
-# Preprocessor
-
-No `#include` as it's not part of the standard grammar

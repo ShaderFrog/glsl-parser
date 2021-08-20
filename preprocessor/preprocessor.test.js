@@ -281,6 +281,17 @@ foo (foo (a, X), c)`;
 a + Z + c`);
 });
 
+test('token pasting', () => {
+  const program = `
+#define COMMAND(NAME)  { NAME, NAME ## _command ## x ## y }
+COMMAND(x)`;
+
+  const ast = parser.parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+{ x, x_commandxy }`);
+});
+
 test('preservation', () => {
   const program = `
 #line 0

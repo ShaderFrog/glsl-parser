@@ -11,11 +11,9 @@ const preprocess = (src, options) =>
     )
   );
 
-module.exports = {
-  default: preprocess,
-  preprocessAst,
-  preprocessComments,
-  generate,
-  preprocess,
-  parser,
-};
+module.exports = preprocess;
+preprocess.preprocessAst = preprocessAst;
+preprocess.preprocessComments = preprocessComments;
+preprocess.generate = generate;
+preprocess.preprocess = preprocess;
+preprocess.parser = parser;

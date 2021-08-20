@@ -107,6 +107,8 @@ const preprocessComments = (src) => {
   return out;
 };
 
+const tokenPaste = (str) => str.replace(/\s+##\s+/g, '');
+
 const expandFunctionMacro = (macros, macroName, macro, text) => {
   const pattern = `\\b${macroName}\\s*\\(`;
   const startRegex = new RegExp(pattern, 'm');
@@ -139,13 +141,15 @@ const expandFunctionMacro = (macros, macroName, macro, text) => {
       throw new Error(`'${macroName}': Not enough arguments for macro`);
     }
 
-    const replacedBody = macroArgs.reduce(
-      (replaced, macroArg, index) =>
-        replaced.replace(
-          new RegExp(`\\b${macroArg.identifier}\\b`, 'g'),
-          args[index].trim()
-        ),
-      macro.body
+    const replacedBody = tokenPaste(
+      macroArgs.reduce(
+        (replaced, macroArg, index) =>
+          replaced.replace(
+            new RegExp(`\\b${macroArg.identifier}\\b`, 'g'),
+            args[index].trim()
+          ),
+        macro.body
+      )
     );
 
     // Any text expanded is then scanned again for more replacements. The
@@ -180,9 +184,8 @@ const expandObjectMacro = (macros, macroName, macro, text) => {
   const regex = new RegExp(`\\b${macroName}\\b`, 'g');
   let expanded = text;
   if (regex.test(text)) {
-    const firstPass = text.replace(
-      new RegExp(`\\b${macroName}\\b`, 'g'),
-      macro.body
+    const firstPass = tokenPaste(
+      text.replace(new RegExp(`\\b${macroName}\\b`, 'g'), macro.body)
     );
     // Scan expanded text for more expansions. Ignore the expanded macro because
     // of the self-reference rule
