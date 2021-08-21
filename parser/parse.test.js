@@ -30,6 +30,10 @@ const debugProgram = (program) => {
   console.log(util.inspect(ast.program[0], false, null, true));
 };
 
+const debugAst = (ast) => {
+  console.log(util.inspect(ast.program[0], false, null, true));
+};
+
 const debugStatement = (stmt) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
@@ -63,14 +67,28 @@ const expectParsedProgram = (sourceGlsl) => {
 };
 
 test('what a dope pope', () => {
+  // const ast = parser.parse(`
+  //   struct XXXXXXXXXX {
+  //     float intensity;
+  //     vec3 position;
+  //   };`);
   const ast = parser.parse(`
-    float a, b = 1.0, c = a;
-    vec2 texcoord1, texcoord2;
-    vec3 position;
-    vec4 myRGBA;
-    ivec2 textureLookup;
-    bvec3 less;
-  `);
+float a, b = 1.0, c = a;
+vec2 texcoord1, texcoord2;
+vec3 position;
+vec4 myRGBA;
+ivec2 textureLookup;
+bvec3 less;
+vec3 x() {}
+struct light {
+  float intensity;
+  vec3 position;
+};
+coherent buffer Block {
+  readonly vec4 member1;
+  vec4 member2;
+};`);
+  debugAst(ast);
   expect(Object.keys(ast.scope.bindings)).toEqual([
     'a',
     'b',
@@ -81,7 +99,10 @@ test('what a dope pope', () => {
     'myRGBA',
     'textureLookup',
     'less',
+    'x',
+    // 'Block', // FIXME
   ]);
+  expect(Object.keys(ast.scope.types)).toEqual(['light']);
 });
 
 test('declarations', () => {

@@ -4,8 +4,15 @@
 {
   const makeScope = (parent) => ({
     parent,
-    bindings: {}
+    bindings: {},
+    types: {}
   });
+  const addTypes = (scope, ...types) => {
+    types.forEach(([identifier, type]) => {
+      scope.types[identifier] = type;
+    });
+  };
+
   const addBindings = (scope, ...bindings) => {
     bindings.forEach(([identifier, binding]) => {
       scope.bindings[identifier] = binding;
@@ -766,9 +773,15 @@ init_declarator_list
       op:COMMA
       expr:subsequent_declaration
     )* {
-      const declarations = [head.declaration, ...tail.map(t => t[1])];
-      console.log('declarations', declarations);
-      const n = node(
+      const declarations = [
+        head.declaration, ...tail.map(t => t[1])
+      ].filter(decl => !!decl.identifier);
+      // console.log('declaraations', declarations);
+      // console.log('old keys:', Object.keys(scope.bindings));
+      addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
+      // console.log('new keys:', Object.keys(scope.bindings));
+      // TODO: I might need to start storing node parents for easy traversal
+      return node(
         'declarator_list',
         {
           specified_type: head.specified_type,
@@ -776,8 +789,6 @@ init_declarator_list
           commas: tail.map(t => t[0])
         }
       );
-      addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
-      return n;
     }
 
 subsequent_declaration
@@ -940,7 +951,8 @@ struct_specifier "struct specifier"
     lb:LEFT_BRACE
     declarations:struct_declaration_list
     rb:RIGHT_BRACE {
-      return node('struct', { lb, declarations, rb, struct, identifier })
+      addTypes(scope, [identifier.identifier, identifier]);
+      return node('struct', { lb, declarations, rb, struct, identifier });
     }
 
 struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
@@ -1178,7 +1190,9 @@ external_declaration
   = function_definition / declaration_statement
 
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
-  return node('function', { body, prototype });
+  const n = node('function', { body, prototype });
+  addBindings(scope, [prototype.header.name.identifier, n]);
+  return n;
 }
 
 // The whitespace is optional so that we can put comments immediately after
