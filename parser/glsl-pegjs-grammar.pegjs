@@ -11,7 +11,7 @@
     scopes.push(scope);
     return scope;
   };
-  const popScope = scope => scope.parent;
+  const popScope = scope => scope.parent || console.error('popped bad scope', scope);
 
   const addTypes = (scope, ...types) => {
     types.forEach(([identifier, type]) => {
@@ -734,7 +734,7 @@ function_header "function header"
   = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
-      // console.log('function header scope');
+      console.log('function header scope');
       scope = pushScope(makeScope(scope));
       return node(
         'function_header',
@@ -787,10 +787,8 @@ init_declarator_list
       const declarations = [
         head.declaration, ...tail.map(t => t[1])
       ].filter(decl => !!decl.identifier);
-      // console.log('adding init_declator_list declarations', declarations.map(decl => decl.identifier.identifier));
-      // console.log('old keys:', Object.keys(scope.bindings));
+      console.log('adding init_declator_list declarations', declarations.map(decl => decl.identifier.identifier));
       addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
-      // console.log('new keys:', Object.keys(scope.bindings));
       // TODO: I might need to start storing node parents for easy traversal
       return node(
         'declarator_list',
@@ -1024,12 +1022,20 @@ simple_statement
   / iteration_statement
 
 // { block of statements }
-compound_statement = lb:LEFT_BRACE statements:statement_list? rb:RIGHT_BRACE {
-  return node(
-    'compound_statement',
-    { lb, statements: (statements || []).flat(), rb }
-  );
-}
+compound_statement =
+  lb:(sym:LEFT_BRACE {
+    scope = pushScope(makeScope(scope));
+    return sym;
+  })
+  statements:statement_list?
+  rb:RIGHT_BRACE {
+    // TODO: This creates lots of new scopes. is that bad?
+    scope = popScope(scope);
+    return node(
+      'compound_statement',
+      { lb, statements: (statements || []).flat(), rb }
+    );
+  }
 
 // Keeping this no-new-scope rule as it could be a useful hint to the compiler
 compound_statement_no_new_scope = compound_statement
@@ -1048,9 +1054,25 @@ if_statement
   = ifSymbol:IF
     lp:LEFT_PAREN
     condition:expression
-    rp:RIGHT_PAREN tail:(
-      statement (ELSE statement)?
+    rp:(sym:RIGHT_PAREN {
+      scope = pushScope(makeScope(scope));
+      return sym;
+    })
+    tail:(
+      statement
+      (
+        (sym:ELSE {
+          scope = pushScope(makeScope(scope));
+          return sym;
+        })
+        (st:statement {
+          scope = popScope(scope);
+          return st;
+        })
+      )?
     ) {
+      console.log('popping scope', scope);
+      scope = popScope(scope);
       const [body, elseBranch] = tail;
       return node(
         'if_statement',
@@ -1095,11 +1117,15 @@ case_label
   }
 
 iteration_statement "iteration statement"
-  = whileSymbol:WHILE
+  = whileSymbol:(sym:WHILE {
+      scope = pushScope(makeScope(scope));
+      return sym;
+    })
     lp:LEFT_PAREN
     condition:condition
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
+      scope = popScope(scope);
       return node(
         'while_statement',
         {
@@ -1111,13 +1137,17 @@ iteration_statement "iteration statement"
         }
       );
     }
-  / doSymbol:DO
+  / doSymbol:(sym:DO {
+      scope = pushScope(makeScope(scope));
+      return sym;
+    })
     body:statement
     whileSymbol:WHILE
     lp:LEFT_PAREN
     expression:expression
     rp:RIGHT_PAREN
     semi:SEMICOLON {
+      scope = popScope(scope);
       return node(
         'do_statement',
         {
@@ -1131,7 +1161,10 @@ iteration_statement "iteration statement"
         }
       );
     }
-  / forSymbol:FOR
+  / forSymbol:(sym:FOR {
+      scope = pushScope(makeScope(scope));
+      return sym;
+    })
     lp:LEFT_PAREN
     init:(
       expression_statement /
@@ -1142,6 +1175,7 @@ iteration_statement "iteration statement"
     operation:expression?
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
+      scope = popScope(scope);
       return node(
         'for_statement',
         {
@@ -1167,10 +1201,12 @@ condition
     identifier:IDENTIFIER
     op:EQUAL
     initializer:initializer {
-      return node(
+      const n = node(
         'condition_expression',
         { specified_type, identifier, op, initializer }
       );
+      addBindings(scope, [identifier.identifier, n]);
+      return n;
     }
     / expression
 
@@ -1203,7 +1239,7 @@ external_declaration
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
   const n = node('function', { body, prototype });
   scope = popScope(scope);
-  // console.log('adding function def binding', [prototype.header.name.identifier]);
+  console.log('adding function def binding', [prototype.header.name.identifier]);
   addBindings(scope, [prototype.header.name.identifier, n]);
   return n;
 }

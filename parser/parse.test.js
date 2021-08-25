@@ -105,16 +105,50 @@ test('nested scopes', () => {
 float shadowed;
 vec3 fnName(float arg, vec3 arg2) {
   float shadowed;
+
+  for(int index = 0; bool index1 = f(); index++) { float forInner; }
+
+  while (bool whileCond = f()) { float whileInner; }
+
+  do { float doWhileInner; } while (i < 10);
+
+  if(true) {
+    float ifInner;
+  }
+
+  {
+    float compoundInner;
+  }
+
+  float inner1;
 }`);
-  // debugAst(ast);
-  expect(ast.scopes.length).toEqual(2);
+  debugAst(ast);
+  expect(ast.scopes.length).toEqual(6);
   expect(Object.keys(ast.scopes[0].bindings)).toEqual(['shadowed', 'fnName']);
   // console.log('ast.scopes[1].bindings', ast.scopes[1].bindings);
   expect(Object.keys(ast.scopes[1].bindings)).toEqual([
     'arg',
     'arg2',
     'shadowed',
+    'inner1',
   ]);
+
+  expect(Object.keys(ast.scopes[2].bindings)).toEqual([
+    'index',
+    'index1',
+    'forInner',
+  ]);
+
+  expect(Object.keys(ast.scopes[3].bindings)).toEqual([
+    'whileCond',
+    'whileInner',
+  ]);
+
+  expect(Object.keys(ast.scopes[4].bindings)).toEqual(['doWhileInner']);
+
+  expect(Object.keys(ast.scopes[5].bindings)).toEqual(['ifInner']);
+
+  expect(Object.keys(ast.scopes[6].bindings)).toEqual(['compoundInner']);
 });
 
 test('declarations', () => {
