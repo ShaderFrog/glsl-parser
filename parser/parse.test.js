@@ -31,7 +31,7 @@ const debugProgram = (program) => {
 };
 
 const debugAst = (ast) => {
-  console.log(util.inspect(ast.program[0], false, null, true));
+  console.log(util.inspect(ast.program, false, null, true));
 };
 
 const debugStatement = (stmt) => {
@@ -66,12 +66,7 @@ const expectParsedProgram = (sourceGlsl) => {
   }
 };
 
-test('what a dope pope', () => {
-  // const ast = parser.parse(`
-  //   struct XXXXXXXXXX {
-  //     float intensity;
-  //     vec3 position;
-  //   };`);
+test('scope bindings and type names', () => {
   const ast = parser.parse(`
 float a, b = 1.0, c = a;
 vec2 texcoord1, texcoord2;
@@ -88,8 +83,8 @@ coherent buffer Block {
   readonly vec4 member1;
   vec4 member2;
 };`);
-  debugAst(ast);
-  expect(Object.keys(ast.scope.bindings)).toEqual([
+  // debugAst(ast);
+  expect(Object.keys(ast.scopes[0].bindings)).toEqual([
     'a',
     'b',
     'c',
@@ -100,9 +95,26 @@ coherent buffer Block {
     'textureLookup',
     'less',
     'x',
-    // 'Block', // FIXME
+    'Block',
   ]);
-  expect(Object.keys(ast.scope.types)).toEqual(['light']);
+  expect(Object.keys(ast.scopes[0].types)).toEqual(['light']);
+});
+
+test('nested scopes', () => {
+  const ast = parser.parse(`
+float shadowed;
+vec3 fnName(float arg, vec3 arg2) {
+  float shadowed;
+}`);
+  // debugAst(ast);
+  expect(ast.scopes.length).toEqual(2);
+  expect(Object.keys(ast.scopes[0].bindings)).toEqual(['shadowed', 'fnName']);
+  // console.log('ast.scopes[1].bindings', ast.scopes[1].bindings);
+  expect(Object.keys(ast.scopes[1].bindings)).toEqual([
+    'arg',
+    'arg2',
+    'shadowed',
+  ]);
 });
 
 test('declarations', () => {

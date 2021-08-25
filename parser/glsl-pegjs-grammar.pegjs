@@ -7,6 +7,12 @@
     bindings: {},
     types: {}
   });
+  const pushScope = scope => {
+    scopes.push(scope);
+    return scope;
+  };
+  const popScope = scope => scope.parent;
+
   const addTypes = (scope, ...types) => {
     types.forEach(([identifier, type]) => {
       scope.types[identifier] = type;
@@ -19,7 +25,8 @@
     });
   };
 
-  let scope = makeScope();
+  let scopes = [makeScope()];
+  let scope = scopes[0];
 
   const node = (type, attrs) => ({
     type,
@@ -101,7 +108,7 @@
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
 start = ws:_ program:translation_unit {
-  return { type: 'program', ws, program, scope };
+  return { type: 'program', ws, program, scopes };
 }
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
@@ -670,7 +677,6 @@ declaration_statement = declaration:declaration {
 // that's meant for a later production.
 declaration
   =
-  // qualifier_declarator SEMICOLON
   function_prototype SEMICOLON
   // Statements starting with "precision", like "precision highp float"
   / precision_declarator SEMICOLON
@@ -704,10 +710,12 @@ interface_declarator
     declarations:struct_declaration_list
     rp:RIGHT_BRACE
     identifier:quantified_identifier? {
-      return node(
+      const n = node(
         'interface_declarator',
         { qualifiers, interface_type, lp, declarations, rp, identifier }
       );
+      addBindings(scope, [interface_type.identifier, n]);
+      return n;
     }
 
 precision_declarator "precision statement"
@@ -718,6 +726,7 @@ precision_declarator "precision statement"
 
 function_prototype "function prototype"
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
+    addBindings(scope, ...params.parameters.map(p => [p.declaration.identifier.identifier, p]));
     return node('function_prototype', { header, ...params, rp });
   }
 
@@ -725,6 +734,8 @@ function_header "function header"
   = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
+      // console.log('function header scope');
+      scope = pushScope(makeScope(scope));
       return node(
         'function_header',
         { returnType, name, lp }
@@ -776,7 +787,7 @@ init_declarator_list
       const declarations = [
         head.declaration, ...tail.map(t => t[1])
       ].filter(decl => !!decl.identifier);
-      // console.log('declaraations', declarations);
+      // console.log('adding init_declator_list declarations', declarations.map(decl => decl.identifier.identifier));
       // console.log('old keys:', Object.keys(scope.bindings));
       addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
       // console.log('new keys:', Object.keys(scope.bindings));
@@ -1191,6 +1202,8 @@ external_declaration
 
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
   const n = node('function', { body, prototype });
+  scope = popScope(scope);
+  // console.log('adding function def binding', [prototype.header.name.identifier]);
   addBindings(scope, [prototype.header.name.identifier, n]);
   return n;
 }
