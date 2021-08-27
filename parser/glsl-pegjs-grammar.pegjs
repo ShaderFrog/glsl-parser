@@ -8,10 +8,26 @@
     types: {}
   });
   const pushScope = scope => {
+    // console.log('pushing scope at ',text());
     scopes.push(scope);
     return scope;
   };
-  const popScope = scope => scope.parent || console.error('popped bad scope', scope);
+  const popScope = scope => {
+    // console.log('popping scope at ',text());
+    if(!scope.parent) {
+      throw new Error('popped bad scope', scope, 'at', text());
+    }
+    return scope.parent;
+  };
+  const findScopeFor = (scope, name) => {
+    if(!scope) {
+      return null;
+    }
+    if(name in scope.bindings) {
+      return scope;
+    }
+    return findScopeFor(scope.parent, name);
+  }
 
   const addTypes = (scope, ...types) => {
     types.forEach(([identifier, type]) => {
@@ -19,10 +35,24 @@
     });
   };
 
-  const addBindings = (scope, ...bindings) => {
+  const createBindings = (scope, ...bindings) => {
     bindings.forEach(([identifier, binding]) => {
-      scope.bindings[identifier] = binding;
+      const newBinding = scope.bindings[identifier] || { references: [] };
+      newBinding.initializer = binding;
+      newBinding.references.unshift(binding);
+      scope.bindings[identifier] = newBinding
     });
+  };
+
+  const addBindingReference = (scope, name, reference) => {
+    // In the case of "float a = 1, b = a;" we parse the final "a" before the
+    // parent declarator list is parsed. So we might need to add the final "a"
+    // to the scope first.
+    if(!(name in scope.bindings)) {
+      createBindings(scope, [name, reference]);
+    } else {
+      scope.bindings[name].references.push(reference);
+    }
   };
 
   let scopes = [makeScope()];
@@ -402,7 +432,13 @@ primary_expression "primary expression"
   / lp:LEFT_PAREN expression:expression rp:RIGHT_PAREN {
     return node('group', { lp, expression, rp });
   }
-  / IDENTIFIER
+  / ident:IDENTIFIER {
+    const { identifier } = ident;
+    const usedScope = findScopeFor(scope, identifier);
+    addBindingReference(usedScope || scope, identifier, ident);
+    // console.warn(`Warning: "${identifier}" has not been declared`);
+    return ident;
+  }
 
 postfix_expression
   = body:(
@@ -714,7 +750,7 @@ interface_declarator
         'interface_declarator',
         { qualifiers, interface_type, lp, declarations, rp, identifier }
       );
-      addBindings(scope, [interface_type.identifier, n]);
+      createBindings(scope, [interface_type.identifier, n]);
       return n;
     }
 
@@ -726,7 +762,7 @@ precision_declarator "precision statement"
 
 function_prototype "function prototype"
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
-    addBindings(scope, ...params.parameters.map(p => [p.declaration.identifier.identifier, p]));
+    createBindings(scope, ...(params?.parameters || []).map(p => [p.declaration.identifier.identifier, p]));
     return node('function_prototype', { header, ...params, rp });
   }
 
@@ -734,7 +770,6 @@ function_header "function header"
   = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
-      console.log('function header scope');
       scope = pushScope(makeScope(scope));
       return node(
         'function_header',
@@ -787,8 +822,9 @@ init_declarator_list
       const declarations = [
         head.declaration, ...tail.map(t => t[1])
       ].filter(decl => !!decl.identifier);
-      console.log('adding init_declator_list declarations', declarations.map(decl => decl.identifier.identifier));
-      addBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
+
+      createBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
+
       // TODO: I might need to start storing node parents for easy traversal
       return node(
         'declarator_list',
@@ -956,12 +992,15 @@ precision_qualifier "precision qualifier"
 
 struct_specifier "struct specifier"
   = struct:STRUCT
-    identifier:IDENTIFIER?
+    typeName:IDENTIFIER?
     lb:LEFT_BRACE
     declarations:struct_declaration_list
     rb:RIGHT_BRACE {
-      addTypes(scope, [identifier.identifier, identifier]);
-      return node('struct', { lb, declarations, rb, struct, identifier });
+      // Anonymous structs don't get a type name
+      if(typeName) {
+        addTypes(scope, [typeName.identifier, typeName]);
+      }
+      return node('struct', { lb, declarations, rb, struct, typeName });
     }
 
 struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
@@ -982,6 +1021,7 @@ struct_declaration
       );
     }
 
+// Fields inside of structs and interace blocks. They don't show up in scope
 quantified_identifier
   = identifier:IDENTIFIER quantifier:array_specifier? {
     return node('quantified_identifier', { identifier, quantifier });
@@ -996,6 +1036,7 @@ initializer
     tail:(COMMA initializer)*
     trailing:COMMA?
     rb:RIGHT_BRACE {
+      // TODO: Scope
       return node(
         'initializer_list',
         {
@@ -1021,7 +1062,7 @@ simple_statement
   / case_label
   / iteration_statement
 
-// { block of statements }
+// { block of statements } that introduces a new scope
 compound_statement =
   lb:(sym:LEFT_BRACE {
     scope = pushScope(makeScope(scope));
@@ -1029,7 +1070,6 @@ compound_statement =
   })
   statements:statement_list?
   rb:RIGHT_BRACE {
-    // TODO: This creates lots of new scopes. is that bad?
     scope = popScope(scope);
     return node(
       'compound_statement',
@@ -1037,8 +1077,17 @@ compound_statement =
     );
   }
 
-// Keeping this no-new-scope rule as it could be a useful hint to the compiler
-compound_statement_no_new_scope = compound_statement
+// { block of statements } that doesn't introduce a new scope, such as the body
+// of a for loop, since "for(" technically starts the new scope
+compound_statement_no_new_scope = 
+  lb:LEFT_BRACE
+  statements:statement_list?
+  rb:RIGHT_BRACE {
+    return node(
+      'compound_statement',
+      { lb, statements: (statements || []).flat(), rb }
+    );
+  }
 
 statement_no_new_scope
   = compound_statement_no_new_scope / simple_statement
@@ -1054,25 +1103,10 @@ if_statement
   = ifSymbol:IF
     lp:LEFT_PAREN
     condition:expression
-    rp:(sym:RIGHT_PAREN {
-      scope = pushScope(makeScope(scope));
-      return sym;
-    })
+    rp:RIGHT_PAREN
     tail:(
-      statement
-      (
-        (sym:ELSE {
-          scope = pushScope(makeScope(scope));
-          return sym;
-        })
-        (st:statement {
-          scope = popScope(scope);
-          return st;
-        })
-      )?
+      statement (ELSE statement)?
     ) {
-      console.log('popping scope', scope);
-      scope = popScope(scope);
       const [body, elseBranch] = tail;
       return node(
         'if_statement',
@@ -1094,6 +1128,7 @@ switch_statement
     lb:LEFT_BRACE
     statements:statement_list
     rb:RIGHT_BRACE {
+      // TODO: Scope?
       return node(
         'switch_statement',
         {
@@ -1137,17 +1172,15 @@ iteration_statement "iteration statement"
         }
       );
     }
-  / doSymbol:(sym:DO {
-      scope = pushScope(makeScope(scope));
-      return sym;
-    })
+  // Grammar note: "the do-while loop, which cannot declare a variable in its
+  // condition-expression" - page 136. Scope is left up to statement prodcution
+  / doSymbol:DO
     body:statement
     whileSymbol:WHILE
     lp:LEFT_PAREN
     expression:expression
     rp:RIGHT_PAREN
     semi:SEMICOLON {
-      scope = popScope(scope);
       return node(
         'do_statement',
         {
@@ -1205,7 +1238,7 @@ condition
         'condition_expression',
         { specified_type, identifier, op, initializer }
       );
-      addBindings(scope, [identifier.identifier, n]);
+      createBindings(scope, [identifier.identifier, n]);
       return n;
     }
     / expression
@@ -1239,8 +1272,7 @@ external_declaration
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
   const n = node('function', { body, prototype });
   scope = popScope(scope);
-  console.log('adding function def binding', [prototype.header.name.identifier]);
-  addBindings(scope, [prototype.header.name.identifier, n]);
+  createBindings(scope, [prototype.header.name.identifier, n]);
   return n;
 }
 

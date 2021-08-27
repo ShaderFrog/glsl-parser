@@ -74,7 +74,10 @@ vec3 position;
 vec4 myRGBA;
 ivec2 textureLookup;
 bvec3 less;
-vec3 x() {}
+float arr1[5] = float[5](3.4, 4.2, 5.0, 5.2, 1.1);
+vec4[2] arr2[3]; 
+vec4[3][2] arr3;
+vec3 fnName() {}
 struct light {
   float intensity;
   vec3 position;
@@ -94,61 +97,66 @@ coherent buffer Block {
     'myRGBA',
     'textureLookup',
     'less',
-    'x',
+    'arr1',
+    'arr2',
+    'arr3',
+    'fnName',
     'Block',
   ]);
   expect(Object.keys(ast.scopes[0].types)).toEqual(['light']);
 });
 
-test('nested scopes', () => {
+test('scope references', () => {
   const ast = parser.parse(`
+float a, b = 1.0, c = a;
+mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
+struct {
+  float s;
+  float t;
+} structArr[];
+
 float shadowed;
+float reused;
+float unused;
 vec3 fnName(float arg, vec3 arg2) {
   float shadowed;
-
-  for(int index = 0; bool index1 = f(); index++) { float forInner; }
-
-  while (bool whileCond = f()) { float whileInner; }
-
-  do { float doWhileInner; } while (i < 10);
+  structArr[0].x++;
 
   if(true) {
-    float ifInner;
+    float x = shadowed + 1 + reused;
   }
 
   {
-    float compoundInner;
+    float compound;
+    compound = shadowed + reused;
   }
 
-  float inner1;
+  {
+    float compound;
+    compound = shadowed + reused + compound;
+  }
 }`);
-  debugAst(ast);
-  expect(ast.scopes.length).toEqual(6);
-  expect(Object.keys(ast.scopes[0].bindings)).toEqual(['shadowed', 'fnName']);
-  // console.log('ast.scopes[1].bindings', ast.scopes[1].bindings);
-  expect(Object.keys(ast.scopes[1].bindings)).toEqual([
-    'arg',
-    'arg2',
-    'shadowed',
-    'inner1',
-  ]);
+  // debugAst(ast);
+  // console.log(
+  //   ast.scopes.map((scope, index) => [index, ...Object.keys(scope.bindings)])
+  // );
+  // expect(ast.scopes).toHaveLength(7);
 
-  expect(Object.keys(ast.scopes[2].bindings)).toEqual([
-    'index',
-    'index1',
-    'forInner',
-  ]);
-
-  expect(Object.keys(ast.scopes[3].bindings)).toEqual([
-    'whileCond',
-    'whileInner',
-  ]);
-
-  expect(Object.keys(ast.scopes[4].bindings)).toEqual(['doWhileInner']);
-
-  expect(Object.keys(ast.scopes[5].bindings)).toEqual(['ifInner']);
-
-  expect(Object.keys(ast.scopes[6].bindings)).toEqual(['compoundInner']);
+  // shadowed - not used
+  expect(ast.scopes[0].bindings.a.references).toHaveLength(2);
+  expect(ast.scopes[0].bindings.b.references).toHaveLength(1);
+  expect(ast.scopes[0].bindings.c.references).toHaveLength(1);
+  expect(ast.scopes[0].bindings.myMat.references).toHaveLength(1);
+  expect(ast.scopes[0].bindings.structArr.references).toHaveLength(2);
+  expect(ast.scopes[0].bindings.shadowed.references).toHaveLength(1);
+  // shadowed - inner scope
+  expect(ast.scopes[1].bindings.shadowed.references).toHaveLength(4);
+  // reused - used in inner scope
+  expect(ast.scopes[0].bindings.reused.references).toHaveLength(4);
+  // compound - used in first innermost scope only
+  expect(ast.scopes[3].bindings.compound.references).toHaveLength(2);
+  // compound - used in last innermost scope only
+  expect(ast.scopes[4].bindings.compound.references).toHaveLength(3);
 });
 
 test('declarations', () => {
@@ -186,8 +194,6 @@ test('if statement', () => {
   `);
 });
 
-// TODO: You're working on removing .children -> and see the tests, now nodes
-// like '<=' are erroring. What should these nodes like <= be stored as?
 test('do while loop', () => {
   expectParsedStatement(`
     do {
