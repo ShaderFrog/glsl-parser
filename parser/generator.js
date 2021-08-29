@@ -170,7 +170,7 @@ const generators = {
 
   struct: (node) =>
     generate(node.struct) +
-    generate(node.identifier) +
+    generate(node.typeName) +
     generate(node.lb) +
     generate(node.declarations) +
     generate(node.rb),

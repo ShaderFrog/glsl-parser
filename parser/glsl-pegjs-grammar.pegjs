@@ -5,7 +5,8 @@
   const makeScope = (parent) => ({
     parent,
     bindings: {},
-    types: {}
+    types: {},
+    functions: {},
   });
   const pushScope = scope => {
     // console.log('pushing scope at ',text());
@@ -19,22 +20,32 @@
     }
     return scope.parent;
   };
-  const findScopeFor = (scope, name) => {
+
+  const warn = (...args) => !options.quiet && console.warn(...args);
+
+  // Types (aka struct) scope
+  const addTypes = (scope, ...types) => {
+    types.forEach(([identifier, type]) => {
+      scope.types[identifier] = {
+        references: [type]
+      };
+    });
+  };
+  const addTypeReference = (scope, name, reference) => {
+    scope.types[name].references.push(reference);
+  };
+  const findTypeScope = (scope, typeName) => {
     if(!scope) {
       return null;
     }
-    if(name in scope.bindings) {
+    if(typeName in scope.types) {
       return scope;
     }
-    return findScopeFor(scope.parent, name);
+    return findTypeScope(scope.parent, typeName);
   }
+  const isDeclaredType = (scope, typeName) => findTypeScope(scope, typeName) !== null;
 
-  const addTypes = (scope, ...types) => {
-    types.forEach(([identifier, type]) => {
-      scope.types[identifier] = type;
-    });
-  };
-
+  // Bindings (aka variables, parameters) scope
   const createBindings = (scope, ...bindings) => {
     bindings.forEach(([identifier, binding]) => {
       const newBinding = scope.bindings[identifier] || { references: [] };
@@ -43,7 +54,6 @@
       scope.bindings[identifier] = newBinding
     });
   };
-
   const addBindingReference = (scope, name, reference) => {
     // In the case of "float a = 1, b = a;" we parse the final "a" before the
     // parent declarator list is parsed. So we might need to add the final "a"
@@ -54,6 +64,33 @@
       scope.bindings[name].references.push(reference);
     }
   };
+  const findBindingScope = (scope, name) => {
+    if(!scope) {
+      return null;
+    }
+    if(name in scope.bindings) {
+      return scope;
+    }
+    return findBindingScope(scope.parent, name);
+  }
+
+  // Function scope
+  const createFunction = (scope, name, declaration) => {
+    scope.functions[name] = { references: [declaration] }
+  };
+  const addFunctionReference = (scope, name, reference) => {
+    scope.functions[name].references.push(reference);
+  };
+  const findFunctionScope = (scope, fnName) => {
+    if(!scope) {
+      return null;
+    }
+    if(fnName in scope.functions) {
+      return scope;
+    }
+    return findFunctionScope(scope.parent, fnName);
+  }
+  const isDeclaredFunction = (scope, fnName) => findFunctionScope(scope, fnName) !== null;
 
   let scopes = [makeScope()];
   let scope = scopes[0];
@@ -133,6 +170,16 @@
       }];
     }
   }, []);
+
+  const builtIns = new Set([
+    'radians', 'degrees', 'sin', 'cos', 'tan', 'asin', 'acos', 'atan', 'pow',
+    'exp', 'log', 'exp2', 'log2', 'sqrt', 'inversesqrt', 'abs', 'sign', 'floor',
+    'ceil', 'fract', 'mod', 'min', 'max', 'clamp', 'mix', 'step', 'smoothstep',
+    'length', 'distance', 'dot', 'cross', 'normalize', 'faceforward', 'reflect',
+    'refract', 'matrixCompMult', 'lessThan', 'lessThanEqual', 'greaterThan',
+    'greaterThanEqual', 'equal', 'notEqual', 'any', 'all', 'not', 'texture2D',
+    'textureCube',
+  ]);
 }
 
 // Extra whitespace here at start is to help with screenshots by adding
@@ -391,11 +438,25 @@ AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace
 QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 
 IDENTIFIER = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
-TYPE_NAME = !keyword IDENTIFIER
+TYPE_NAME = !keyword ident:IDENTIFIER {
+  const { identifier } = ident;
 
-// Spec note: "It is a compile-time error to provide a literal integer whose bit
-// pattern cannot fit in 32 bits." This and other ranges are not yet implemented
-// here
+  // We do scope checking and parsing all in one pass. In the case of calling an
+  // undefined function, here, we don't know that we're in a function, so we
+  // can't warn appropriately. If we return false for the missing typename, the
+  // program won't parse, since the function call node won't match since it uses
+  // type_name for the function_identifier. So all we can do here is go on our
+  // merry way if the type isn't known.
+
+  let found;
+  if(found = findTypeScope(scope, identifier)) {
+    addTypeReference(found, identifier, identifier);
+  } else if(found = findFunctionScope(scope, identifier)) {
+    addFunctionReference(found, identifier, identifier);
+  }
+  
+  return ident;
+}
 
 // Integers
 integer_constant
@@ -434,9 +495,13 @@ primary_expression "primary expression"
   }
   / ident:IDENTIFIER {
     const { identifier } = ident;
-    const usedScope = findScopeFor(scope, identifier);
+
+    // Search for the scope this identifier is defined in. In the case of
+    // "float a = 1.0, b = a;", on the last "a" we won't have added "a" to
+    // the scope yet, so we can't error here. Just add it to the scope and let
+    // another pass look for undeclared varaibles
+    const usedScope = findBindingScope(scope, identifier);
     addBindingReference(usedScope || scope, identifier, ident);
-    // console.warn(`Warning: "${identifier}" has not been declared`);
     return ident;
   }
 
@@ -481,6 +546,19 @@ function_call
     // function_identifier, it's moved into the function identifier above.
     args:function_arguments?
     rp:RIGHT_PAREN {
+      // Warning: This may be brittle. The langauge spec says that a
+      // function_call name is a "type_specifier" which can be "float[3](...)"
+      // or a TYPE_NAME. If it's a TYPE_NAME, it will have an identifier, so
+      // add it to the referenced scope. If it's a constructor (the "float"
+      // case) it won't, so don't add a reference ot it
+      const fnName = (identifier.identifier.type === 'postfix') ?
+        identifier.identifier.expr.identifier.specifier.identifier :
+        identifier.identifier.specifier.identifier;
+
+      if(fnName && !isDeclaredFunction(scope, fnName) && !builtIns.has(fnName)) {
+        warn(`Warning: Function "${fnName}" has not been declared`);
+      }
+
       return node('function_call', { ...identifier, args, rp });
     }
 
@@ -535,7 +613,7 @@ chained_function_call
   // For a normal function call, the identifier can itself be function_call. To
   // enable parsing "a().length()" - only allow "a" to be a type_specifier, not
   // itself a function call. "a()()" is invalid GLSL even though the grammar
-  // techincally allows it. GLSL doesn't have first class functions.
+  // technically allows it. GLSL doesn't have first class functions.
   = identifier:type_specifier
     lp:LEFT_PAREN
     args:function_arguments?
@@ -543,7 +621,7 @@ chained_function_call
       return node('function_call', { identifier, lp, args, rp });
     }
 
-unary_expression
+unary_expression "unary expression"
   = postfix_expression
   / operator:(INC_OP / DEC_OP / PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
@@ -762,7 +840,11 @@ precision_declarator "precision statement"
 
 function_prototype "function prototype"
   = header:function_header params:function_parameters? rp:RIGHT_PAREN {
-    createBindings(scope, ...(params?.parameters || []).map(p => [p.declaration.identifier.identifier, p]));
+    const bindings = (params?.parameters || [])
+      // Ignore any param without an identifier, aka main(void)
+      .filter(p => !!p.declaration.identifier)
+      .map(p => [p.declaration.identifier.identifier, p]);
+    createBindings(scope, ...bindings);
     return node('function_prototype', { header, ...params, rp });
   }
 
@@ -770,11 +852,13 @@ function_header "function header"
   = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
-      scope = pushScope(makeScope(scope));
-      return node(
+      const n = node(
         'function_header',
         { returnType, name, lp }
       );
+      createBindings(scope, [name.identifier, n]);
+      scope = pushScope(makeScope(scope));
+      return n;
     }
 
 function_parameters "function parameters"
@@ -954,15 +1038,7 @@ type_specifier "type specifier"
     return node('type_specifier', { specifier, quantifier });
   }
 
-array_specifier "array specifier"
-  = specifiers:(
-      lb:LEFT_BRACKET expression:constant_expression? rb:RIGHT_BRACKET {
-        return node('array_specifier', { lb, expression, rb });
-      }
-    )+ {
-      return node('array_specifiers', { specifiers });
-    }
-
+// used by type_specifier only
 type_specifier_nonarray "type specifier"
   = VOID / FLOAT / DOUBLE / INT / UINT / BOOL / VEC2 / VEC3 / VEC4 / DVEC2
   / DVEC3 / DVEC4 / BVEC2 / BVEC3 / BVEC4 / IVEC2 / IVEC3 / IVEC4 / UVEC2
@@ -987,6 +1063,15 @@ type_specifier_nonarray "type specifier"
   / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
   / UIMAGE2DMSARRAY / struct_specifier / TYPE_NAME
 
+array_specifier "array specifier"
+  = specifiers:(
+      lb:LEFT_BRACKET expression:constant_expression? rb:RIGHT_BRACKET {
+        return node('array_specifier', { lb, expression, rb });
+      }
+    )+ {
+      return node('array_specifiers', { specifiers });
+    }
+
 precision_qualifier "precision qualifier"
   = HIGH_PRECISION / MEDIUM_PRECISION / LOW_PRECISION
 
@@ -1003,9 +1088,12 @@ struct_specifier "struct specifier"
       return node('struct', { lb, declarations, rb, struct, typeName });
     }
 
-struct_declaration_list = (declaration:struct_declaration semi:SEMICOLON {
-    return node('struct_declaration', { declaration, semi });
-  })+
+struct_declaration_list = (
+    declaration:struct_declaration
+    semi:SEMICOLON {
+      return node('struct_declaration', { declaration, semi });
+    }
+  )+
 
 struct_declaration
   = specified_type:fully_specified_type
@@ -1270,9 +1358,9 @@ external_declaration
   = function_definition / declaration_statement
 
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
-  const n = node('function', { body, prototype });
+  const n = node('function', { prototype, body });
   scope = popScope(scope);
-  createBindings(scope, [prototype.header.name.identifier, n]);
+  createFunction(scope, prototype.header.name.identifier, n);
   return n;
 }
 

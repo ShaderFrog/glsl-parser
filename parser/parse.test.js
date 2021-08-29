@@ -10,7 +10,7 @@ const fileContents = (filePath) =>
 // Preprocessor setup
 const preprocessorGrammar = fileContents('../preprocessor/preprocessor.pegjs');
 const preprocessParser = pegjs.generate(preprocessorGrammar, { cache: true });
-const preprocessAst = require('../preprocessor/preprocessor.js');
+const { preprocessAst } = require('../preprocessor/preprocessor.js');
 const generatePreprocess = require('../preprocessor/generator.js');
 
 const preprocess = (program) => {
@@ -42,9 +42,9 @@ const debugStatement = (stmt) => {
   );
 };
 
-const expectParsedStatement = (stmt) => {
+const expectParsedStatement = (stmt, options = {}) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
-  const ast = parser.parse(program);
+  const ast = parser.parse(program, options);
   const glsl = generate(ast);
   if (glsl !== program) {
     console.log(util.inspect(ast.program[0], false, null, true));
@@ -52,13 +52,13 @@ const expectParsedStatement = (stmt) => {
   }
 };
 
-const parseStatement = (stmt) => {
+const parseStatement = (stmt, options = {}) => {
   const program = `void main() {${stmt}}`;
-  return parser.parse(program);
+  return parser.parse(program, options);
 };
 
-const expectParsedProgram = (sourceGlsl) => {
-  const ast = parser.parse(sourceGlsl);
+const expectParsedProgram = (sourceGlsl, options = {}) => {
+  const ast = parser.parse(sourceGlsl, options);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
     console.log(util.inspect(ast, false, null, true));
@@ -114,12 +114,17 @@ struct {
   float s;
   float t;
 } structArr[];
+struct structType {
+  float s;
+  float t;
+};
+structType z;
 
 float shadowed;
 float reused;
 float unused;
-vec3 fnName(float arg, vec3 arg2) {
-  float shadowed;
+vec3 fnName(float arg1, vec3 arg2) {
+  float shadowed = arg1;
   structArr[0].x++;
 
   if(true) {
@@ -149,7 +154,10 @@ vec3 fnName(float arg, vec3 arg2) {
   expect(ast.scopes[0].bindings.myMat.references).toHaveLength(1);
   expect(ast.scopes[0].bindings.structArr.references).toHaveLength(2);
   expect(ast.scopes[0].bindings.shadowed.references).toHaveLength(1);
+  expect(ast.scopes[0].types.structType.references).toHaveLength(2);
   // shadowed - inner scope
+  expect(ast.scopes[1].bindings.arg1.references).toHaveLength(2);
+  expect(ast.scopes[1].bindings.arg2.references).toHaveLength(1);
   expect(ast.scopes[1].bindings.shadowed.references).toHaveLength(4);
   // reused - used in inner scope
   expect(ast.scopes[0].bindings.reused.references).toHaveLength(4);
@@ -187,33 +195,42 @@ test('headers', () => {
 });
 
 test('if statement', () => {
-  expectParsedStatement(`
+  expectParsedStatement(
+    `
     if(i != 0) { aFunction(); }
     else if(i == 2) { bFunction(); }
     else { cFunction(); }
-  `);
+  `,
+    { quiet: true }
+  );
 });
 
 test('do while loop', () => {
-  expectParsedStatement(`
+  expectParsedStatement(
+    `
     do {
       aFunction();
       break;
       continue;
       return;
     } while(i <= 99);
-  `);
+  `,
+    { quiet: true }
+  );
 });
 
-test('while loop', () => {
-  expectParsedStatement(`
+test('standard while loop', () => {
+  expectParsedStatement(
+    `
     while(i <= 99) {
       aFunction();
       break;
       continue;
       return;
     }
-  `);
+  `,
+    { quiet: true }
+  );
 });
 
 test('for loops', () => {
@@ -223,14 +240,17 @@ test('for loops', () => {
     }
   `);
   // For loop with jump statements
-  expectParsedStatement(`
+  expectParsedStatement(
+    `
     for(int a = 0; b <= 99; c++) {
       break;
       continue;
       return;
       aFunction();
     }
-  `);
+  `,
+    { quiet: true }
+  );
   // Loop with condition variable declaration (GLSL ES 3.00 only)
   expectParsedStatement(`
     for(int i = 0; bool x = false; i++) {}
@@ -240,16 +260,20 @@ test('for loops', () => {
 test('switch error', () => {
   // Test the semantic analysis case
   expect(() =>
-    parseStatement(`
+    parseStatement(
+      `
     switch (easingId) {
       result = cubicIn();
     }
-  `)
+  `,
+      { quiet: true }
+    )
   ).toThrow(/must start with a case or default label/);
 });
 
 test('switch statement', () => {
-  expectParsedStatement(`
+  expectParsedStatement(
+    `
     switch (easingId) {
       case 0:
           result = cubicIn();
@@ -258,7 +282,9 @@ test('switch statement', () => {
           result = cubicOut();
           break;
       }
-  `);
+  `,
+    { quiet: true }
+  );
 });
 
 test('qualifier declarations', () => {
@@ -306,7 +332,8 @@ test('layout', () => {
 });
 
 test('comments', () => {
-  expectParsedProgram(`
+  expectParsedProgram(
+    `
     /* starting comment */
     // hi
     void main() {
@@ -315,7 +342,9 @@ test('comments', () => {
       statement(); // hi
       /* start */ statement(); /* end */
     }
-  `);
+  `,
+    { quiet: true }
+  );
 });
 
 test('functions', () => {
@@ -329,11 +358,11 @@ test('functions', () => {
 });
 
 test('parses function_call . postfix_expression', () => {
-  expectParsedStatement('texture().rgb;');
+  expectParsedStatement('texture().rgb;', { quiet: true });
 });
 
 test('parses postfix_expression as function_identifier', () => {
-  expectParsedStatement('a().length();');
+  expectParsedStatement('a().length();', { quiet: true });
 });
 
 test('postfix, unary, binary expressions', () => {
@@ -341,7 +370,7 @@ test('postfix, unary, binary expressions', () => {
 });
 
 test('parses a test file', () => {
-  console.log(preprocess(testFile));
+  // console.log(debugProgram(preprocess(testFile)));
   expectParsedProgram(preprocess(testFile));
 });
 
@@ -388,6 +417,7 @@ test('arrays', () => {
   expectParsedProgram(`
     float frequencies[3];
     uniform vec4 lightPosition[4];
+    struct light { int a; };
     light lights[];
     const int numLights = 2;
     light lights[numLights];
@@ -432,8 +462,76 @@ test('subroutines', () => {
   `);
 });
 
-test('debug', () => {
-  debugProgram(`
-    invariant centroid out vec3 Color, Color;
-  `);
+// test('debug', () => {
+//   debugProgram(`
+//     invariant centroid out vec3 Color, Color;
+//   `);
+// });
+
+test('blerb', () => {
+  const ast = parser.parse(`
+float a, b = 1.0, c = a;
+mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
+struct {
+  float s;
+  float t;
+} structArr[];
+struct structType {
+  float s;
+  float t;
+};
+structType z;
+
+float shadowed;
+float reused;
+float unused;
+vec3 fnName(float arg1, vec3 arg2) {
+  float shadowed = arg1;
+  structArr[0].x++;
+
+  if(true) {
+    float x = shadowed + 1 + reused;
+  }
+
+  {
+    float compound;
+    compound = shadowed + reused;
+  }
+
+  {
+    float compound;
+    compound = shadowed + reused + compound;
+  }
+}`);
+
+  console.log(
+    ast.scopes.flatMap((s) =>
+      Object.entries(s.bindings).map(([k, v]) => [
+        k,
+        v.references.map((r) => r.type),
+      ])
+    )
+  );
+
+  // console.log(ast.scopes[0].bindings.a.);
+  const rn = (scope, i) => {
+    Object.entries(scope.bindings).forEach(([name, binding]) => {
+      binding.references.forEach((ref) => {
+        if (ref.type === 'declaration') {
+          ref.identifier.identifier = `${i}_${ref.identifier.identifier}`;
+        } else if (ref.type === 'identifier') {
+          ref.identifier = `${i}_${ref.identifier}`;
+        } else if (ref.type === 'function_header') {
+          ref.name.identifier = `${i}_${ref.name.identifier}`;
+        } else if (ref.type === 'parameter_declaration') {
+          ref.declaration.identifier.identifier = `${i}_${ref.declaration.identifier.identifier}`;
+        } else {
+          throw new Error(ref.type);
+        }
+      });
+    });
+  };
+  ast.scopes.forEach((s, i) => rn(s, i));
+
+  console.log(generate(ast));
 });

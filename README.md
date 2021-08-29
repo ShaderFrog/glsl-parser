@@ -133,6 +133,9 @@ const preprocessed = preprocessorGenerate(ast);
 - The grammar has a left paren "(" in the function_call production. Due to how
   I de-left-recursed the function_call -> postfix_expression loop, I moved the
   left paren into the function_identifier production.
+- Function calls in the grammar are TYPE_NAME LEFT_PAREN, in my grammar they're
+  IDENTIFIER LEFT_PAREN, because TYPE_NAME is only used for structs, and
+  function names are stored in their own separate place in the scope.
 
 # WIP Notes
 
