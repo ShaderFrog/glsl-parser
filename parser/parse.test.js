@@ -469,7 +469,9 @@ test('subroutines', () => {
 // });
 
 test('blerb', () => {
-  const ast = parser.parse(`
+  const ast = parser.parse(
+    preprocess(testFile) ||
+      `
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
 struct {
@@ -502,7 +504,8 @@ vec3 fnName(float arg1, vec3 arg2) {
     float compound;
     compound = shadowed + reused + compound;
   }
-}`);
+}`
+  );
 
   console.log(
     ast.scopes.flatMap((s) =>
@@ -531,7 +534,8 @@ vec3 fnName(float arg1, vec3 arg2) {
       });
     });
   };
-  ast.scopes.forEach((s, i) => rn(s, i));
+  // ast.scopes.forEach((s, i) => rn(s, i));
+  rn(ast.scopes[0], 0);
 
   console.log(generate(ast));
 });
