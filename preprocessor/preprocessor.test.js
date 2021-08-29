@@ -28,6 +28,10 @@ const expectParsedProgram = (sourceGlsl) => {
   }
 };
 
+// test('pre test file', () => {
+//   expectParsedProgram(fileContents('./preprocess-test-grammar.glsl'));
+// });
+
 test('preprocessor ast', () => {
   expectParsedProgram(`
 #line 0
@@ -99,6 +103,20 @@ after if`;
   expect(generate(ast)).toBe(`
 before if
 inside elif
+after if`);
+});
+
+test('empty branch', () => {
+  const program = `before if
+#ifdef GL_ES
+precision mediump float;
+#endif
+after if`;
+
+  const ast = parser.parse(program);
+
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`before if
 after if`);
 });
 

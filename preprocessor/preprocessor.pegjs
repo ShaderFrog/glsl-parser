@@ -187,7 +187,7 @@ conditional
     elsePart:(
       token:ELSE
       wsEnd: [\n]
-      elseBody:text {
+      elseBody:text_or_control_lines? {
         return node('else', { token, wsEnd, body: elseBody });
       }
     )?
