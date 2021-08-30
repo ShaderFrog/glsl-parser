@@ -70,7 +70,7 @@ test('if expression', () => {
   const program = `
 #define A
 before if
-#if defined(A) && (defined(B) && C == 2)
+#if !defined(A) && (defined(B) && C == 2)
 inside first if
 #endif
 #if ((defined(B) && C == 2) || defined(A))

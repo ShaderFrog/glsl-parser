@@ -316,6 +316,32 @@ const evaluteExpression = (node, macros) =>
         case '||': {
           return visit(left) || visit(right);
         }
+        default: {
+          throw new Error(
+            `Preprocessing error: Unknown binary operator ${literal}`
+          );
+        }
+      }
+    },
+    unary: (node, visit) => {
+      switch (node.operator.literal) {
+        case '+': {
+          return visit(node.expression);
+        }
+        case '-': {
+          return -1 * visit(node.expression);
+        }
+        case '!': {
+          return !visit(node.expression);
+        }
+        case '~': {
+          return ~visit(node.expression);
+        }
+        default: {
+          throw new Error(
+            `Preprocessing error: Unknown unary operator ${node.operator.literal}`
+          );
+        }
       }
     },
   });
