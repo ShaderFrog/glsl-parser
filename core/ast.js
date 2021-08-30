@@ -13,7 +13,7 @@ const evaluate = (ast, visitors) => {
   const visit = (node) => {
     const visitor = visitors[node.type];
     if (!visitor) {
-      throw new Error(`No visitor for ${node.type}`);
+      throw new Error(`No evaluate() visitor for ${node.type}`);
     }
     return visitors[node.type](node, visit);
   };

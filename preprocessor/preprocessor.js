@@ -241,6 +241,7 @@ const evaluteExpression = (node, macros) =>
     int_constant: (node) => parseInt(node.token, 10),
     unary_defined: (node) => node.identifier.identifier in macros,
     identifier: (node) => node.identifier,
+    group: (node, visit) => visit(node.expression),
     binary: ({ left, right, operator: { literal } }, visit) => {
       switch (literal) {
         // multiplicative
