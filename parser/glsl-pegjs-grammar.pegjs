@@ -871,7 +871,7 @@ function_parameters "function parameters"
 
 // Parameter note: vec4[1] param and vec4 param[1] are equivalent
 parameter_declaration "parameter declaration"
-  = qualifier:parameter_qualifier?
+  = qualifier:parameter_qualifier*
     declaration:(parameter_declarator / type_specifier) {
       return node(
         'parameter_declaration',

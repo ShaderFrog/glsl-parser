@@ -354,6 +354,7 @@ test('functions', () => {
     int newFunction(in bvec4 aBvec4,   // read-only
       out vec3 aVec3,                  // write-only
       inout int aInt);                 // read-write
+    highp float rand( const in vec2 uv ) {}
   `);
 });
 
