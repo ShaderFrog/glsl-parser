@@ -20,9 +20,10 @@ const evaluate = (ast, visitors) => {
   return visit(ast);
 };
 
-const makePath = (node, parent, key, index) => ({
+const makePath = (node, parent, parentPath, key, index) => ({
   node,
   parent,
+  parentPath,
   key,
   index,
   skip: function () {
@@ -34,16 +35,24 @@ const makePath = (node, parent, key, index) => ({
   replaceWith: function (replacer) {
     this.replaced = replacer;
   },
+  findParent: function (test) {
+    return parentPath
+      ? test(parentPath)
+        ? parentPath
+        : parentPath.findParent(test)
+      : null;
+  },
 });
 
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
 const visit = (ast, visitors) => {
-  const visitNode = (node, parent, key, index) => {
+  const visitNode = (node, parent, parentPath, key, index) => {
     const visitor = visitors[node.type];
+    const path = makePath(node, parent, parentPath, key, index);
+
     if (visitor?.enter) {
-      const path = makePath(node, parent, key, index);
       visitor.enter(path);
       if (path.removed) {
         if (typeof index === 'number') {
@@ -71,13 +80,13 @@ const visit = (ast, visitors) => {
         if (Array.isArray(nodeValue)) {
           for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
             const child = nodeValue[i - offset];
-            const path = visitNode(child, node, nodeKey, i - offset);
-            if (path?.removed) {
+            const res = visitNode(child, node, path, nodeKey, i - offset);
+            if (res?.removed) {
               offset += 1;
             }
           }
         } else {
-          visitNode(nodeValue, node, nodeKey);
+          visitNode(nodeValue, node, path, nodeKey);
         }
       });
 
