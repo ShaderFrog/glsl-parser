@@ -2,7 +2,10 @@
 // https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
 
 {
-  const makeScope = (parent) => ({
+  const OPEN_CURLY = String.fromCharCode(123);
+
+  const makeScope = (name, parent) => ({
+    name,
     parent,
     bindings: {},
     types: {},
@@ -58,10 +61,11 @@
     // In the case of "float a = 1, b = a;" we parse the final "a" before the
     // parent declarator list is parsed. So we might need to add the final "a"
     // to the scope first.
-    if(!(name in scope.bindings)) {
-      createBindings(scope, [name, reference]);
+    const foundScope = findBindingScope(scope, name);
+    if(foundScope) {
+      foundScope.bindings[name].references.push(reference);
     } else {
-      scope.bindings[name].references.push(reference);
+      createBindings(scope, [name, reference]);
     }
   };
   const findBindingScope = (scope, name) => {
@@ -79,7 +83,12 @@
     scope.functions[name] = { references: [declaration] }
   };
   const addFunctionReference = (scope, name, reference) => {
-    scope.functions[name].references.push(reference);
+    const foundScope = findFunctionScope(scope, name);
+    if(foundScope) {
+      foundScope.functions[name].references.push(reference);
+    } else {
+      createFunction(scope, name, reference);
+    }
   };
   const findFunctionScope = (scope, fnName) => {
     if(!scope) {
@@ -92,7 +101,7 @@
   }
   const isDeclaredFunction = (scope, fnName) => findFunctionScope(scope, fnName) !== null;
 
-  let scopes = [makeScope()];
+  let scopes = [makeScope('global')];
   let scope = scopes[0];
 
   const node = (type, attrs) => ({
@@ -451,8 +460,11 @@ TYPE_NAME = !keyword ident:IDENTIFIER {
   let found;
   if(found = findTypeScope(scope, identifier)) {
     addTypeReference(found, identifier, identifier);
-  } else if(found = findFunctionScope(scope, identifier)) {
-    addFunctionReference(found, identifier, identifier);
+  // I removed this because a type name reference here can't be renamed because
+  // it's just a string and we don't know the parent node. This might apply
+  // to the type reference above as well
+  // } else if(found = findFunctionScope(scope, identifier)) {
+    // addFunctionReference(found, identifier, identifier);
   }
   
   return ident;
@@ -495,13 +507,7 @@ primary_expression "primary expression"
   }
   / ident:IDENTIFIER {
     const { identifier } = ident;
-
-    // Search for the scope this identifier is defined in. In the case of
-    // "float a = 1.0, b = a;", on the last "a" we won't have added "a" to
-    // the scope yet, so we can't error here. Just add it to the scope and let
-    // another pass look for undeclared varaibles
-    const usedScope = findBindingScope(scope, identifier);
-    addBindingReference(usedScope || scope, identifier, ident);
+    addBindingReference(scope, identifier, ident);
     return ident;
   }
 
@@ -554,12 +560,17 @@ function_call
       const fnName = (identifier.identifier.type === 'postfix') ?
         identifier.identifier.expr.identifier.specifier.identifier :
         identifier.identifier.specifier.identifier;
+      
+      const n = node('function_call', { ...identifier, args, rp });
 
-      if(fnName && !isDeclaredFunction(scope, fnName) && !builtIns.has(fnName)) {
-        warn(`Warning: Function "${fnName}" has not been declared`);
+      if(fnName && !builtIns.has(fnName)) {
+        if(!isDeclaredFunction(scope, fnName)) {
+          warn(`Warning: Function "${fnName}" has not been declared`);
+        }
+        addFunctionReference(scope, fnName, n);
       }
 
-      return node('function_call', { ...identifier, args, rp });
+      return n;
     }
 
 function_arguments =
@@ -856,8 +867,8 @@ function_header "function header"
         'function_header',
         { returnType, name, lp }
       );
-      createBindings(scope, [name.identifier, n]);
-      scope = pushScope(makeScope(scope));
+      createFunction(scope, name.identifier, n);
+      scope = pushScope(makeScope(name.identifier, scope));
       return n;
     }
 
@@ -1153,7 +1164,8 @@ simple_statement
 // { block of statements } that introduces a new scope
 compound_statement =
   lb:(sym:LEFT_BRACE {
-    scope = pushScope(makeScope(scope));
+    // Apparently peggy can't handle an open curly brace in a string
+    scope = pushScope(makeScope(OPEN_CURLY, scope));
     return sym;
   })
   statements:statement_list?
@@ -1241,7 +1253,7 @@ case_label
 
 iteration_statement "iteration statement"
   = whileSymbol:(sym:WHILE {
-      scope = pushScope(makeScope(scope));
+      scope = pushScope(makeScope('while', scope));
       return sym;
     })
     lp:LEFT_PAREN
@@ -1283,7 +1295,7 @@ iteration_statement "iteration statement"
       );
     }
   / forSymbol:(sym:FOR {
-      scope = pushScope(makeScope(scope));
+      scope = pushScope(makeScope('for', scope));
       return sym;
     })
     lp:LEFT_PAREN
@@ -1360,7 +1372,7 @@ external_declaration
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
   const n = node('function', { prototype, body });
   scope = popScope(scope);
-  createFunction(scope, prototype.header.name.identifier, n);
+  // createFunction(scope, prototype.header.name.identifier, n);
   return n;
 }
 

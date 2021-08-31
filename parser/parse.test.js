@@ -19,6 +19,22 @@ const preprocess = (program) => {
   return generatePreprocess(ast);
 };
 
+const debugEntry = (bindings) => {
+  return Object.entries(bindings).map(
+    ([k, v]) =>
+      `"${k}": (${v.references.length} references): ${v.references
+        .map((r) => r.type)
+        .join(', ')}`
+  );
+};
+
+const debugScopes = (scopes) =>
+  scopes.map((s) => ({
+    name: s.name,
+    bindings: debugEntry(s.bindings),
+    functions: debugEntry(s.functions),
+  }));
+
 const grammar = fileContents('./glsl-pegjs-grammar.pegjs');
 const testFile = fileContents('../glsltest.glsl');
 const parser = pegjs.generate(grammar, { cache: true });
@@ -27,7 +43,7 @@ const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
 const debugProgram = (program) => {
   const ast = parser.parse(program);
-  console.log(util.inspect(ast.program[0], false, null, true));
+  console.log(util.inspect(ast.program, false, null, true));
 };
 
 const debugAst = (ast) => {
@@ -100,9 +116,9 @@ coherent buffer Block {
     'arr1',
     'arr2',
     'arr3',
-    'fnName',
     'Block',
   ]);
+  expect(Object.keys(ast.scopes[0].functions)).toEqual(['fnName']);
   expect(Object.keys(ast.scopes[0].types)).toEqual(['light']);
 });
 
@@ -123,6 +139,7 @@ structType z;
 float shadowed;
 float reused;
 float unused;
+void useMe() {}
 vec3 fnName(float arg1, vec3 arg2) {
   float shadowed = arg1;
   structArr[0].x++;
@@ -140,14 +157,9 @@ vec3 fnName(float arg1, vec3 arg2) {
     float compound;
     compound = shadowed + reused + compound;
   }
-}`);
-  // debugAst(ast);
-  // console.log(
-  //   ast.scopes.map((scope, index) => [index, ...Object.keys(scope.bindings)])
-  // );
-  // expect(ast.scopes).toHaveLength(7);
 
-  // shadowed - not used
+  useMe();
+}`);
   expect(ast.scopes[0].bindings.a.references).toHaveLength(2);
   expect(ast.scopes[0].bindings.b.references).toHaveLength(1);
   expect(ast.scopes[0].bindings.c.references).toHaveLength(1);
@@ -155,16 +167,16 @@ vec3 fnName(float arg1, vec3 arg2) {
   expect(ast.scopes[0].bindings.structArr.references).toHaveLength(2);
   expect(ast.scopes[0].bindings.shadowed.references).toHaveLength(1);
   expect(ast.scopes[0].types.structType.references).toHaveLength(2);
-  // shadowed - inner scope
-  expect(ast.scopes[1].bindings.arg1.references).toHaveLength(2);
-  expect(ast.scopes[1].bindings.arg2.references).toHaveLength(1);
-  expect(ast.scopes[1].bindings.shadowed.references).toHaveLength(4);
+  expect(ast.scopes[0].functions.useMe.references).toHaveLength(2);
+  expect(ast.scopes[2].bindings.arg1.references).toHaveLength(2);
+  expect(ast.scopes[2].bindings.arg2.references).toHaveLength(1);
+  expect(ast.scopes[2].bindings.shadowed.references).toHaveLength(4);
   // reused - used in inner scope
   expect(ast.scopes[0].bindings.reused.references).toHaveLength(4);
   // compound - used in first innermost scope only
-  expect(ast.scopes[3].bindings.compound.references).toHaveLength(2);
+  expect(ast.scopes[4].bindings.compound.references).toHaveLength(2);
   // compound - used in last innermost scope only
-  expect(ast.scopes[4].bindings.compound.references).toHaveLength(3);
+  expect(ast.scopes[5].bindings.compound.references).toHaveLength(3);
 });
 
 test('declarations', () => {
@@ -457,9 +469,9 @@ test('subroutines', () => {
     }
 
     // // option 2
-    // subroutine (colorRedBlue ) vec4 blueColor() {
-    //     return vec4(0.0, 0.0, 1.0, 1.0);
-    // }
+    subroutine (colorRedBlue ) vec4 blueColor() {
+        return vec4(0.0, 0.0, 1.0, 1.0);
+    }
   `);
 });
 
@@ -470,9 +482,7 @@ test('subroutines', () => {
 // });
 
 test('blerb', () => {
-  const ast = parser.parse(
-    preprocess(testFile) ||
-      `
+  const ast = parser.parse(`
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
 struct {
@@ -505,38 +515,53 @@ vec3 fnName(float arg1, vec3 arg2) {
     float compound;
     compound = shadowed + reused + compound;
   }
-}`
-  );
+}
+vec4 LinearToLinear( in vec4 value ) {
+	return value;
+}
+vec4 mapTexelToLinear( vec4 value ) { return LinearToLinear( value ); }
+vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
+`);
 
-  console.log(
-    ast.scopes.flatMap((s) =>
-      Object.entries(s.bindings).map(([k, v]) => [
-        k,
-        v.references.map((r) => r.type),
-      ])
-    )
-  );
-
-  // console.log(ast.scopes[0].bindings.a.);
-  const rn = (scope, i) => {
+  const renameBindings = (scope, i) => {
     Object.entries(scope.bindings).forEach(([name, binding]) => {
       binding.references.forEach((ref) => {
         if (ref.type === 'declaration') {
           ref.identifier.identifier = `${i}_${ref.identifier.identifier}`;
         } else if (ref.type === 'identifier') {
           ref.identifier = `${i}_${ref.identifier}`;
-        } else if (ref.type === 'function_header') {
-          ref.name.identifier = `${i}_${ref.name.identifier}`;
         } else if (ref.type === 'parameter_declaration') {
           ref.declaration.identifier.identifier = `${i}_${ref.declaration.identifier.identifier}`;
         } else {
-          throw new Error(ref.type);
+          console.log(ref);
+          throw new Error(`Binding for type ${ref.type} not recognized`);
         }
       });
     });
   };
-  // ast.scopes.forEach((s, i) => rn(s, i));
-  rn(ast.scopes[0], 0);
 
-  console.log(generate(ast));
+  const renameFunctions = (scope, i) => {
+    Object.entries(scope.functions).forEach(([name, binding]) => {
+      binding.references.forEach((ref) => {
+        if (ref.type === 'function_header') {
+          ref.name.identifier = `${i}_${ref.name.identifier}`;
+        } else if (ref.type === 'function_call') {
+          if (ref.identifier.type === 'postfix') {
+            ref.identifier.expr.identifier.specifier.identifier = `${i}_${ref.identifier.expr.identifier.specifier.identifier}`;
+          } else {
+            ref.identifier.specifier.identifier = `${i}_${ref.identifier.specifier.identifier}`;
+          }
+        } else {
+          console.log(ref);
+          throw new Error(`Function for type ${ref.type} not recognized`);
+        }
+      });
+    });
+  };
+  // ast.scopes.forEach((s, i) => renameBindings(s, i));
+  renameBindings(ast.scopes[0], 0);
+  renameFunctions(ast.scopes[0], 0);
+
+  // console.log('scopes:', debugScopes(ast.scopes));
+  // console.log(generate(ast));
 });
