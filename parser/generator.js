@@ -129,7 +129,8 @@ const generators = {
   parameter_declarator: (node) =>
     generate(node.qualifier) +
     generate(node.specifier) +
-    generate(node.identifier),
+    generate(node.identifier) +
+    generate(node.quantifier),
   postfix: (node) => generate(node.expr) + generate(node.postfix),
   quantifier: (node) =>
     generate(node.lb) + generate(node.expr) + generate(node.rb),

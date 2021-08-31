@@ -367,6 +367,7 @@ test('functions', () => {
       out vec3 aVec3,                  // write-only
       inout int aInt);                 // read-write
     highp float rand( const in vec2 uv ) {}
+    highp float otherFn( const in vec3 rectCoords[ 4 ]  ) {}
   `);
 });
 
