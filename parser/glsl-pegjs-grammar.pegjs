@@ -186,8 +186,11 @@
     'ceil', 'fract', 'mod', 'min', 'max', 'clamp', 'mix', 'step', 'smoothstep',
     'length', 'distance', 'dot', 'cross', 'normalize', 'faceforward', 'reflect',
     'refract', 'matrixCompMult', 'lessThan', 'lessThanEqual', 'greaterThan',
-    'greaterThanEqual', 'equal', 'notEqual', 'any', 'all', 'not', 'texture2D',
-    'textureCube',
+    'greaterThanEqual', 'equal', 'notEqual', 'any', 'all', 'not',
+    // GLSL ES 1.00
+    'texture2D', 'textureCube',
+    // GLSL ES 3.00
+    'texture'
   ]);
 }
 

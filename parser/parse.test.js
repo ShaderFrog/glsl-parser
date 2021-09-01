@@ -476,11 +476,14 @@ test('subroutines', () => {
   `);
 });
 
-// test('debug', () => {
-//   debugProgram(`
-//     invariant centroid out vec3 Color, Color;
-//   `);
-// });
+test('debug', () => {
+  debugProgram(`
+  in vec4 myOut;
+    void main() {
+      gl_FragColor.rgb = 123 + gl_FragColor;
+    }
+    `);
+});
 
 test('blerb', () => {
   const ast = parser.parse(`
