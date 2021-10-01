@@ -1,5 +1,5 @@
 const util = require('util');
-const { visit } = require('./ast.js');
+const { visit } = require('./ast.ts');
 
 test('schlorf', () => {
   const tree = {

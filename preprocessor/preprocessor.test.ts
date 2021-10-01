@@ -2,8 +2,8 @@ const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
-const { preprocessComments, preprocessAst } = require('./preprocessor.js');
-const generate = require('./generator.js');
+const { preprocessComments, preprocessAst } = require('./preprocessor.ts');
+const generate = require('./generator.ts');
 
 const fileContents = (filePath) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();

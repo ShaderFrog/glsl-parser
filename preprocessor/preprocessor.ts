@@ -1,5 +1,5 @@
-const { visit, evaluate } = require('../core/ast.js');
-const { generate } = require('./generator.js');
+const { visit, evaluate } = require('../core/ast.ts');
+const { generate } = require('./generator.ts');
 
 const without = (obj, ...keys) =>
   Object.entries(obj).reduce(

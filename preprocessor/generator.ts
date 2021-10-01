@@ -1,4 +1,4 @@
-const { makeGenerator, makeEveryOtherGenerator } = require('../core/ast.js');
+const { makeGenerator, makeEveryOtherGenerator } = require('../core/ast.ts');
 
 const generators = {
   program: (node) => generate(node.blocks) + generate(node.wsEnd),

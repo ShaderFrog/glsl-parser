@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const pegjs = require('pegjs');
 const util = require('util');
-const generate = require('./generator.js');
+const generate = require('./generator.ts');
 
 const fileContents = (filePath) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
@@ -10,8 +10,8 @@ const fileContents = (filePath) =>
 // Preprocessor setup
 const preprocessorGrammar = fileContents('../preprocessor/preprocessor.pegjs');
 const preprocessParser = pegjs.generate(preprocessorGrammar, { cache: true });
-const { preprocessAst } = require('../preprocessor/preprocessor.js');
-const generatePreprocess = require('../preprocessor/generator.js');
+const { preprocessAst } = require('../preprocessor/preprocessor.ts');
+const generatePreprocess = require('../preprocessor/generator.ts');
 
 const preprocess = (program) => {
   const ast = preprocessParser.parse(program);

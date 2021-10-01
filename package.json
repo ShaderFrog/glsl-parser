@@ -3,24 +3,17 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.0.40",
+  "version": "0.0.41",
   "main": "index.js",
   "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build",
-    "build": "mkdir -p dist && pegjs -o dist/parser.js parser/glsl-pegjs-grammar.pegjs && pegjs -o dist/preprocssorParser.js preprocessor/preprocessor.pegjs",
+    "build": "mkdir -p dist && pegjs -o dist/parser.js parser/glsl-pegjs-grammar.pegjs && pegjs -o dist/preprocssorParser.js preprocessor/preprocessor.pegjs && tsc",
     "watch-test": "jest --watch",
     "test": "jest"
   },
   "files": [
-    "index.js",
-    "core/ast.js",
-    "parser/generator.js",
-    "preprocessor/generator.js",
-    "preprocessor/preprocessor.js",
-    "preprocessor/index.js",
-    "dist/parser.js",
-    "dist/preprocssorParser.js"
+    "dist"
   ],
   "jest": {
     "moduleFileExtensions": [
@@ -46,8 +39,14 @@
   },
   "homepage": "https://github.com/ShaderFrog/glsl-parser#readme",
   "devDependencies": {
+    "@babel/core": "^7.15.5",
+    "@babel/preset-env": "^7.15.6",
+    "@babel/preset-typescript": "^7.15.0",
+    "@types/jest": "^27.0.2",
+    "babel-jest": "^27.2.4",
     "jest": "^27.0.2",
     "pegjs": "^0.10.0",
-    "prettier": "^2.1.2"
+    "prettier": "^2.1.2",
+    "typescript": "^4.4.3"
   }
 }
