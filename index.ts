@@ -1,4 +1,4 @@
-const generate = require('./parser/generator.ts');
-const parser = require('./dist/parser.ts');
+import generate from './parser/generator';
+import parser from './dist/glsl-parser';
 
-module.exports = { generate, parser };
+export = { generate, parser };

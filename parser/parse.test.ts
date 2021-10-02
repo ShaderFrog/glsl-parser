@@ -1,15 +1,15 @@
-const fs = require('fs');
-const path = require('path');
-const pegjs = require('pegjs');
-const util = require('util');
-const generate = require('./generator.ts');
+import fs from 'fs';
+import path from 'path';
+import peggy from 'peggy';
+import util from 'util';
+import generate from './generator';
 
 const fileContents = (filePath) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
 // Preprocessor setup
-const preprocessorGrammar = fileContents('../preprocessor/preprocessor.pegjs');
-const preprocessParser = pegjs.generate(preprocessorGrammar, { cache: true });
+const preprocessorGrammar = fileContents('../preprocessor/preprocessor.peggy');
+const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 const { preprocessAst } = require('../preprocessor/preprocessor.ts');
 const generatePreprocess = require('../preprocessor/generator.ts');
 
@@ -35,9 +35,9 @@ const debugScopes = (scopes) =>
     functions: debugEntry(s.functions),
   }));
 
-const grammar = fileContents('./glsl-pegjs-grammar.pegjs');
+const grammar = fileContents('./glsl-peggy-grammar.peggy');
 const testFile = fileContents('../glsltest.glsl');
-const parser = pegjs.generate(grammar, { cache: true });
+const parser = peggy.generate(grammar, { cache: true });
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 

@@ -1,17 +1,17 @@
-const fs = require('fs');
-const path = require('path');
-const pegjs = require('pegjs');
-const util = require('util');
-const { preprocessComments, preprocessAst } = require('./preprocessor.ts');
-const generate = require('./generator.ts');
+import fs from 'fs';
+import path from 'path';
+import peggy from 'peggy';
+import util from 'util';
+import { preprocessComments, preprocessAst } from './preprocessor';
+import generate from './generator';
 
-const fileContents = (filePath) =>
+const fileContents = (filePath: string): string =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
-const grammar = fileContents('preprocessor.pegjs');
-const parser = pegjs.generate(grammar, { cache: true });
+const grammar = fileContents('preprocessor-grammar.pegjs');
+const parser = peggy.generate(grammar, { cache: true });
 
-const debugProgram = (program) => {
+const debugProgram = (program): void => {
   debugAst(parser.parse(program));
 };
 
@@ -32,6 +32,11 @@ const expectParsedProgram = (sourceGlsl) => {
 //   expectParsedProgram(fileContents('./preprocess-test-grammar.glsl'));
 // });
 
+test('xyy ast', () => {
+  debugProgram(`#line 0
+#version 100 "hi"
+before if`);
+});
 test('preprocessor ast', () => {
   expectParsedProgram(`
 #line 0

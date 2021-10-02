@@ -1,4 +1,4 @@
-const { makeGenerator, makeEveryOtherGenerator } = require('../core/ast.ts');
+import { makeGenerator, makeEveryOtherGenerator } from '../core/ast';
 
 const generators = {
   program: (node) => generate(node.ws) + generate(node.program),
@@ -204,4 +204,4 @@ const generators = {
 const generate = makeGenerator(generators);
 const generateWithEveryOther = makeEveryOtherGenerator(generate);
 
-module.exports = generate;
+export default generate;

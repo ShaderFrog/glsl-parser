@@ -1,7 +1,11 @@
-const util = require('util');
+export interface AstNode {
+  type: string;
+  wsStart?: string;
+  wsEnd?: string;
+}
 
-const isNode = (node) => !!node?.type;
-const isTraversable = (node) => isNode(node) || Array.isArray(node);
+const isNode = (node: AstNode) => !!node?.type;
+const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 
 /**
  * Converts an AST to a singe value, visiting nodes and using visitor callbacks
@@ -9,8 +13,8 @@ const isTraversable = (node) => isNode(node) || Array.isArray(node);
  * function? Also this is different than the enter/exit visitors in the ast
  * visitor function. Can these be merged into the same strategy?
  */
-const evaluate = (ast, visitors) => {
-  const visit = (node) => {
+const evaluate = (ast: AstNode, visitors) => {
+  const visit = (node: AstNode) => {
     const visitor = visitors[node.type];
     if (!visitor) {
       throw new Error(`No evaluate() visitor for ${node.type}`);
@@ -20,20 +24,42 @@ const evaluate = (ast, visitors) => {
   return visit(ast);
 };
 
-const makePath = (node, parent, parentPath, key, index) => ({
+export type Path = {
+  node: AstNode;
+  parent: AstNode | null;
+  parentPath: Path | null;
+  key: string | null;
+  index: number | null;
+  skip: () => void;
+  remove: () => void;
+  replaceWith: (replacer: any) => void;
+  findParent: (test: (p: Path) => boolean) => Path | null;
+
+  _skipped?: boolean;
+  _removed?: boolean;
+  _replaced?: any;
+};
+
+const makePath = (
+  node: AstNode,
+  parent: AstNode | null,
+  parentPath: Path | null,
+  key: string | null,
+  index: number | null
+): Path => ({
   node,
   parent,
   parentPath,
   key,
   index,
   skip: function () {
-    this.skipped = true;
+    this._skipped = true;
   },
   remove: function () {
-    this.removed = true;
+    this._removed = true;
   },
   replaceWith: function (replacer) {
-    this.replaced = replacer;
+    this._replaced = replacer;
   },
   findParent: function (test) {
     return parentPath
@@ -47,14 +73,14 @@ const makePath = (node, parent, parentPath, key, index) => ({
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
-const visit = (ast, visitors) => {
+const visit = (ast: AstNode, visitors) => {
   const visitNode = (node, parent, parentPath, key, index) => {
     const visitor = visitors[node.type];
     const path = makePath(node, parent, parentPath, key, index);
 
     if (visitor?.enter) {
       visitor.enter(path);
-      if (path.removed) {
+      if (path._removed) {
         if (typeof index === 'number') {
           parent[key].splice(index, 1);
         } else {
@@ -62,14 +88,14 @@ const visit = (ast, visitors) => {
         }
         return path;
       }
-      if (path.replaced) {
+      if (path._replaced) {
         if (typeof index === 'number') {
-          parent[key].splice(index, 1, path.replaced);
+          parent[key].splice(index, 1, path._replaced);
         } else {
-          parent[key] = path.replaced;
+          parent[key] = path._replaced;
         }
       }
-      if (path.skipped) {
+      if (path._skipped) {
         return path;
       }
     }
@@ -109,7 +135,7 @@ const makeGenerator = (generators) => {
       ? ast.map(gen).join('')
       : ast.type in generators
       ? generators[ast.type](ast)
-      : `NO GENERATOR FOR ${ast.type}` + util.inspect(ast, false, null, true);
+      : `NO GENERATOR FOR ${ast.type}` + ast;
   return gen;
 };
 
@@ -125,4 +151,4 @@ const makeEveryOtherGenerator = (generate) => {
   return everyOther;
 };
 
-module.exports = { evaluate, visit, makeGenerator, makeEveryOtherGenerator };
+export { evaluate, visit, makeGenerator, makeEveryOtherGenerator };

@@ -1,7 +1,32 @@
-const { visit, evaluate } = require('../core/ast.ts');
-const { generate } = require('./generator.ts');
+import { visit, evaluate, Ast } from '../core/ast';
 
-const without = (obj, ...keys) =>
+export interface LiteralNode extends AstNode {
+  literal: string;
+}
+
+export interface VersionNode extends AstNode {
+  version: LiteralNode;
+  literal: string;
+  value: string;
+  profile: string | null;
+}
+
+export interface SegmentNode extends AstNode {
+  blocks: Array<AstNode>;
+}
+
+export interface LineNode extends AstNode {
+  version: string;
+  literal: string;
+}
+
+export type Ast = {
+  type: string;
+  blocks: SegmentNode;
+  wsEnd?: string;
+};
+
+const without = (obj: object, ...keys: string[]) =>
   Object.entries(obj).reduce(
     (acc, [key, value]) => ({
       ...acc,
@@ -12,7 +37,9 @@ const without = (obj, ...keys) =>
 
 // Scan for the use of a function-like macro, balancing parentheses until
 // encountering a final closing ")" marking the end of the macro use
-const scanFunctionArgs = (src) => {
+const scanFunctionArgs = (
+  src: string
+): { args: string[]; length: number } | null => {
   let i;
   let chr;
   let parens = 0;
@@ -53,7 +80,7 @@ const scanFunctionArgs = (src) => {
 };
 
 // From glsl2s https://github.com/cimaron/glsl2js/blob/4046611ac4f129a9985d74704159c41a402564d0/preprocessor/comments.js
-const preprocessComments = (src) => {
+const preprocessComments = (src: string): string => {
   let i;
   let chr;
   let la;
@@ -107,9 +134,9 @@ const preprocessComments = (src) => {
   return out;
 };
 
-const tokenPaste = (str) => str.replace(/\s+##\s+/g, '');
+const tokenPaste = (str: string): string => str.replace(/\s+##\s+/g, '');
 
-const expandFunctionMacro = (macros, macroName, macro, text) => {
+const expandFunctionMacro = (macros, macroName: string, macro, text) => {
   const pattern = `\\b${macroName}\\s*\\(`;
   const startRegex = new RegExp(pattern, 'm');
 
@@ -194,7 +221,7 @@ const expandObjectMacro = (macros, macroName, macro, text) => {
   return expanded;
 };
 
-const expandMacros = (text, macros) =>
+const expandMacros = (text: string, macros) =>
   Object.entries(macros).reduce(
     (result, [macroName, macro]) =>
       macro.args
@@ -203,11 +230,11 @@ const expandMacros = (text, macros) =>
     text
   );
 
-const identity = (x) => x;
+const identity = (x: any): boolean => !!x;
 
 // Given an expression AST node, visit it to expand the macro macros to in the
 // right places
-const expandInExpressions = (macros, ...expressions) => {
+const expandInExpressions = (macros, ...expressions: AstNode[]) => {
   expressions.filter(identity).forEach((expression) => {
     visit(expression, {
       unary_defined: {
@@ -235,7 +262,7 @@ const evaluateIfPart = (macros, ifPart) => {
 };
 
 // TODO: Are all of these operators equivalent between javascript and GLSL?
-const evaluteExpression = (node, macros) =>
+const evaluteExpression = (node: AstNode, macros) =>
   evaluate(node, {
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
@@ -351,6 +378,8 @@ const shouldPreserve = (preserve) => (path) => {
   return typeof test === 'function' ? test(path) : test;
 };
 
+type MacroExpression = { [macroName: string]: { body: string } };
+
 /**
  * Perform the preprocessing logic, aka the "preprocessing" phase of the compiler.
  * Expand macros, evaluate conditionals, etc
@@ -359,8 +388,14 @@ const shouldPreserve = (preserve) => (path) => {
  * of pre defined thigns?
  * TODO: Handle __LINE__ and other constants.
  */
-const preprocessAst = (ast, options = {}) => {
-  const macros = Object.entries(options.defines || {}).reduce(
+
+type PreprocessorOptions = {
+  defines?: { [definitionName: string]: object };
+  preserve?: { [nodeType: string]: (path: any) => boolean };
+};
+
+const preprocessAst = (ast, options: PreprocessorOptions = {}) => {
+  const macros: MacroExpression = Object.entries(options.defines || {}).reduce(
     (defines, [name, body]) => ({ ...defines, [name]: { body } }),
     {}
   );
@@ -492,4 +527,4 @@ const preprocessAst = (ast, options = {}) => {
   return ast;
 };
 
-module.exports = { preprocessAst, preprocessComments };
+export { preprocessAst, preprocessComments };
