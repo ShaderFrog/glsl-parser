@@ -1,6 +1,10 @@
-import { makeGenerator, makeEveryOtherGenerator } from '../core/ast';
+import {
+  makeGenerator,
+  makeEveryOtherGenerator,
+  NodeGenerators,
+} from '../core/ast';
 
-const generators = {
+const generators: NodeGenerators = {
   program: (node) => generate(node.ws) + generate(node.program),
   preprocessor: (node) => generate(node.line) + generate(node._),
   keyword: (node) => generate(node.token) + generate(node.whitespace),
