@@ -39,7 +39,7 @@ export type Path = {
   index: number | null;
   skip: () => void;
   remove: () => void;
-  replaceWith: (replacer: any) => void;
+  replaceWith: (replacer: AstNode) => void;
   findParent: (test: (p: Path) => boolean) => Path | null;
 
   skipped?: boolean;

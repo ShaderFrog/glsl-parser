@@ -8,6 +8,8 @@ This parser is built using a PEG grammar and using the Peggy Javascript library
 (formerly Peg.js). The PEG grammars for both the preprocessor and main parser
 are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
 
+This project is written in Typescript.
+
 ## What are "parsing" and "preprocessing"?
 
 In general, a parser is a computer program that analyzes source code and turn it
@@ -115,6 +117,78 @@ preprocessAst(ast);
 // Then convert it back into a program string, which can be passed to the
 // core glsl parser
 const preprocessed = preprocessorGenerate(ast);
+```
+
+## Modifying and Searching ASTs with Visitors
+
+The Shaderfrog parser provides a AST visitor function for manipulating and
+searching an AST. The visitor API loosely follows the [Babel visitor API](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#toc-visitors). A visitor object looks
+like:
+
+```javascript
+const visitors = {
+  function_call: {
+    enter: (path) => {},
+    exit: (path) => {},
+  }
+}
+```
+
+Where every key in the object is a node type, and every value is an object
+with optional `enter` and `exit` functions. What's passed to each function
+is **not** the AST node itself, instead it's a "path" object, which gives you
+information about the node's parents, methods to manipulate the node, and the
+node itself. The path object:
+
+```typescript
+{
+  // Properties:
+
+  // The node itself
+  node: AstNode;
+  // The parent of this node
+  parent: AstNode | null;
+  // The parent path of this path
+  parentPath: Path | null;
+  // The key of this node in the parent object, if node parent is an object
+  key: string | null;
+  // The index of this node in the parent array, if node parent is an array
+  index: number | null;
+
+  // Methods:
+
+  // Don't visit any children of this node
+  skip: () => void;
+  // Remove this node from the AST
+  remove: () => void;
+  // Replace this node with another AST node
+  replaceWith: (replacer: any) => void;
+  // Search for parents of this node's parent using a test function
+  findParent: (test: (p: Path) => boolean) => Path | null;
+}
+```
+
+Visit an AST by calling the visit method with an AST and visitors:
+
+```typescript
+import { visit } from '@shaderfrog/glsl-parser/core/ast.js';
+
+visit(ast, visitors);
+```
+
+The visit function doesn't return a value. If you want to collect data from the
+AST, use a variable in the outer scope to collect data. For example:
+
+```typescript
+let numberOfFunctionCalls = 0;
+visit(ast, {
+  function_call: {
+    enter: (path) => {
+      numberOfFunctionCalls += 1;
+    },
+  }
+});
+console.log('There are ', numberOfFunctionCalls, 'function calls');
 ```
 
 # Limitations of the Parser and Preprocessor
