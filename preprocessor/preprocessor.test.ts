@@ -4,23 +4,25 @@ import peggy from 'peggy';
 import util from 'util';
 import { preprocessComments, preprocessAst } from './preprocessor';
 import generate from './generator';
+import { Program } from './preprocessor-parser';
 
 const fileContents = (filePath: string): string =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
 const grammar = fileContents('preprocessor-grammar.pegjs');
 const parser = peggy.generate(grammar, { cache: true });
+const parse = (src: string) => parser.parse(src) as Program;
 
-const debugProgram = (program): void => {
-  debugAst(parser.parse(program));
+const debugProgram = (program: string): void => {
+  debugAst(parse(program));
 };
 
-const debugAst = (ast) => {
+const debugAst = (ast: any) => {
   console.log(util.inspect(ast, false, null, true));
 };
 
-const expectParsedProgram = (sourceGlsl) => {
-  const ast = parser.parse(sourceGlsl);
+const expectParsedProgram = (sourceGlsl: string) => {
+  const ast = parse(sourceGlsl);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
     debugAst(ast);
@@ -66,7 +68,7 @@ test('nested expand macro', () => {
 #define Y Z
 X`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`Z`);
 });
@@ -84,7 +86,7 @@ inside second if
 after if
 `;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
@@ -103,7 +105,7 @@ inside if
 after if
 `;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
@@ -125,7 +127,7 @@ else body
 #endif
 after if`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
@@ -140,7 +142,7 @@ precision mediump float;
 #endif
 after if`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
 
   preprocessAst(ast);
   expect(generate(ast)).toBe(`before if
@@ -160,7 +162,7 @@ else body
 #endif
 after if`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 before if
@@ -175,7 +177,7 @@ precision mediump float;
 #endif
 after if`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
 
   preprocessAst(ast);
   expect(generate(ast)).toBe(`before if
@@ -189,7 +191,7 @@ test('self referential object macro', () => {
 second`;
 
   // If this has an infinte loop, the test will never finish
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 first second`);
@@ -201,7 +203,7 @@ test('self referential function macro', () => {
 foo()`;
 
   // If this has an infinte loop, the test will never finish
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 foo()`);
@@ -215,7 +217,7 @@ test('self referential macro combinations', () => {
 second`;
 
   // If this has an infinte loop, the test will never finish
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 1 + c`);
@@ -226,7 +228,7 @@ test("function call macro isn't expanded", () => {
 #define foo() no expand
 foo`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   // debugAst(ast);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
@@ -238,7 +240,7 @@ test("macro that isn't macro function call call is expanded", () => {
 #define foo () yes expand
 foo`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   // debugAst(ast);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
@@ -251,7 +253,7 @@ test('unterminated macro function call', () => {
 foo(
 foo()`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   expect(() => preprocessAst(ast)).toThrow(
     'foo( unterminated macro invocation'
   );
@@ -264,7 +266,7 @@ foo()
 foo
 ()`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 yes expand
@@ -274,7 +276,7 @@ yes expand`);
 test('macro function calls with bad arguments', () => {
   expect(() => {
     preprocessAst(
-      parser.parse(`
+      parse(`
       #define foo( a, b ) a + b
       foo(1,2,3)`)
     );
@@ -282,7 +284,7 @@ test('macro function calls with bad arguments', () => {
 
   expect(() => {
     preprocessAst(
-      parser.parse(`
+      parse(`
       #define foo( a ) a + b
       foo(,)`)
     );
@@ -290,7 +292,7 @@ test('macro function calls with bad arguments', () => {
 
   expect(() => {
     preprocessAst(
-      parser.parse(`
+      parse(`
       #define foo( a, b ) a + b
       foo(1)`)
     );
@@ -306,7 +308,7 @@ foo
 r)
 foo(,)`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 x + y + (z-t + vec3(0.0, 1.0))
@@ -320,7 +322,7 @@ test('nested function macro expansion', () => {
 #define foo(x, y) x + y
 foo (foo (a, X), c)`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 a + Z + c`);
@@ -331,7 +333,7 @@ test('token pasting', () => {
 #define COMMAND(NAME)  { NAME, NAME ## _command ## x ## y }
 COMMAND(x)`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 { x, x_commandxy }`);
@@ -357,7 +359,7 @@ outside endif
 #pragma mypragma: something(else)
 function_call line after program`;
 
-  const ast = parser.parse(program);
+  const ast = parse(program);
 
   preprocessAst(ast, {
     // ignoreMacro: (identifier, body) => {

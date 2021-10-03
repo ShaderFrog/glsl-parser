@@ -1,4 +1,4 @@
 import generate from './parser/generator';
-import parser from './dist/glsl-parser';
+import parser from './parser/parser';
 
 export = { generate, parser };

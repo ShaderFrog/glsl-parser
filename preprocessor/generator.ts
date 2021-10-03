@@ -1,6 +1,6 @@
-import { makeGenerator } from '../core/ast';
+import { makeGenerator, NodeGenerators } from '../core/ast';
 
-const generators = {
+const generators: NodeGenerators = {
   program: (node) => generate(node.blocks) + generate(node.wsEnd),
   segment: (node) => generate(node.blocks),
   text: (node) => generate(node.text),

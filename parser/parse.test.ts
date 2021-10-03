@@ -3,23 +3,27 @@ import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
+import { AstNode } from '../core/ast';
+import { ScopeIndex, Scope } from './parser';
+import { preprocessAst } from '../preprocessor/preprocessor';
+import generatePreprocess from '../preprocessor/generator';
 
-const fileContents = (filePath) =>
+const fileContents = (filePath: string) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
 // Preprocessor setup
-const preprocessorGrammar = fileContents('../preprocessor/preprocessor.peggy');
+const preprocessorGrammar = fileContents(
+  '../preprocessor/preprocessor-grammar.pegjs'
+);
 const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
-const { preprocessAst } = require('../preprocessor/preprocessor.ts');
-const generatePreprocess = require('../preprocessor/generator.ts');
 
-const preprocess = (program) => {
+const preprocess = (program: string) => {
   const ast = preprocessParser.parse(program);
   preprocessAst(ast);
   return generatePreprocess(ast);
 };
 
-const debugEntry = (bindings) => {
+const debugEntry = (bindings: ScopeIndex) => {
   return Object.entries(bindings).map(
     ([k, v]) =>
       `"${k}": (${v.references.length} references): ${v.references
@@ -28,29 +32,29 @@ const debugEntry = (bindings) => {
   );
 };
 
-const debugScopes = (scopes) =>
+const debugScopes = (scopes: Scope[]) =>
   scopes.map((s) => ({
     name: s.name,
     bindings: debugEntry(s.bindings),
     functions: debugEntry(s.functions),
   }));
 
-const grammar = fileContents('./glsl-peggy-grammar.peggy');
+const grammar = fileContents('./glsl-grammar.pegjs');
 const testFile = fileContents('../glsltest.glsl');
 const parser = peggy.generate(grammar, { cache: true });
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
-const debugProgram = (program) => {
+const debugProgram = (program: string) => {
   const ast = parser.parse(program);
   console.log(util.inspect(ast.program, false, null, true));
 };
 
-const debugAst = (ast) => {
+const debugAst = (ast: AstNode) => {
   console.log(util.inspect(ast.program, false, null, true));
 };
 
-const debugStatement = (stmt) => {
+const debugStatement = (stmt: AstNode) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
   console.log(
@@ -58,22 +62,23 @@ const debugStatement = (stmt) => {
   );
 };
 
-const expectParsedStatement = (stmt, options = {}) => {
-  const program = `void main() {/* start */${stmt}/* end */}`;
+const expectParsedStatement = (src: string, options = {}) => {
+  const program = `void main() {/* start */${src}/* end */}`;
   const ast = parser.parse(program, options);
   const glsl = generate(ast);
   if (glsl !== program) {
     console.log(util.inspect(ast.program[0], false, null, true));
-    expect(glsl.match(middle)[1]).toBe(stmt);
+    // @ts-ignore
+    expect(glsl.match(middle)[1]).toBe(src);
   }
 };
 
-const parseStatement = (stmt, options = {}) => {
-  const program = `void main() {${stmt}}`;
+const parseStatement = (src: string, options = {}) => {
+  const program = `void main() {${src}}`;
   return parser.parse(program, options);
 };
 
-const expectParsedProgram = (sourceGlsl, options = {}) => {
+const expectParsedProgram = (sourceGlsl: string, options = {}) => {
   const ast = parser.parse(sourceGlsl, options);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
@@ -527,7 +532,7 @@ vec4 mapTexelToLinear( vec4 value ) { return LinearToLinear( value ); }
 vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
 `);
 
-  const renameBindings = (scope, i) => {
+  const renameBindings = (scope: Scope, i: number) => {
     Object.entries(scope.bindings).forEach(([name, binding]) => {
       binding.references.forEach((ref) => {
         if (ref.type === 'declaration') {
@@ -544,7 +549,7 @@ vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
     });
   };
 
-  const renameFunctions = (scope, i) => {
+  const renameFunctions = (scope: Scope, i: number) => {
     Object.entries(scope.functions).forEach(([name, binding]) => {
       binding.references.forEach((ref) => {
         if (ref.type === 'function_header') {

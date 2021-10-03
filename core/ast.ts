@@ -42,9 +42,9 @@ export type Path = {
   replaceWith: (replacer: any) => void;
   findParent: (test: (p: Path) => boolean) => Path | null;
 
-  _skipped?: boolean;
-  _removed?: boolean;
-  _replaced?: any;
+  skipped?: boolean;
+  removed?: boolean;
+  replaced?: any;
 };
 
 const makePath = (
@@ -60,13 +60,13 @@ const makePath = (
   key,
   index,
   skip: function () {
-    this._skipped = true;
+    this.skipped = true;
   },
   remove: function () {
-    this._removed = true;
+    this.removed = true;
   },
   replaceWith: function (replacer) {
-    this._replaced = replacer;
+    this.replaced = replacer;
   },
   findParent: function (test) {
     return parentPath
@@ -79,8 +79,8 @@ const makePath = (
 
 export type NodeVisitors = {
   [nodeType: string]: {
-    enter: (p: Path) => void;
-    exit: (p: Path) => void;
+    enter?: (p: Path) => void;
+    exit?: (p: Path) => void;
   };
 };
 
@@ -100,7 +100,7 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
 
     if (visitor?.enter) {
       visitor.enter(path);
-      if (path._removed) {
+      if (path.removed) {
         if (!key || !parent) {
           throw new Error(
             `Asked to remove ${node.id} but no parent key was present in ${parent?.id}`
@@ -113,19 +113,19 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
         }
         return path;
       }
-      if (path._replaced) {
+      if (path.replaced) {
         if (!key || !parent) {
           throw new Error(
             `Asked to remove ${node.id} but no parent key was present in ${parent?.id}`
           );
         }
         if (typeof index === 'number') {
-          parent[key].splice(index, 1, path._replaced);
+          parent[key].splice(index, 1, path.replaced);
         } else {
-          parent[key] = path._replaced;
+          parent[key] = path.replaced;
         }
       }
-      if (path._skipped) {
+      if (path.skipped) {
         return path;
       }
     }
@@ -137,7 +137,7 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
           for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
             const child = nodeValue[i - offset];
             const res = visitNode(child, node, path, nodeKey, i - offset);
-            if (res?._removed) {
+            if (res?.removed) {
               offset += 1;
             }
           }
@@ -157,13 +157,15 @@ export type NodeGenerators = {
   [nodeType: string]: (n: AstNode) => string;
 };
 
-export type NodeGenerator = (ast: AstNode) => string;
+export type NodeGenerator = (
+  ast: AstNode | string | undefined | null
+) => string;
 
 /**
  * Stringify an AST
  */
 const makeGenerator = (generators: NodeGenerators): NodeGenerator => {
-  const gen = (ast: AstNode): string =>
+  const gen = (ast: AstNode | string | undefined | null): string =>
     typeof ast === 'string'
       ? ast
       : ast === null || ast === undefined

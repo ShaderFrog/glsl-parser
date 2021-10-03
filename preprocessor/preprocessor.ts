@@ -1,4 +1,4 @@
-import { visit, evaluate, Ast } from '../core/ast';
+import { visit, evaluate, AstNode, Path } from '../core/ast';
 
 export interface LiteralNode extends AstNode {
   literal: string;
@@ -136,7 +136,21 @@ const preprocessComments = (src: string): string => {
 
 const tokenPaste = (str: string): string => str.replace(/\s+##\s+/g, '');
 
-const expandFunctionMacro = (macros, macroName: string, macro, text) => {
+export type Macro = {
+  args?: AstNode[];
+  body: string;
+};
+
+export type Macros = {
+  [name: string]: Macro;
+};
+
+const expandFunctionMacro = (
+  macros: Macros,
+  macroName: string,
+  macro: Macro,
+  text: string
+) => {
   const pattern = `\\b${macroName}\\s*\\(`;
   const startRegex = new RegExp(pattern, 'm');
 
@@ -153,7 +167,9 @@ const expandFunctionMacro = (macros, macroName: string, macro, text) => {
         `${current.match(startRegex)} unterminated macro invocation`
       );
     }
-    const macroArgs = macro.args.filter(({ literal }) => literal !== ',');
+    const macroArgs = (macro.args || []).filter(
+      ({ literal }) => literal !== ','
+    );
     const { args, length: argLength } = result;
 
     // The total lenth of the raw text to replace is the macro name in the
@@ -207,7 +223,12 @@ const expandFunctionMacro = (macros, macroName: string, macro, text) => {
   return expanded + current;
 };
 
-const expandObjectMacro = (macros, macroName, macro, text) => {
+const expandObjectMacro = (
+  macros: Macros,
+  macroName: string,
+  macro: Macro,
+  text: string
+) => {
   const regex = new RegExp(`\\b${macroName}\\b`, 'g');
   let expanded = text;
   if (regex.test(text)) {
@@ -221,7 +242,7 @@ const expandObjectMacro = (macros, macroName, macro, text) => {
   return expanded;
 };
 
-const expandMacros = (text: string, macros) =>
+const expandMacros = (text: string, macros: Macros) =>
   Object.entries(macros).reduce(
     (result, [macroName, macro]) =>
       macro.args
@@ -234,7 +255,7 @@ const identity = (x: any): boolean => !!x;
 
 // Given an expression AST node, visit it to expand the macro macros to in the
 // right places
-const expandInExpressions = (macros, ...expressions: AstNode[]) => {
+const expandInExpressions = (macros: Macros, ...expressions: AstNode[]) => {
   expressions.filter(identity).forEach((expression) => {
     visit(expression, {
       unary_defined: {
@@ -251,7 +272,7 @@ const expandInExpressions = (macros, ...expressions: AstNode[]) => {
   });
 };
 
-const evaluateIfPart = (macros, ifPart) => {
+const evaluateIfPart = (macros: Macros, ifPart: AstNode) => {
   if (ifPart.type === 'if') {
     return evaluteExpression(ifPart.expression, macros);
   } else if (ifPart.type === 'ifdef') {
@@ -262,7 +283,7 @@ const evaluateIfPart = (macros, ifPart) => {
 };
 
 // TODO: Are all of these operators equivalent between javascript and GLSL?
-const evaluteExpression = (node: AstNode, macros) =>
+const evaluteExpression = (node: AstNode, macros: Macros) =>
   evaluate(node, {
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
@@ -373,7 +394,7 @@ const evaluteExpression = (node: AstNode, macros) =>
     },
   });
 
-const shouldPreserve = (preserve) => (path) => {
+const shouldPreserve = (preserve: NodePreservers = {}) => (path: Path) => {
   const test = preserve?.[path.node.type];
   return typeof test === 'function' ? test(path) : test;
 };
@@ -389,17 +410,22 @@ type MacroExpression = { [macroName: string]: { body: string } };
  * TODO: Handle __LINE__ and other constants.
  */
 
-type PreprocessorOptions = {
+export type NodePreservers = { [nodeType: string]: (path: any) => boolean };
+
+export type PreprocessorOptions = {
   defines?: { [definitionName: string]: object };
-  preserve?: { [nodeType: string]: (path: any) => boolean };
+  preserve?: NodePreservers;
+  preserveComments?: boolean;
+  stopOnError?: boolean;
 };
 
-const preprocessAst = (ast, options: PreprocessorOptions = {}) => {
-  const macros: MacroExpression = Object.entries(options.defines || {}).reduce(
+const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
+  const macros: Macros = Object.entries(options.defines || {}).reduce(
     (defines, [name, body]) => ({ ...defines, [name]: { body } }),
     {}
   );
   // const defineValues = { ...options.defines };
+  // @ts-ignore
   const { preserve, ignoreMacro } = options;
   const preserveNode = shouldPreserve(preserve);
 
@@ -416,7 +442,7 @@ const preprocessAst = (ast, options: PreprocessorOptions = {}) => {
         expandInExpressions(
           macros,
           node.ifPart.expression,
-          ...node.elseIfParts.map((elif) => elif.expression),
+          ...node.elseIfParts.map((elif: AstNode) => elif.expression),
           node.elsePart?.expression
         );
 
@@ -433,10 +459,10 @@ const preprocessAst = (ast, options: PreprocessorOptions = {}) => {
           // });
         } else {
           const elseBranchHit = node.elseIfParts.reduce(
-            (res, elif) =>
+            (res: boolean, elif: AstNode) =>
               res ||
               (evaluteExpression(elif.expression, macros) &&
-                (path.replaceWith(elif.body) || true)),
+                (path.replaceWith(elif.body), true)),
             false
           );
           if (!elseBranchHit) {
