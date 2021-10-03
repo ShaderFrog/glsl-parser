@@ -3,7 +3,7 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.1.0",
+  "version": "0.1.1",
   "main": "index.js",
   "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
