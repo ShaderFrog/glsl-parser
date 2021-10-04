@@ -12,7 +12,7 @@ export type Scope = {
   functions: ScopeIndex;
 };
 
-export interface Program extends Program {
+export interface ParserProgram extends Program {
   scopes: Scope[];
 }
 
@@ -23,4 +23,4 @@ export type ParserOptions = {
 // TOOD: Do I need this?
 export const SyntaxError: any;
 
-export function parse(input: string, options?: ParserOptions): Program;
+export function parse(input: string, options?: ParserOptions): ParserProgram;
