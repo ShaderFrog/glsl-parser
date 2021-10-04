@@ -23,4 +23,4 @@ export type ParserOptions = {
 // TOOD: Do I need this?
 export const SyntaxError: any;
 
-export function parse(input: string, options: ParserOptions): ParserProgram;
+export function parse(input: string, options?: ParserOptions): ParserProgram;
