@@ -4,7 +4,7 @@ import peggy from 'peggy';
 import util from 'util';
 import { preprocessComments, preprocessAst } from './preprocessor';
 import generate from './generator';
-import { Program } from './preprocessor-parser';
+import { Program } from '../core/ast';
 
 const fileContents = (filePath: string): string =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
@@ -34,11 +34,6 @@ const expectParsedProgram = (sourceGlsl: string) => {
 //   expectParsedProgram(fileContents('./preprocess-test-grammar.glsl'));
 // });
 
-test('xyy ast', () => {
-  debugProgram(`#line 0
-#version 100 "hi"
-before if`);
-});
 test('preprocessor ast', () => {
   expectParsedProgram(`
 #line 0

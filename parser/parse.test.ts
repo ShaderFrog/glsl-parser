@@ -481,6 +481,7 @@ test('subroutines', () => {
   `);
 });
 
+/*
 test('debug', () => {
   debugProgram(`
   in vec4 myOut;
@@ -489,6 +490,7 @@ test('debug', () => {
     }
     `);
 });
+*/
 
 test('blerb', () => {
   const ast = parser.parse(`

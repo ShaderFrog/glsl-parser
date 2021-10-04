@@ -1,7 +1,6 @@
-import util from 'util';
 import { visit, AstNode } from './ast';
 
-test('schlorf', () => {
+test('visit()', () => {
   const tree = {
     type: 'root',
     left: {
@@ -34,10 +33,8 @@ test('schlorf', () => {
   });
 
   expect(found1).not.toBeNull();
-  // @ts-ignore
-  expect(found1.node.type).toBe('root');
+  expect(found1?.type).toBe('root');
   expect(found2).not.toBeNull();
-  // @ts-ignore
-  expect(found2.node.type).toBe('group');
+  expect(found2?.type).toBe('group');
   expect(unfound).not.toBeDefined();
 });

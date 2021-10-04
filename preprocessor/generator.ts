@@ -1,7 +1,7 @@
 import { makeGenerator, NodeGenerators } from '../core/ast';
 
 const generators: NodeGenerators = {
-  program: (node) => generate(node.blocks) + generate(node.wsEnd),
+  program: (node) => generate(node.program) + generate(node.wsEnd),
   segment: (node) => generate(node.blocks),
   text: (node) => generate(node.text),
   literal: (node) =>

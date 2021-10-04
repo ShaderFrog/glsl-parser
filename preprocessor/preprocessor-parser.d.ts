@@ -1,8 +1,4 @@
-import type { AstNode } from '../core/ast';
-
-export interface Program extends AstNode {
-  blocks: AstNode;
-}
+import type { AstNode, Program } from '../core/ast';
 
 // TOOD: Do I need this?
 export const SyntaxError: any;

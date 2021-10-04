@@ -36,9 +36,9 @@
 start = program
 
 program = 
-  blocks:text_or_control_lines
+  program:text_or_control_lines
   wsEnd:_? {
-    return node('program', { blocks, wsEnd });
+    return node('program', { program: program.blocks, wsEnd });
   }
 
 // GLSL only allows for integers in constant expressions

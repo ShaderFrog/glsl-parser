@@ -1,3 +1,10 @@
+export interface Program {
+  type: 'program';
+  program: AstNode[];
+  wsStart?: string;
+  wsEnd?: string;
+}
+
 export interface AstNode {
   type: string;
   wsStart?: string;
@@ -157,15 +164,17 @@ export type NodeGenerators = {
   [nodeType: string]: (n: AstNode) => string;
 };
 
-export type NodeGenerator = (
-  ast: AstNode | string | undefined | null
+export type Generator = (
+  ast: Program | AstNode | AstNode[] | string | undefined | null
 ) => string;
 
 /**
  * Stringify an AST
  */
-const makeGenerator = (generators: NodeGenerators): NodeGenerator => {
-  const gen = (ast: AstNode | string | undefined | null): string =>
+const makeGenerator = (generators: NodeGenerators): Generator => {
+  const gen = (
+    ast: Program | AstNode | AstNode[] | string | undefined | null
+  ): string =>
     typeof ast === 'string'
       ? ast
       : ast === null || ast === undefined
@@ -180,9 +189,7 @@ const makeGenerator = (generators: NodeGenerators): NodeGenerator => {
 
 export type EveryOtherGenerator = (nodes: AstNode[], eo: AstNode[]) => string;
 
-const makeEveryOtherGenerator = (
-  generate: NodeGenerator
-): EveryOtherGenerator => {
+const makeEveryOtherGenerator = (generate: Generator): EveryOtherGenerator => {
   const everyOther = (nodes: AstNode[], eo: AstNode[]) =>
     nodes.reduce(
       (output, node, index) =>
