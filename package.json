@@ -3,16 +3,10 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.1.12",
+  "version": "0.1.13",
   "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "require": "./dist/index.js"
-    },
-    "ast": {
-      "import": "./dist/ast.js",
-      "require": "./dist/ast.js"
-    }
+    ".": "./dist/index.js",
+    "./ast": "./dist/ast.js"
   },
   "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
