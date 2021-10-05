@@ -3,9 +3,13 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "0.1.10",
+  "version": "0.1.11",
   "main": "./dist/index.js",
   "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "require": "./dist/index.js"
+    },
     "ast": {
       "import": "./dist/ast.js",
       "require": "./dist/ast.js"
