@@ -119,7 +119,9 @@ preprocessAst(ast);
 const preprocessed = preprocessorGenerate(ast);
 ```
 
-## Modifying and Searching ASTs with Visitors
+## Manipulating and Searching ASTs
+
+### Visitors
 
 The Shaderfrog parser provides a AST visitor function for manipulating and
 searching an AST. The visitor API loosely follows the [Babel visitor API](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#toc-visitors). A visitor object looks
@@ -189,6 +191,23 @@ visit(ast, {
   }
 });
 console.log('There are ', numberOfFunctionCalls, 'function calls');
+```
+
+### Utility Functions
+
+Rename all the variables in a program:
+
+```typescript
+const { renameBindings, renameFunctions } = require('@shaderfrog/glsl-parser');
+
+// ... parse an ast...
+
+// Suffix all top level variables with _x, preserving anything in the set. So
+// the top level variable "color" won't be renamed
+renameBindings(ast.scopes[0], new Set('color'), 'x');
+// Suffix all function names with _x, renaming anything in the last argument
+// from the key to the value.
+renameFunctions(ast.scopes[0], 'x', {main: 'output'});
 ```
 
 # Limitations of the Parser and Preprocessor

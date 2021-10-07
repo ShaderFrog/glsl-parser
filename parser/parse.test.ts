@@ -5,6 +5,7 @@ import util from 'util';
 import generate from './generator';
 import { AstNode } from '../core/ast';
 import { ScopeIndex, Scope } from './parser';
+import { renameBindings, renameFunctions } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
 
@@ -481,18 +482,19 @@ test('subroutines', () => {
   `);
 });
 
-/*
-test('debug', () => {
-  debugProgram(`
-  in vec4 myOut;
-    void main() {
-      gl_FragColor.rgb = 123 + gl_FragColor;
-    }
-    `);
-});
-*/
+// test('debug', () => {
+//   const ast = parser.parse(`
+// vec4 mod289(vec4 x) {
+//   return x - floor(x * (1.0 / 289.0)) * 289.0;
+// }
+// float mod289(float x) {
+//     return x - floor(x * (1.0 / 289.0)) * 289.0;
+// }`);
+//   renameFunctions(ast.scopes[0], 'x', {});
+//   console.log(generate(ast));
+// });
 
-test('blerb', () => {
+test('rename binding test (does nothing fixme)', () => {
   const ast = parser.parse(`
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
@@ -534,44 +536,9 @@ vec4 mapTexelToLinear( vec4 value ) { return LinearToLinear( value ); }
 vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
 `);
 
-  const renameBindings = (scope: Scope, i: number) => {
-    Object.entries(scope.bindings).forEach(([name, binding]) => {
-      binding.references.forEach((ref) => {
-        if (ref.type === 'declaration') {
-          ref.identifier.identifier = `${i}_${ref.identifier.identifier}`;
-        } else if (ref.type === 'identifier') {
-          ref.identifier = `${i}_${ref.identifier}`;
-        } else if (ref.type === 'parameter_declaration') {
-          ref.declaration.identifier.identifier = `${i}_${ref.declaration.identifier.identifier}`;
-        } else {
-          console.log(ref);
-          throw new Error(`Binding for type ${ref.type} not recognized`);
-        }
-      });
-    });
-  };
-
-  const renameFunctions = (scope: Scope, i: number) => {
-    Object.entries(scope.functions).forEach(([name, binding]) => {
-      binding.references.forEach((ref) => {
-        if (ref.type === 'function_header') {
-          ref.name.identifier = `${i}_${ref.name.identifier}`;
-        } else if (ref.type === 'function_call') {
-          if (ref.identifier.type === 'postfix') {
-            ref.identifier.expr.identifier.specifier.identifier = `${i}_${ref.identifier.expr.identifier.specifier.identifier}`;
-          } else {
-            ref.identifier.specifier.identifier = `${i}_${ref.identifier.specifier.identifier}`;
-          }
-        } else {
-          console.log(ref);
-          throw new Error(`Function for type ${ref.type} not recognized`);
-        }
-      });
-    });
-  };
   // ast.scopes.forEach((s, i) => renameBindings(s, i));
-  renameBindings(ast.scopes[0], 0);
-  renameFunctions(ast.scopes[0], 0);
+  renameBindings(ast.scopes[0], new Set<string>(), 'x');
+  renameFunctions(ast.scopes[0], 'x', {});
 
   // console.log('scopes:', debugScopes(ast.scopes));
   // console.log(generate(ast));

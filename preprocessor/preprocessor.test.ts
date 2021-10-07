@@ -380,3 +380,19 @@ outside endif
 #pragma mypragma: something(else)
 function_call line after program`);
 });
+
+/*
+test('debug', () => {
+  const program = `
+precision highp float;
+precision mediump int;
+precision lowp int;
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+varying vec2 vUv;
+`);
+});
+*/
