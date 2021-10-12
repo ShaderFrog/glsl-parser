@@ -83,23 +83,15 @@
     scope.functions[name] = { references: [declaration] }
   };
   const addFunctionReference = (scope, name, reference) => {
-    const foundScope = findFunctionScope(scope, name);
-    if(foundScope) {
-      foundScope.functions[name].references.push(reference);
+    const global = findGlobalScope(scope);
+    if(name in global.functions) {
+      global.functions[name].references.push(reference);
     } else {
       createFunction(scope, name, reference);
     }
   };
-  const findFunctionScope = (scope, fnName) => {
-    if(!scope) {
-      return null;
-    }
-    if(fnName in scope.functions) {
-      return scope;
-    }
-    return findFunctionScope(scope.parent, fnName);
-  }
-  const isDeclaredFunction = (scope, fnName) => findFunctionScope(scope, fnName) !== null;
+  const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
+  const isDeclaredFunction = (scope, fnName) => fnName in findGlobalScope(scope).functions;
 
   let scopes = [makeScope('global')];
   let scope = scopes[0];
@@ -870,7 +862,7 @@ function_header "function header"
         'function_header',
         { returnType, name, lp }
       );
-      createFunction(scope, name.identifier, n);
+      addFunctionReference(scope, name.identifier, n);
       scope = pushScope(makeScope(name.identifier, scope));
       return n;
     }
@@ -1375,7 +1367,7 @@ external_declaration
 function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
   const n = node('function', { prototype, body });
   scope = popScope(scope);
-  // createFunction(scope, prototype.header.name.identifier, n);
+  // addFunctionReference(scope, prototype.header.name.identifier, n);
   return n;
 }
 

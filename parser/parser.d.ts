@@ -28,4 +28,13 @@ export const SyntaxError: any;
 // can't import from .d.ts files as there's no accompanying ts/js file
 export * from './utils';
 
-export function parse(input: string, options?: ParserOptions): ParserProgram;
+export type Parse = {
+  (input: string, options?: ParserOptions): ParserProgram;
+};
+
+// Convenience export to cast the parser in tests
+export type Parser = {
+  parse: Parse;
+};
+
+export const parse: Parse;

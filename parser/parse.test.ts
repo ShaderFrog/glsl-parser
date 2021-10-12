@@ -4,7 +4,7 @@ import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
 import { AstNode } from '../core/ast';
-import { ScopeIndex, Scope } from './parser';
+import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
@@ -42,7 +42,8 @@ const debugScopes = (scopes: Scope[]) =>
 
 const grammar = fileContents('./glsl-grammar.pegjs');
 const testFile = fileContents('../glsltest.glsl');
-const parser = peggy.generate(grammar, { cache: true });
+
+const parser = peggy.generate(grammar, { cache: true }) as Parser;
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
@@ -314,7 +315,7 @@ test('qualifier declarations', () => {
 });
 
 test('layout', () => {
-  expectParsedProgram(`
+  expectParsedProgram(` 
     layout(location = 4, component = 2) in vec2 a;
     layout(location = 3) in vec4 normal;
     layout(location = 9) in mat4 transforms[2];
@@ -482,17 +483,16 @@ test('subroutines', () => {
   `);
 });
 
-// test('debug', () => {
-//   const ast = parser.parse(`
-// vec4 mod289(vec4 x) {
-//   return x - floor(x * (1.0 / 289.0)) * 289.0;
-// }
-// float mod289(float x) {
-//     return x - floor(x * (1.0 / 289.0)) * 289.0;
-// }`);
-//   renameFunctions(ast.scopes[0], 'x', {});
-//   console.log(generate(ast));
-// });
+test('overloaded scope test', () => {
+  const ast = parser.parse(`
+vec4 overloaded(vec4 x) {
+  return x;
+}
+float overloaded(float x) {
+    return x;
+}`);
+  expect(ast.scopes[0].functions.overloaded.references).toHaveLength(2);
+});
 
 test('rename binding test (does nothing fixme)', () => {
   const ast = parser.parse(`
