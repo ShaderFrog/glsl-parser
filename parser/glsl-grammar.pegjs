@@ -1087,11 +1087,17 @@ struct_specifier "struct specifier"
     lb:LEFT_BRACE
     declarations:struct_declaration_list
     rb:RIGHT_BRACE {
+      const n = node('struct', { lb, declarations, rb, struct, typeName });
       // Anonymous structs don't get a type name
       if(typeName) {
         addTypes(scope, [typeName.identifier, typeName]);
+
+        // Struct names also become constructors for functions. Needing to track
+        // this as both a type and a function makes me think my scope data model
+        // is probably wrong
+        addFunctionReference(scope, typeName.identifier, n);
       }
-      return node('struct', { lb, declarations, rb, struct, typeName });
+      return n;
     }
 
 struct_declaration_list = (

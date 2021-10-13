@@ -125,7 +125,7 @@ coherent buffer Block {
     'arr3',
     'Block',
   ]);
-  expect(Object.keys(ast.scopes[0].functions)).toEqual(['fnName']);
+  expect(Object.keys(ast.scopes[0].functions)).toEqual(['fnName', 'light']);
   expect(Object.keys(ast.scopes[0].types)).toEqual(['light']);
 });
 
@@ -481,6 +481,17 @@ test('subroutines', () => {
         return vec4(0.0, 0.0, 1.0, 1.0);
     }
   `);
+});
+
+test('struct constructor', () => {
+  const ast = parser.parse(`
+struct light {
+  float intensity;
+  vec3 position;
+};
+light lightVar = light(3.0, vec3(1.0, 2.0, 3.0));
+`);
+  expect(ast.scopes[0].functions.light.references).toHaveLength(2);
 });
 
 test('overloaded scope test', () => {
