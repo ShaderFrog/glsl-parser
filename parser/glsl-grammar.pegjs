@@ -452,9 +452,11 @@ TYPE_NAME = !keyword ident:IDENTIFIER {
   // type_name for the function_identifier. So all we can do here is go on our
   // merry way if the type isn't known.
 
+  // This only applies to structs. I'm not sure if it's right. Because TYPE_NAME
+  // is used in lots of places, it's easier to put this check here.
   let found;
   if(found = findTypeScope(scope, identifier)) {
-    addTypeReference(found, identifier, identifier);
+    addTypeReference(found, identifier, ident);
   // I removed this because a type name reference here can't be renamed because
   // it's just a string and we don't know the parent node. This might apply
   // to the type reference above as well
@@ -558,7 +560,9 @@ function_call
       
       const n = node('function_call', { ...identifier, args, rp });
 
-      if(fnName && !builtIns.has(fnName)) {
+      // struct constructors are stored in scope types, not scope functions,
+      // skip them (the isDeclaredType check)
+      if(fnName && !isDeclaredType(scope, fnName) && !builtIns.has(fnName)) {
         if(!isDeclaredFunction(scope, fnName)) {
           warn(`Warning: Function "${fnName}" has not been declared`);
         }
@@ -1090,12 +1094,12 @@ struct_specifier "struct specifier"
       const n = node('struct', { lb, declarations, rb, struct, typeName });
       // Anonymous structs don't get a type name
       if(typeName) {
-        addTypes(scope, [typeName.identifier, typeName]);
+        addTypes(scope, [typeName.identifier, n]);
 
         // Struct names also become constructors for functions. Needing to track
         // this as both a type and a function makes me think my scope data model
         // is probably wrong
-        addFunctionReference(scope, typeName.identifier, n);
+        // addFunctionReference(scope, typeName.identifier, n);
       }
       return n;
     }

@@ -5,7 +5,7 @@ import util from 'util';
 import generate from './generator';
 import { AstNode } from '../core/ast';
 import { ScopeIndex, Scope, Parser } from './parser';
-import { renameBindings, renameFunctions } from './utils';
+import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
 
@@ -125,7 +125,7 @@ coherent buffer Block {
     'arr3',
     'Block',
   ]);
-  expect(Object.keys(ast.scopes[0].functions)).toEqual(['fnName', 'light']);
+  expect(Object.keys(ast.scopes[0].functions)).toEqual(['fnName']);
   expect(Object.keys(ast.scopes[0].types)).toEqual(['light']);
 });
 
@@ -491,7 +491,7 @@ struct light {
 };
 light lightVar = light(3.0, vec3(1.0, 2.0, 3.0));
 `);
-  expect(ast.scopes[0].functions.light.references).toHaveLength(2);
+  expect(ast.scopes[0].types.light.references).toHaveLength(3);
 });
 
 test('overloaded scope test', () => {
@@ -552,5 +552,32 @@ vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
   renameFunctions(ast.scopes[0], 'x', {});
 
   // console.log('scopes:', debugScopes(ast.scopes));
+  // console.log(generate(ast));
+});
+
+test('detecting struct scope and usage', () => {
+  const ast = parser.parse(`
+struct StructName {
+  vec3 color;
+};
+StructName reflectedLight = StructName(vec3(0.0));
+void main() {
+  struct StructName {
+    vec3 color;
+  };
+  StructName ref = StructName();
+}
+`);
+
+  renameBindings(ast.scopes[0], new Set<string>(), 'x');
+  renameTypes(ast.scopes[0], new Set<string>(), 'y');
+
+  expect(Object.keys(ast.scopes[0].functions)).toEqual(['main']);
+  expect(Object.keys(ast.scopes[0].bindings)).toEqual(['reflectedLight']);
+  expect(Object.keys(ast.scopes[0].types)).toEqual(['StructName']);
+  expect(ast.scopes[0].types.StructName.references).toHaveLength(3);
+
+  expect(Object.keys(ast.scopes[1].types)).toEqual(['StructName']);
+
   // console.log(generate(ast));
 });

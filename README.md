@@ -198,16 +198,18 @@ console.log('There are ', numberOfFunctionCalls, 'function calls');
 Rename all the variables in a program:
 
 ```typescript
-const { renameBindings, renameFunctions } = require('@shaderfrog/glsl-parser');
+const { renameBindings, renameFunctions, renameTypes } = require('@shaderfrog/glsl-parser');
 
 // ... parse an ast...
 
-// Suffix all top level variables with _x, preserving anything in the set. So
+// Suffix top level variables with _x, preserving anything in the set. So
 // the top level variable "color" won't be renamed
 renameBindings(ast.scopes[0], new Set('color'), 'x');
-// Suffix all function names with _x, renaming anything in the last argument
+// Suffix function names with _x, renaming anything in the last argument
 // from the key to the value.
 renameFunctions(ast.scopes[0], 'x', {main: 'output'});
+// Suffix struct names and usages (including constructors) with _x
+renameTypes(ast.scopes[0], 'x', {main: 'output'});
 ```
 
 # Limitations of the Parser and Preprocessor
