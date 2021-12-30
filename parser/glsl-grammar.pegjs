@@ -198,6 +198,7 @@ ATTRIBUTE = token:"attribute" t:terminal { return node('keyword', { token, white
 // same as out when in a vertex shader and same as in when in a fragment shader"
 VARYING = token:"varying" t:terminal { return node('keyword', { token, whitespace: t }); }
 
+// TODO: Look into factoring out the whitespace so these become one keyword rule
 CONST = token:"const" t:terminal { return node('keyword', { token, whitespace: t }); }
 BOOL = token:"bool" t:terminal { return node('keyword', { token, whitespace: t }); }
 FLOAT = token:"float" t:terminal { return node('keyword', { token, whitespace: t }); }

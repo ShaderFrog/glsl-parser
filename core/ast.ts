@@ -40,14 +40,14 @@ const evaluate = (ast: AstNode, visitors: NodeEvaluators) => {
 
 export type Path = {
   node: AstNode;
-  parent: AstNode | null;
-  parentPath: Path | null;
-  key: string | null;
-  index: number | null;
+  parent: AstNode | undefined;
+  parentPath: Path | undefined;
+  key: string | undefined;
+  index: number | undefined;
   skip: () => void;
   remove: () => void;
   replaceWith: (replacer: AstNode) => void;
-  findParent: (test: (p: Path) => boolean) => Path | null;
+  findParent: (test: (p: Path) => boolean) => Path | undefined;
 
   skipped?: boolean;
   removed?: boolean;
@@ -56,10 +56,10 @@ export type Path = {
 
 const makePath = (
   node: AstNode,
-  parent: AstNode | null,
-  parentPath: Path | null,
-  key: string | null,
-  index: number | null
+  parent: AstNode | undefined,
+  parentPath: Path | undefined,
+  key: string | undefined,
+  index: number | undefined
 ): Path => ({
   node,
   parent,
@@ -76,11 +76,11 @@ const makePath = (
     this.replaced = replacer;
   },
   findParent: function (test) {
-    return parentPath
-      ? test(parentPath)
-        ? parentPath
-        : parentPath.findParent(test)
-      : null;
+    return !parentPath
+      ? parentPath
+      : test(parentPath)
+      ? parentPath
+      : parentPath.findParent(test);
   },
 });
 
@@ -97,10 +97,10 @@ export type NodeVisitors = {
 const visit = (ast: AstNode, visitors: NodeVisitors) => {
   const visitNode = (
     node: AstNode,
-    parent: AstNode | null,
-    parentPath: Path | null,
-    key: string | null,
-    index: number | null
+    parent?: AstNode,
+    parentPath?: Path,
+    key?: string,
+    index?: number
   ) => {
     const visitor = visitors[node.type];
     const path = makePath(node, parent, parentPath, key, index);
@@ -149,7 +149,7 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
             }
           }
         } else {
-          visitNode(nodeValue, node, path, nodeKey, null);
+          visitNode(nodeValue, node, path, nodeKey);
         }
       });
 
@@ -157,7 +157,7 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
     // visitor?.exit?.(node, parent, key, index);
   };
 
-  return visitNode(ast, null, null, null, null);
+  return visitNode(ast);
 };
 
 export type NodeGenerators = {
