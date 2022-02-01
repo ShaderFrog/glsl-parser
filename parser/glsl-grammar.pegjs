@@ -822,7 +822,8 @@ qualifier_declarator =
       'qualifier_declarator',
       {
         qualifiers,
-        declarations: [head, ...tail.map(t => t[1])],
+        // Head is optional, so remove falsey
+        declarations: xnil([head, ...tail.map(t => t[1])]),
         commas: tail.map(t => t[0])
       }
     );

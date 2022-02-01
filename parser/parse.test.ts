@@ -347,6 +347,8 @@ test('layout', () => {
     // From the grammar but I think it's a typo
     // https://github.com/KhronosGroup/GLSL/issues/161
     // layout(location = start + 2) int vec4 p;
+
+    layout(std140,column_major) uniform;
   `);
 });
 
