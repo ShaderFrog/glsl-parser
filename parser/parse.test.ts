@@ -583,3 +583,23 @@ void main() {
 
   // console.log(generate(ast));
 });
+
+test('I do not yet know what to do with layout()', () => {
+  const ast = parser.parse(`
+layout(std140,column_major) uniform;
+float a;
+uniform Material
+{
+uniform vec2 vProp;
+};`);
+
+  // This shouldn't crash - see the comment block in renameBindings()
+  renameBindings(ast.scopes[0], new Set<string>(), 'x');
+  expect(generate(ast)).toBe(`
+layout(std140,column_major) uniform;
+float a_x;
+uniform Material
+{
+uniform vec2 vProp;
+};`);
+});

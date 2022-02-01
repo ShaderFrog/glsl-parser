@@ -22,6 +22,14 @@ export const renameBindings = (
         }
       } else if (ref.type === 'parameter_declaration') {
         ref.declaration.identifier.identifier = `${ref.declaration.identifier.identifier}_${suffix}`;
+      } else if (ref.type === 'interface_declarator') {
+        /* intentionally empty, for
+        layout(std140,column_major) uniform;
+        uniform Material
+        {
+        uniform vec2 prop;
+        }
+         */
       } else {
         console.log(ref);
         throw new Error(`Binding for type ${ref.type} not recognized`);
