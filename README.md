@@ -202,14 +202,12 @@ const { renameBindings, renameFunctions, renameTypes } = require('@shaderfrog/gl
 
 // ... parse an ast...
 
-// Suffix top level variables with _x, preserving anything in the set. So
-// the top level variable "color" won't be renamed
-renameBindings(ast.scopes[0], new Set('color'), 'x');
-// Suffix function names with _x, renaming anything in the last argument
-// from the key to the value.
-renameFunctions(ast.scopes[0], 'x', {main: 'output'});
+// Suffix top level variables with _x
+renameBindings(ast.scopes[0], (name) => `${name}_x`);
+// Suffix function names with _x
+renameFunctions(ast.scopes[0], (name) => `${name}_x`);
 // Suffix struct names and usages (including constructors) with _x
-renameTypes(ast.scopes[0], 'x', {main: 'output'});
+renameTypes(ast.scopes[0], (name) => `${name}_x`);
 ```
 
 # Limitations of the Parser and Preprocessor

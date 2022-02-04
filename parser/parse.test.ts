@@ -550,8 +550,8 @@ vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
 `);
 
   // ast.scopes.forEach((s, i) => renameBindings(s, i));
-  renameBindings(ast.scopes[0], new Set<string>(), 'x');
-  renameFunctions(ast.scopes[0], 'x', {});
+  renameBindings(ast.scopes[0], (name) => `${name}_x`);
+  renameFunctions(ast.scopes[0], (name) => `${name}_x`);
 
   // console.log('scopes:', debugScopes(ast.scopes));
   // console.log(generate(ast));
@@ -571,8 +571,8 @@ void main() {
 }
 `);
 
-  renameBindings(ast.scopes[0], new Set<string>(), 'x');
-  renameTypes(ast.scopes[0], new Set<string>(), 'y');
+  renameBindings(ast.scopes[0], (name) => `${name}_x`);
+  renameTypes(ast.scopes[0], (name) => `${name}_y`);
 
   expect(Object.keys(ast.scopes[0].functions)).toEqual(['main']);
   expect(Object.keys(ast.scopes[0].bindings)).toEqual(['reflectedLight']);
@@ -594,7 +594,7 @@ uniform vec2 vProp;
 };`);
 
   // This shouldn't crash - see the comment block in renameBindings()
-  renameBindings(ast.scopes[0], new Set<string>(), 'x');
+  renameBindings(ast.scopes[0], (name) => `${name}_x`);
   expect(generate(ast)).toBe(`
 layout(std140,column_major) uniform;
 float a_x;
