@@ -165,20 +165,6 @@ else body
 after if`);
 });
 
-test('empty branch', () => {
-  const program = `before if
-#ifdef GL_ES
-precision mediump float;
-#endif
-after if`;
-
-  const ast = parse(program);
-
-  preprocessAst(ast);
-  expect(generate(ast)).toBe(`before if
-after if`);
-});
-
 test('self referential object macro', () => {
   const program = `
 #define first first second
