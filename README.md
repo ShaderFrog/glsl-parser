@@ -1,8 +1,9 @@
-# Shaderfrog GLSL Parser and Preprocessor
+# Shaderfrog GLSL Compiler
 
-The [Shaderfrog](https://shaderfrog.com/app) GLSL parser is an open source GLSL
-1.00 and 3.00 parser and preprocessor. Both the parser and preprocessor can
-preserve comments and whitespace in the ASTs and generated programs.
+The [Shaderfrog](https://shaderfrog.com/app) GLSL compiler is an open source
+GLSL 1.00 and 3.00 parser and preprocessor that compiles [back to
+GLSL](parser/generator.ts). Both the parser and preprocessor can preserve
+comments and whitespace in the ASTs and generated programs.
 
 This parser is built using a PEG grammar and using the Peggy Javascript library
 (formerly Peg.js). The PEG grammars for both the preprocessor and main parser
@@ -29,12 +30,31 @@ library is technically a source code > source code compiler, also known as a
 
 # State of this library
 
-This library isn't ready for public use. Both the preprocessor and parser can
-handle a significant portion of GLSL input. There are still many missing
-features of this library to make it fully usable. Additionally, this library
-will likely never support the full range of semantic analysis as required by
-the Khronos GLSL specification. This library is mainly for manipulating ASTs
-before handing off a generated program to a downstream compiler such as Angle.
+The Shaderfrog compiler [is tested](parser/parse.test.ts) against the more
+complex parts of the GLSL ES 3.00 grammar. There are currently no known parsing
+bugs with respect to the grammar, but they could be yet to be discovered. This
+library is also definitively the most complete GLSL compiler written in
+Javascript.
+
+This library is currently in use by the experimental [Shaderfrog 2.0
+shader composer](https://twitter.com/andrewray/status/1558307538063437826). This
+gives it wide expoure to different GLSL syntax and AST manipulation.
+
+This library does not support the full range of "semantic analysis" as
+required by the Khronos GLSL specification. For example, some tokens are only
+valid in GLSL 1.00 vs 3.00, like `texture()` vs `texture2D()`. This parser
+considers both valid as they're both part of the grammar. However if you send
+compiled source code off to a native compiler like ANGLE with the wrong
+`texture` function, it will fail to compile. 
+
+This library is mainly for manipulating ASTs before handing off a generated
+program to a downstream compilers like as ANGLE.
+
+The preprocessor supports full macro evaluations and expansions, with the
+exceptions of `__LINE__`. Additional control lines like `#error` and `#pragma`
+and `#extension` have no effect, and can be fully preserved as part of parsing.
+
+See also [Limitations of the Parser and Preprocessor](#limitations-of-the-parser-and-preprocessor).
 
 # Usage
 
@@ -229,79 +249,3 @@ renameTypes(ast.scopes[0], (name) => `${name}_x`);
 - Function calls in the grammar are TYPE_NAME LEFT_PAREN, in my grammar they're
   IDENTIFIER LEFT_PAREN, because TYPE_NAME is only used for structs, and
   function names are stored in their own separate place in the scope.
-
-# WIP Notes
-
-## Fixme
-
-Preprocessor 
-
-- Handle backslash newlines in preprocessor (fml)
-- Implement optional whitespace flag
-- `__LINE__` - others?
-- ✅ Token pasting operator ##
-- ✅ #version
-- ✅ What is #pragma?
-
-Parser
-
-- glsl version switch to support glsl es 3 vs 1?
-- Figure out the preprocessor strategy
-- Verify every node type has a generator
-- "attribute" isn't used in GLSL ES 1.0 version parsing yet
-- Cleanup(?) of array_specifier, fully_specified_type, quantified_identifier, to
-  see if they need to be their own nodes, or if they can be inserted into parent
-  declarations instead.
-- "declarator" has three constructors, double check these are ok and shouldnt
-  be consolidated
-- Declarator also seems a little awkward when parsed, for example parsing a
-  uniform statement, it becomes:
-
-      type: 'declaration_statement',
-      declaration: {
-        type: 'declarator_list',
-        declarations: [{
-          type: 'declarator',
-- Add location information to the output
-- Semantic analysis of scope of variables
-- Differentiate constructors from function calls?
-- This line is valid GLSL ES 1.0 but not 3.0: vec4 buffer	= texture2D(renderbuffer, uv);
-- Add preprocessComments to the preprocessor as option
-- ✅ Finish all the parsing
-- ✅ The shape of for/while statements
-- ✅ What is leftAssociate doing again? Do I need it?
-- ✅ A + parses to {type: '+', chidlren: [left, '+', right]} - can I remove that
-  middle child and put whitespace as a key of the top level +
-- ✅ Can I move all trailing whitespace into a ws key instead of in children?
-- ✅ (related to whitespace) Fix the problem with tokens like "+" being both
-  nodes with a left and right, as well as inline nodes in children arrays to
-  support whitespace handling - have a "keyword" node - check what astparser
-  does online for keywords
-
-Import from Shadertoy / GLSL Sandbox
-- Rename variables to try to use shaderfrog engine
-- Change any math in AST that needs to be changed
-- Add shaderfrog engine uniforms
-
-If the shader has
-
-uniform vec2 resolution;
-#define iResolution resolution
-float minres = min(iResolution.x, iResolution.y);
-
-Then if I need to rename resolution to vUv, I need to know that it's aliased in the define statement. For any defines that **aren't numbers** I need to preprocess them. Maybe i need to preprocess everything since numbers can be used in #if statements
-
-#define _ iResolution.x;
-vec3 a = _
-
-gl_FragCoord > vUv
-
-This sounds like it requires a full preprocess to handle.
-
-# What?
-
-- Making this Babel ESTree compatible to use babel ecosystem
-  - Huh maybe not, since ESTree is JS specific
-- Shaderfrog engine for switching testing
-- Write shader vertex / fragment
-- Auto parse constants, variables, uniforms, let them be used
