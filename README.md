@@ -3,58 +3,16 @@
 The [Shaderfrog](https://shaderfrog.com/app) GLSL compiler is an open source
 GLSL 1.00 and 3.00 parser and preprocessor that compiles [back to
 GLSL](parser/generator.ts). Both the parser and preprocessor can preserve
-comments and whitespace in the ASTs and generated programs.
+comments and whitespace.
 
-This parser is built using a PEG grammar and using the Peggy Javascript library
-(formerly Peg.js). The PEG grammars for both the preprocessor and main parser
-are in the source code [on Github](https://github.com/ShaderFrog/glsl-parser).
+The parser uses PEG grammar via the Peggy Javascript library. The PEG grammars
+for both the preprocessor and main parser are in the source code [on
+Github](https://github.com/ShaderFrog/glsl-parser).
 
-This project is written in Typescript.
+This library has limited Typescript support.
 
-## What are "parsing" and "preprocessing"?
-
-In general, a parser is a computer program that analyzes source code and turn it
-into a data structure called an "abstract syntax tree" (AST). The AST is a tree
-representation of the source program, which can be analyzed or manipulated. A
-use of this GLSL parser could be to parse a program into an AST, find all
-variable names in the AST, rename them, and generate new GLSL source code with
-renamed variables.
-
-GLSL supports "preprocessing," a compiler text manipulation step. GLSL's
-preprocessor is based on the C++ preprocessor. This library supports limited
-preprocessing.
-
-Parsing, preprocesing, and code generation, are all phases of a compiler. This
-library is technically a source code > source code compiler, also known as a
-"transpiler." The input and output source code are both GLSL.
-
-# State of this library
-
-The Shaderfrog compiler [is tested](parser/parse.test.ts) against the more
-complex parts of the GLSL ES 3.00 grammar. There are currently no known parsing
-bugs with respect to the grammar, but they could be yet to be discovered. This
-library is also definitively the most complete GLSL compiler written in
-Javascript.
-
-This library is currently in use by the experimental [Shaderfrog 2.0
-shader composer](https://twitter.com/andrewray/status/1558307538063437826). This
-gives it wide expoure to different GLSL syntax and AST manipulation.
-
-This library does not support the full range of "semantic analysis" as
-required by the Khronos GLSL specification. For example, some tokens are only
-valid in GLSL 1.00 vs 3.00, like `texture()` vs `texture2D()`. This parser
-considers both valid as they're both part of the grammar. However if you send
-compiled source code off to a native compiler like ANGLE with the wrong
-`texture` function, it will fail to compile. 
-
-This library is mainly for manipulating ASTs before handing off a generated
-program to a downstream compilers like as ANGLE.
-
-The preprocessor supports full macro evaluations and expansions, with the
-exceptions of `__LINE__`. Additional control lines like `#error` and `#pragma`
-and `#extension` have no effect, and can be fully preserved as part of parsing.
-
-See also [Limitations of the Parser and Preprocessor](#limitations-of-the-parser-and-preprocessor).
+See [the state of this library](#state-of-this-library) for limitations and
+goals of this compiler.
 
 # Usage
 
@@ -229,6 +187,52 @@ renameFunctions(ast.scopes[0], (name) => `${name}_x`);
 // Suffix struct names and usages (including constructors) with _x
 renameTypes(ast.scopes[0], (name) => `${name}_x`);
 ```
+
+## What are "parsing" and "preprocessing"?
+
+In general, a parser is a computer program that analyzes source code and turn it
+into a data structure called an "abstract syntax tree" (AST). The AST is a tree
+representation of the source program, which can be analyzed or manipulated. A
+use of this GLSL parser could be to parse a program into an AST, find all
+variable names in the AST, rename them, and generate new GLSL source code with
+renamed variables.
+
+GLSL supports "preprocessing," a compiler text manipulation step. GLSL's
+preprocessor is based on the C++ preprocessor. This library supports limited
+preprocessing.
+
+Parsing, preprocesing, and code generation, are all phases of a compiler. This
+library is technically a source code > source code compiler, also known as a
+"transpiler." The input and output source code are both GLSL.
+
+# State of this library
+
+The Shaderfrog compiler [has tests](parser/parse.test.ts) for the more complex
+parts of the GLSL ES 3.00 grammar. There are no known parsing bugs with respect
+to the grammar. This library is definitively the most complete GLSL compiler
+written in **Javascript.**
+
+This library is used by the experimental [Shaderfrog 2.0 shader
+composer](https://twitter.com/andrewray/status/1558307538063437826). The
+compiler has wide expoure to different GLSL programs.
+
+This library also exposed:
+- [A typo](https://github.com/KhronosGroup/GLSL/issues/161) in the official GLSL grammar specification.
+- [A bug](https://bugs.chromium.org/p/angleproject/issues/detail?id=6338#c1) in Chrome's ANGLE compiler.
+
+This library doesn't support full "semantic analysis" required by the Khronos
+GLSL specification. For example, some tokens are only valid in GLSL 1.00 vs
+3.00, like `texture()` vs `texture2D()`. This parser considers both valid as
+they're both part of the grammar. However if you send compiled source code off
+to a native compiler like ANGLE with the wrong `texture` function, it will fail
+to compile. 
+
+This library is mainly for manipulating ASTs before handing off a generated
+program to a downstream compilers like as ANGLE.
+
+The preprocessor supports full macro evaluations and expansions, with the
+exceptions of `__LINE__`. Additional control lines like `#error` and `#pragma`
+and `#extension` have no effect, and can be fully preserved as part of parsing.
 
 # Limitations of the Parser and Preprocessor
 
