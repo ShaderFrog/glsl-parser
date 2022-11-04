@@ -65,13 +65,18 @@ const debugStatement = (stmt: AstNode) => {
 };
 
 const expectParsedStatement = (src: string, options = {}) => {
-  const program = `void main() {/* start */${src}/* end */}`;
-  const ast = parser.parse(program, options);
-  const glsl = generate(ast);
-  if (glsl !== program) {
-    console.log(util.inspect(ast.program[0], false, null, true));
-    // @ts-ignore
-    expect(glsl.match(middle)[1]).toBe(src);
+  try {
+    const program = `void main() {/* start */${src}/* end */}`;
+    const ast = parser.parse(program, options);
+    const glsl = generate(ast);
+    if (glsl !== program) {
+      console.log(util.inspect(ast.program[0], false, null, true));
+      // @ts-ignore
+      expect(glsl.match(middle)[1]).toBe(src);
+    }
+  } catch (e) {
+    console.error(`Error parsing lexeme!\n"${src}"`);
+    throw e;
   }
 };
 
@@ -312,6 +317,18 @@ test('qualifier declarations', () => {
   expectParsedProgram(`
     invariant precise in a, b,c;
   `);
+});
+
+test('number notations', () => {
+  // Integer hex notation
+  expectParsedStatement(`highp uint value = 0x1234u;`);
+  expectParsedStatement(`uint c = 0xffffffff;`);
+  expectParsedStatement(`uint d = 0xffffffffU;`);
+  // Double precision floating point
+  expectParsedStatement(`double c, d = 2.0LF;`);
+  // uint
+  expectParsedStatement(`uint k = 3u;`);
+  expectParsedStatement(`uint f = -1u;`);
 });
 
 test('layout', () => {

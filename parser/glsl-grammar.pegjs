@@ -629,13 +629,11 @@ TYPE_NAME = !keyword ident:IDENTIFIER {
 
 // Integers
 integer_constant
-  = $(decimal_constant integer_suffix?)
+  = $(hexadecimal_constant integer_suffix?)
+  / $(decimal_constant integer_suffix?)
   / $(octal_constant integer_suffix?)
-  / $(hexadecimal_constant integer_suffix?)
 
 integer_suffix = [uU]
-
-// Collapsing the above becomes
 decimal_constant = $([1-9] digit*)
 octal_constant = "0" [0-7]*
 hexadecimal_constant = "0" [xX] [0-9a-fA-F]*

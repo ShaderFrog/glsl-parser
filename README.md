@@ -208,9 +208,8 @@ library is technically a source code > source code compiler, also known as a
 # State of this library
 
 The Shaderfrog compiler [has tests](parser/parse.test.ts) for the more complex
-parts of the GLSL ES 3.00 grammar. There are no known parsing bugs with respect
-to the grammar. This library is definitively the most complete GLSL compiler
-written in **Javascript.**
+parts of the GLSL ES 3.00 grammar. This library is definitively the most
+complete GLSL compiler written in **Javascript.**
 
 This library is used by the experimental [Shaderfrog 2.0 shader
 composer](https://twitter.com/andrewray/status/1558307538063437826). The
