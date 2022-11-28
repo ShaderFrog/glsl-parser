@@ -327,6 +327,8 @@ test('number notations', () => {
   expectParsedStatement(`highp uint value = 0x1234u;`);
   expectParsedStatement(`uint c = 0xffffffff;`);
   expectParsedStatement(`uint d = 0xffffffffU;`);
+  // Octal
+  expectParsedStatement(`uint d = 021234;`);
   // Double precision floating point
   expectParsedStatement(`double c, d = 2.0LF;`);
   // uint
