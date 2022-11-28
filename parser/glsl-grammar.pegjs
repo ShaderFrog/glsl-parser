@@ -87,7 +87,7 @@
     if(name in global.functions) {
       global.functions[name].references.push(reference);
     } else {
-      createFunction(scope, name, reference);
+      createFunction(global, name, reference);
     }
   };
   const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
@@ -957,10 +957,15 @@ declaration_statement = declaration:declaration {
 // Don't factor out the semicolon from these lines up into
 // "declaration_statement". Doing so causes some productions to consume input
 // that's meant for a later production.
+//
+// The "function_prototype SEMICOLON" was moved out of this list and into
+// function_prototype_no_new_scope, so that fn prototypes go first, then
+// functions, then declarations
 declaration
-  =
-  function_prototype SEMICOLON
   // Statements starting with "precision", like "precision highp float"
+  // = precision_declarator SEMICOLON
+  // / function_prototype SEMICOLON
+  = function_prototype_no_new_scope SEMICOLON
   / precision_declarator SEMICOLON
   // Grouped in/out/uniform/buffer declarations with a { members } block after.
   / interface_declarator SEMICOLON
@@ -1007,17 +1012,12 @@ precision_declarator "precision statement"
     return node('precision', { prefix, qualifier, specifier });
   }
 
-function_prototype "function prototype"
-  = header:function_header params:function_parameters? rp:RIGHT_PAREN {
-    const bindings = (params?.parameters || [])
-      // Ignore any param without an identifier, aka main(void)
-      .filter(p => !!p.declaration.identifier)
-      .map(p => [p.declaration.identifier.identifier, p]);
-    createBindings(scope, ...bindings);
+function_prototype_new_scope "function prototype"
+  = header:function_header_new_scope params:function_parameters? rp:RIGHT_PAREN {
     return node('function_prototype', { header, ...params, rp });
   }
 
-function_header "function header"
+function_header_new_scope "function header"
   = returnType:fully_specified_type
     name:IDENTIFIER
     lp:LEFT_PAREN {
@@ -1025,9 +1025,27 @@ function_header "function header"
         'function_header',
         { returnType, name, lp }
       );
-      addFunctionReference(scope, name.identifier, n);
       scope = pushScope(makeScope(name.identifier, scope));
       return n;
+    }
+
+// Function prototype is used for both actual prototypes as well as function
+// declarations. Prototypes don't introduce a new scope. It would be better to
+// do this at function_definition, but the scope starts at the open left paren,
+// so I don't think this can be done higher up
+function_prototype_no_new_scope "function prototype scope"
+  = header:function_header_no_new_scope params:function_parameters? rp:RIGHT_PAREN {
+    return node('function_prototype', { header, ...params, rp });
+  }
+
+function_header_no_new_scope "function header scope"
+  = returnType:fully_specified_type
+    name:IDENTIFIER
+    lp:LEFT_PAREN {
+      return node(
+        'function_header',
+        { returnType, name, lp }
+      );
     }
 
 function_parameters "function parameters"
@@ -1530,13 +1548,55 @@ preprocessor "prepocessor" = line:$('#' [^\n]*) _:_? { return node('preprocessor
 // Translation unit is start of grammar
 translation_unit = (external_declaration / preprocessor)+
 
-external_declaration
-  = function_definition / declaration_statement
+function_prototype_statement = 
+  declaration:function_prototype_no_new_scope semi:SEMICOLON {
+    addFunctionReference(scope, declaration.header.name.identifier, declaration);
+    const n = node(
+      'declaration_statement',
+      {
+          declaration,
+          semi,
+        }
+    );
+    return n;
+  }
 
-function_definition = prototype:function_prototype body:compound_statement_no_new_scope {
+function_prototype = 
+  fp:function_prototype_no_new_scope semi:SEMICOLON {
+    addFunctionReference(scope, fp.header.name.identifier, fp);
+    return [fp, semi];
+  }
+
+// "function_prototype_statement" isn't in the grammar. It's removed from
+// declaration_statement and added here to catch function prototypes. The issue
+// is that the other productions cause barfing:
+// - If function definitioss go first, they try to match prototypes, and
+//   introduce a new scope in function_prototype, but then *backtrack* and the
+//   scope isn't popped.
+// - If declaration_statement comes first (which in the originally grammar
+//   catches fn prototypes as declarations), the reverse problem happens.
+//   init_declarator_list sees a function (not prototype) and initially thinks
+//   it's a prototype declaration (because it's before the { body }), then it
+//   adds this prototype declaration to the scope bindings (which is incorrect,
+//   it should be in scope.functions, notbindings), and then backtracks, and the
+//   scope is now corrupted.
+// My solution is to force a separate prototype path separately
+// See https://github.com/peggyjs/peggy/issues/330 for more
+external_declaration
+  = function_prototype_statement / function_definition / declaration_statement
+
+function_definition = prototype:function_prototype_new_scope body:compound_statement_no_new_scope {
   const n = node('function', { prototype, body });
+
+  const bindings = (prototype.parameters || [])
+    // Ignore any param without an identifier, aka main(void)
+    .filter(p => !!p.declaration.identifier)
+    .map(p => [p.declaration.identifier.identifier, p]);
+  createBindings(scope, ...bindings)
+
   scope = popScope(scope);
-  // addFunctionReference(scope, prototype.header.name.identifier, n);
+  addFunctionReference(scope, prototype.header.name.identifier, n);
+
   return n;
 }
 

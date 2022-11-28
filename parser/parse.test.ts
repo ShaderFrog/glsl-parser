@@ -148,6 +148,8 @@ struct structType {
 };
 structType z;
 
+float protoFn(float x);
+
 float shadowed;
 float reused;
 float unused;
@@ -170,6 +172,7 @@ vec3 fnName(float arg1, vec3 arg2) {
     compound = shadowed + reused + compound;
   }
 
+  protoFn(1.0);
   useMe();
 }`);
   expect(ast.scopes[0].bindings.a.references).toHaveLength(2);

@@ -61,8 +61,10 @@ export const renameFunctions = (
 ) => {
   Object.entries(scope.functions).forEach(([name, binding]) => {
     binding.references.forEach((ref) => {
-      if (ref.type === 'function_header') {
-        ref.name.identifier = mangle(ref.name.identifier);
+      if (ref.type === 'function') {
+        ref['prototype'].header.name.identifier = mangle(
+          ref['prototype'].header.name.identifier
+        );
       } else if (ref.type === 'function_call') {
         if (ref.identifier.type === 'postfix') {
           ref.identifier.expr.identifier.specifier.identifier = mangle(
