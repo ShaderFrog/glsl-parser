@@ -1,23 +1,22 @@
+import { AstNode } from '../ast';
 import type { Scope } from './parser';
 
 export const renameBindings = (
   scope: Scope,
-  mangle: (name: string) => string
+  mangle: (name: string, node: AstNode) => string
 ) => {
   Object.entries(scope.bindings).forEach(([name, binding]) => {
-    binding.references.forEach((ref) => {
-      if (ref.doNotDescope) {
-        return;
-      }
-      if (ref.type === 'declaration') {
-        ref.identifier.identifier = mangle(ref.identifier.identifier);
-      } else if (ref.type === 'identifier') {
-        ref.identifier = mangle(ref.identifier);
-      } else if (ref.type === 'parameter_declaration') {
-        ref.declaration.identifier.identifier = mangle(
-          ref.declaration.identifier.identifier
+    binding.references.forEach((node) => {
+      if (node.type === 'declaration') {
+        node.identifier.identifier = mangle(node.identifier.identifier, node);
+      } else if (node.type === 'identifier') {
+        node.identifier = mangle(node.identifier, node);
+      } else if (node.type === 'parameter_declaration') {
+        node.declaration.identifier.identifier = mangle(
+          node.declaration.identifier.identifier,
+          node
         );
-      } else if (ref.type === 'interface_declarator') {
+      } else if (node.type === 'interface_declarator') {
         /* intentionally empty, for
         layout(std140,column_major) uniform;
         uniform Material
@@ -26,30 +25,31 @@ export const renameBindings = (
         }
          */
       } else {
-        console.log(ref);
-        throw new Error(`Binding for type ${ref.type} not recognized`);
+        console.log(node);
+        throw new Error(`Binding for type ${node.type} not recognized`);
       }
     });
   });
 };
 
-export const renameTypes = (scope: Scope, mangle: (name: string) => string) => {
+export const renameTypes = (
+  scope: Scope,
+  mangle: (name: string, node: AstNode) => string
+) => {
   Object.entries(scope.types).forEach(([name, type]) => {
-    type.references.forEach((ref) => {
-      if (ref.doNotDescope) {
-        return;
-      }
-      if (ref.type === 'struct') {
-        ref.typeName.identifier = mangle(ref.typeName.identifier);
-      } else if (ref.type === 'identifier') {
-        ref.identifier = mangle(ref.identifier);
-      } else if (ref.type === 'function_call') {
-        ref.identifier.specifier.identifier = mangle(
-          ref.identifier.specifier.identifier
+    type.references.forEach((node) => {
+      if (node.type === 'struct') {
+        node.typeName.identifier = mangle(node.typeName.identifier, node);
+      } else if (node.type === 'identifier') {
+        node.identifier = mangle(node.identifier, node);
+      } else if (node.type === 'function_call') {
+        node.identifier.specifier.identifier = mangle(
+          node.identifier.specifier.identifier,
+          node
         );
       } else {
-        console.log(ref);
-        throw new Error(`Binding for type ${ref.type} not recognized`);
+        console.log(node);
+        throw new Error(`Binding for type ${node.type} not recognized`);
       }
     });
   });
@@ -57,29 +57,32 @@ export const renameTypes = (scope: Scope, mangle: (name: string) => string) => {
 
 export const renameFunctions = (
   scope: Scope,
-  mangle: (name: string) => string
+  mangle: (name: string, node: AstNode) => string
 ) => {
   Object.entries(scope.functions).forEach(([name, binding]) => {
-    binding.references.forEach((ref) => {
-      if (ref.type === 'function') {
-        ref['prototype'].header.name.identifier = mangle(
-          ref['prototype'].header.name.identifier
+    binding.references.forEach((node) => {
+      if (node.type === 'function') {
+        node['prototype'].header.name.identifier = mangle(
+          node['prototype'].header.name.identifier,
+          node
         );
-      } else if (ref.type === 'function_call') {
-        if (ref.identifier.type === 'postfix') {
-          ref.identifier.expr.identifier.specifier.identifier = mangle(
-            ref.identifier.expr.identifier.specifier.identifier
+      } else if (node.type === 'function_call') {
+        if (node.identifier.type === 'postfix') {
+          node.identifier.expr.identifier.specifier.identifier = mangle(
+            node.identifier.expr.identifier.specifier.identifier,
+            node
           );
         } else {
-          ref.identifier.specifier.identifier = mangle(
-            ref.identifier.specifier.identifier
+          node.identifier.specifier.identifier = mangle(
+            node.identifier.specifier.identifier,
+            node
           );
         }
         // Structs type names also become constructors. However, their renaming is
         // handled by bindings
-      } else if (ref.type !== 'struct') {
-        console.log(ref);
-        throw new Error(`Function for type ${ref.type} not recognized`);
+      } else if (node.type !== 'struct') {
+        console.log(node);
+        throw new Error(`Function for type ${node.type} not recognized`);
       }
     });
   });

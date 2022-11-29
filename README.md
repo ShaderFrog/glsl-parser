@@ -181,11 +181,11 @@ const { renameBindings, renameFunctions, renameTypes } = require('@shaderfrog/gl
 // ... parse an ast...
 
 // Suffix top level variables with _x
-renameBindings(ast.scopes[0], (name) => `${name}_x`);
+renameBindings(ast.scopes[0], (name, node) => `${name}_x`);
 // Suffix function names with _x
-renameFunctions(ast.scopes[0], (name) => `${name}_x`);
+renameFunctions(ast.scopes[0], (name, node) => `${name}_x`);
 // Suffix struct names and usages (including constructors) with _x
-renameTypes(ast.scopes[0], (name) => `${name}_x`);
+renameTypes(ast.scopes[0], (name, node) => `${name}_x`);
 ```
 
 ## What are "parsing" and "preprocessing"?
