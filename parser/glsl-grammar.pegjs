@@ -1,7 +1,9 @@
 // https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.40.pdf
 // https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
 
-{
+{{
+  // Apparently peggy can't handle an open curly brace in a string, see
+  // https://github.com/pegjs/pegjs/issues/187
   const OPEN_CURLY = String.fromCharCode(123);
 
   const makeScope = (name, parent) => ({
@@ -11,20 +13,6 @@
     types: {},
     functions: {},
   });
-  const pushScope = scope => {
-    // console.log('pushing scope at ',text());
-    scopes.push(scope);
-    return scope;
-  };
-  const popScope = scope => {
-    // console.log('popping scope at ',text());
-    if(!scope.parent) {
-      throw new Error('popped bad scope', scope, 'at', text());
-    }
-    return scope.parent;
-  };
-
-  const warn = (...args) => !options.quiet && console.warn(...args);
 
   // Types (aka struct) scope
   const addTypes = (scope, ...types) => {
@@ -92,9 +80,6 @@
   };
   const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
   const isDeclaredFunction = (scope, fnName) => fnName in findGlobalScope(scope).functions;
-
-  let scopes = [makeScope('global')];
-  let scope = scopes[0];
 
   const node = (type, attrs) => ({
     type,
@@ -171,7 +156,6 @@
       }];
     }
   }, []);
-
 
   // From https://www.khronos.org/registry/OpenGL-Refpages/gl4/index.php
   // excluding gl_ prefixed builtins, which don't appear to be functions
@@ -343,6 +327,27 @@
     // GLSL ES 1.00
     'texture2D', 'textureCube'
   ]);
+}}
+
+// Per-parse initializations
+{
+  const warn = (...args) => !options.quiet && console.warn(...args);
+
+  let scope = makeScope('global');
+  let scopes = [scope];
+
+  const pushScope = scope => {
+    // console.log('pushing scope at ',text());
+    scopes.push(scope);
+    return scope;
+  };
+  const popScope = scope => {
+    // console.log('popping scope at ',text());
+    if(!scope.parent) {
+      throw new Error('popped bad scope', scope, 'at', text());
+    }
+    return scope.parent;
+  };
 }
 
 // Extra whitespace here at start is to help with screenshots by adding
@@ -1346,7 +1351,6 @@ simple_statement
 // { block of statements } that introduces a new scope
 compound_statement =
   lb:(sym:LEFT_BRACE {
-    // Apparently peggy can't handle an open curly brace in a string
     scope = pushScope(makeScope(OPEN_CURLY, scope));
     return sym;
   })
