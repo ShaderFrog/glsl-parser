@@ -3,7 +3,7 @@ import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
-import { AstNode } from '../core/ast';
+import { AnyAstNode, FunctionNode } from '../core/node';
 import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
@@ -52,15 +52,16 @@ const debugProgram = (program: string) => {
   console.log(util.inspect(ast.program, false, null, true));
 };
 
-const debugAst = (ast: AstNode) => {
-  console.log(util.inspect(ast.program, false, null, true));
-};
-
-const debugStatement = (stmt: AstNode) => {
+const debugStatement = (stmt: AnyAstNode) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
   console.log(
-    util.inspect(ast.program[0].body.statements[0], false, null, true)
+    util.inspect(
+      (ast.program[0] as FunctionNode).body.statements[0],
+      false,
+      null,
+      true
+    )
   );
 };
 
@@ -308,6 +309,8 @@ test('switch statement', () => {
       case 1:
           result = cubicOut();
           break;
+      default:
+          result = 1.0;
       }
   `,
     { quiet: true }

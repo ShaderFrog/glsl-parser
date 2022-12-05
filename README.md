@@ -235,6 +235,12 @@ and `#extension` have no effect, and can be fully preserved as part of parsing.
 
 # Limitations of the Parser and Preprocessor
 
+## Known Issues
+
+- There's probably some bugs in the preprocessor logic. I haven't yet verified
+  all of the evaluations of "binary" expressions in `preprocessor.ts`
+- `preprocessor.ts` has lots of yucky typecasting
+
 ## Known missing semantic analysis compared to the specification
 
 - Compilers are supposed to raise an error if a switch body ends in a case or

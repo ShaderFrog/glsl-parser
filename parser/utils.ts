@@ -1,9 +1,9 @@
-import { AstNode } from '../ast';
+import { AnyAstNode } from '../core/node';
 import type { Scope } from './parser';
 
 export const renameBindings = (
   scope: Scope,
-  mangle: (name: string, node: AstNode) => string
+  mangle: (name: string, node: AnyAstNode) => string
 ) => {
   Object.entries(scope.bindings).forEach(([name, binding]) => {
     binding.references.forEach((node) => {
@@ -34,7 +34,7 @@ export const renameBindings = (
 
 export const renameTypes = (
   scope: Scope,
-  mangle: (name: string, node: AstNode) => string
+  mangle: (name: string, node: AnyAstNode) => string
 ) => {
   Object.entries(scope.types).forEach(([name, type]) => {
     type.references.forEach((node) => {
@@ -57,7 +57,7 @@ export const renameTypes = (
 
 export const renameFunctions = (
   scope: Scope,
-  mangle: (name: string, node: AstNode) => string
+  mangle: (name: string, node: AnyAstNode) => string
 ) => {
   Object.entries(scope.functions).forEach(([name, binding]) => {
     binding.references.forEach((node) => {

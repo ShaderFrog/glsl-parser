@@ -1,28 +1,18 @@
-import { visit, evaluate, AstNode, Path } from '../core/ast';
+import { visit, Path, NodeVisitor, Program } from '../core/ast';
+import { AnyAstNode, AstNode } from '../core/node';
+import {
+  PreprocessorAstNode,
+  PreprocessorConditionalNode,
+  PreprocessorElseIfNode,
+  PreprocessorIdentifierNode,
+  PreprocessorIfNode,
+  PreprocessorLiteralNode,
+  PreprocessorSegmentNode,
+} from './preprocessor-node';
 
-export interface LiteralNode extends AstNode {
-  literal: string;
-}
-
-export interface VersionNode extends AstNode {
-  version: LiteralNode;
-  literal: string;
-  value: string;
-  profile: string | null;
-}
-
-export interface SegmentNode extends AstNode {
-  blocks: Array<AstNode>;
-}
-
-export interface LineNode extends AstNode {
-  version: string;
-  literal: string;
-}
-
-export type Ast = {
+export type PreprocessorProgram = {
   type: string;
-  blocks: SegmentNode;
+  program: PreprocessorSegmentNode[];
   wsEnd?: string;
 };
 
@@ -40,20 +30,19 @@ const without = (obj: object, ...keys: string[]) =>
 const scanFunctionArgs = (
   src: string
 ): { args: string[]; length: number } | null => {
-  let i;
-  let chr;
-  let parens = 0;
-  let args = [];
-  let arg = '';
+  let char: string;
+  let parens: number = 0;
+  let args: string[] = [];
+  let arg: string = '';
 
-  for (i = 0; i < src.length; i++) {
-    chr = src.substr(i, 1);
+  for (let i = 0; i < src.length; i++) {
+    char = src.charAt(i);
 
-    if (chr === '(') {
+    if (char === '(') {
       parens++;
     }
 
-    if (chr === ')') {
+    if (char === ')') {
       parens--;
     }
 
@@ -68,11 +57,11 @@ const scanFunctionArgs = (
       return { args, length: i };
     }
 
-    if (chr === ',' && parens === 0) {
+    if (char === ',' && parens === 0) {
       args.push(arg);
       arg = '';
     } else {
-      arg += chr;
+      arg += char;
     }
   }
 
@@ -136,8 +125,31 @@ const preprocessComments = (src: string): string => {
 
 const tokenPaste = (str: string): string => str.replace(/\s+##\s+/g, '');
 
+type NodeEvaluator<NodeType> = (
+  node: NodeType,
+  visit: (node: PreprocessorAstNode) => any
+) => any;
+
+export type NodeEvaluators = {
+  [NodeType in PreprocessorAstNode['type']]: NodeEvaluator<
+    Extract<PreprocessorAstNode, { type: NodeType }>
+  >;
+};
+
+const evaluate = (ast: PreprocessorAstNode, evaluators: NodeEvaluators) => {
+  const visit = (node: PreprocessorAstNode) => {
+    const evaluator = evaluators[node.type];
+    if (!evaluator) {
+      throw new Error(`No evaluate() evaluator for ${node.type}`);
+    }
+    // @ts-ignore
+    return evaluator(node, visit);
+  };
+  return visit(ast);
+};
+
 export type Macro = {
-  args?: AstNode[];
+  args?: PreprocessorAstNode[];
   body: string;
 };
 
@@ -160,7 +172,8 @@ const expandFunctionMacro = (
 
   while ((startMatch = startRegex.exec(current))) {
     const result = scanFunctionArgs(
-      current.substr(startMatch.index + startMatch[0].length)
+      // current.substr(startMatch.index + startMatch[0].length)
+      current.substring(startMatch.index + startMatch[0].length)
     );
     if (result === null) {
       throw new Error(
@@ -168,7 +181,7 @@ const expandFunctionMacro = (
       );
     }
     const macroArgs = (macro.args || []).filter(
-      ({ literal }) => literal !== ','
+      (arg) => (arg as PreprocessorLiteralNode).literal !== ','
     );
     const { args, length: argLength } = result;
 
@@ -188,7 +201,10 @@ const expandFunctionMacro = (
       macroArgs.reduce(
         (replaced, macroArg, index) =>
           replaced.replace(
-            new RegExp(`\\b${macroArg.identifier}\\b`, 'g'),
+            new RegExp(
+              `\\b${(macroArg as PreprocessorIdentifierNode).identifier}\\b`,
+              'g'
+            ),
             args[index].trim()
           ),
         macro.body
@@ -255,10 +271,15 @@ const identity = (x: any): boolean => !!x;
 
 // Given an expression AST node, visit it to expand the macro macros to in the
 // right places
-const expandInExpressions = (macros: Macros, ...expressions: AstNode[]) => {
+const expandInExpressions = (
+  macros: Macros,
+  ...expressions: PreprocessorAstNode[]
+) => {
   expressions.filter(identity).forEach((expression) => {
+    // @ts-ignore
     visit(expression, {
       unary_defined: {
+        // @ts-ignore
         enter: (path) => {
           path.skip();
         },
@@ -272,7 +293,7 @@ const expandInExpressions = (macros: Macros, ...expressions: AstNode[]) => {
   });
 };
 
-const evaluateIfPart = (macros: Macros, ifPart: AstNode) => {
+const evaluateIfPart = (macros: Macros, ifPart: PreprocessorAstNode) => {
   if (ifPart.type === 'if') {
     return evaluteExpression(ifPart.expression, macros);
   } else if (ifPart.type === 'ifdef') {
@@ -283,7 +304,8 @@ const evaluateIfPart = (macros: Macros, ifPart: AstNode) => {
 };
 
 // TODO: Are all of these operators equivalent between javascript and GLSL?
-const evaluteExpression = (node: AstNode, macros: Macros) =>
+const evaluteExpression = (node: PreprocessorAstNode, macros: Macros) =>
+  // @ts-ignore
   evaluate(node, {
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
@@ -296,19 +318,19 @@ const evaluteExpression = (node: AstNode, macros: Macros) =>
         case '*': {
           return visit(left) * visit(right);
         }
-        // multiplicative
+        // division
         case '/': {
           return visit(left) / visit(right);
         }
-        // multiplicative
+        // modulo
         case '%': {
           return visit(left) % visit(right);
         }
-        // additive +
-        case '-': {
-          return visit(left) - visit(right);
+        // addition
+        case '+': {
+          return visit(left) + visit(right);
         }
-        // additive
+        // subtraction
         case '-': {
           return visit(left) - visit(right);
         }
@@ -320,27 +342,21 @@ const evaluteExpression = (node: AstNode, macros: Macros) =>
         case '>>': {
           return visit(left) >> visit(right);
         }
-        // relational
         case '<': {
           return visit(left) < visit(right);
         }
-        // relational
         case '>': {
           return visit(left) > visit(right);
         }
-        // relational
         case '<=': {
           return visit(left) <= visit(right);
         }
-        // relational
         case '>=': {
           return visit(left) >= visit(right);
         }
-        // equality
         case '==': {
           return visit(left) == visit(right);
         }
-        // equality
         case '!=': {
           return visit(left) != visit(right);
         }
@@ -356,11 +372,9 @@ const evaluteExpression = (node: AstNode, macros: Macros) =>
         case '|': {
           return visit(left) | visit(right);
         }
-        // logical and
         case '&&': {
           return visit(left) && visit(right);
         }
-        // inclusive or
         case '||': {
           return visit(left) || visit(right);
         }
@@ -394,12 +408,26 @@ const evaluteExpression = (node: AstNode, macros: Macros) =>
     },
   });
 
-const shouldPreserve = (preserve: NodePreservers = {}) => (path: Path) => {
+const shouldPreserve = (preserve: NodePreservers = {}) => (path: Path<any>) => {
   const test = preserve?.[path.node.type];
   return typeof test === 'function' ? test(path) : test;
 };
 
-type MacroExpression = { [macroName: string]: { body: string } };
+// HACK: The AST visitors are hard coded to the GLSL AST (not preprocessor AST)
+// types. I'm not clever enough to make the core AST type geneeric so that both
+// GLSL AST (in ast.ts) and the preprocessed AST can use the same
+// visitor/evaluator/path pattern. I took a stab at it but it become tricky to
+// track all the nested generics. Instead, I hack re-cast the visit function
+// here, which at least gives some minor type safety.
+// @ts-ignore
+const visitPreprocessedAst = visit as (
+  ast: PreprocessorAstNode | PreprocessorProgram,
+  visitors: {
+    [NodeType in PreprocessorAstNode['type']]?: NodeVisitor<
+      Extract<PreprocessorAstNode, { type: NodeType }>
+    >;
+  }
+) => void;
 
 /**
  * Perform the preprocessing logic, aka the "preprocessing" phase of the compiler.
@@ -419,7 +447,10 @@ export type PreprocessorOptions = {
   stopOnError?: boolean;
 };
 
-const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
+const preprocessAst = (
+  program: PreprocessorProgram,
+  options: PreprocessorOptions = {}
+) => {
   const macros: Macros = Object.entries(options.defines || {}).reduce(
     (defines, [name, body]) => ({ ...defines, [name]: { body } }),
     {}
@@ -429,8 +460,9 @@ const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
   const { preserve, ignoreMacro } = options;
   const preserveNode = shouldPreserve(preserve);
 
-  visit(ast, {
+  visitPreprocessedAst(program, {
     conditional: {
+      // @ts-ignore
       enter: (path) => {
         const { node } = path;
         // TODO: Determining if we need to handle edge case conditionals here
@@ -441,13 +473,20 @@ const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
         // Expand macros
         expandInExpressions(
           macros,
-          node.ifPart.expression,
-          ...node.elseIfParts.map((elif: AstNode) => elif.expression),
-          node.elsePart?.expression
+          // Expression might not exist, since ifPart can be #ifdef which
+          // doesn't have an expression key
+          (node.ifPart as PreprocessorIfNode).expression,
+          ...node.elseIfParts.map(
+            (elif: PreprocessorElseIfNode) => elif.expression
+          ),
+          node.elsePart?.body
         );
 
         if (evaluateIfPart(macros, node.ifPart)) {
-          path.replaceWith(node.ifPart.body);
+          // Yuck! So much type casting in this file
+          path.replaceWith(
+            (node as PreprocessorConditionalNode).ifPart.body as AnyAstNode
+          );
           // Keeping this commented out block in case I can find a way to
           // conditionally evaluate shaders
           // path.replaceWith({
@@ -459,15 +498,16 @@ const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
           // });
         } else {
           const elseBranchHit = node.elseIfParts.reduce(
-            (res: boolean, elif: AstNode) =>
+            (res: boolean, elif: PreprocessorElseIfNode) =>
               res ||
               (evaluteExpression(elif.expression, macros) &&
-                (path.replaceWith(elif.body), true)),
+                // path/visit hack to remove type error
+                (path.replaceWith(elif.body as AnyAstNode), true)),
             false
           );
           if (!elseBranchHit) {
             if (node.elsePart) {
-              path.replaceWith(node.elsePart.body);
+              path.replaceWith(node.elsePart.body as AnyAstNode);
             } else {
               path.remove();
             }
@@ -485,10 +525,7 @@ const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
         const {
           identifier: { identifier },
           body,
-          define,
-          lp,
           args,
-          rp,
         } = path.node;
 
         macros[identifier] = { args, body };
@@ -550,7 +587,7 @@ const preprocessAst = (ast: AstNode, options: PreprocessorOptions = {}) => {
   });
 
   // Even though it mutates, useful for passing around functions
-  return ast;
+  return program;
 };
 
 export { preprocessAst, preprocessComments };

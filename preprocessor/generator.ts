@@ -1,6 +1,36 @@
 import { makeGenerator, NodeGenerators } from '../core/ast';
+import { PreprocessorProgram } from './preprocessor';
+import { PreprocessorAstNode } from './preprocessor-node';
 
-const generators: NodeGenerators = {
+type NodeGenerator<NodeType> = (node: NodeType) => string;
+
+type NodePreprocessorGenerators = {
+  [NodeType in PreprocessorAstNode['type']]: NodeGenerator<
+    Extract<PreprocessorAstNode, { type: NodeType }>
+  >;
+} & { program?: NodeGenerator<PreprocessorProgram> };
+
+type Generator = (
+  ast:
+    | PreprocessorProgram
+    | PreprocessorAstNode
+    | PreprocessorAstNode[]
+    | string
+    | string[]
+    | undefined
+    | null
+) => string;
+
+/**
+ * Stringify an AST
+ */
+// const makeGenerator = (generators: NodeGenerators): Generator => {
+// @ts-ignore
+const makeGeneratorPreprocessor = makeGenerator as (
+  generators: NodePreprocessorGenerators
+) => Generator;
+
+const generators: NodePreprocessorGenerators = {
   program: (node) => generate(node.program) + generate(node.wsEnd),
   segment: (node) => generate(node.blocks),
   text: (node) => generate(node.text),
@@ -34,6 +64,8 @@ const generators: NodeGenerators = {
     generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
   ifndef: (node) =>
     generate(node.token) + generate(node.identifier) + generate(node.wsEnd),
+  else: (node) =>
+    generate(node.token) + generate(node.body) + generate(node.wsEnd),
   error: (node) =>
     generate(node.error) + generate(node.message) + generate(node.wsEnd),
 
@@ -58,7 +90,7 @@ const generators: NodeGenerators = {
   conditional: (node) =>
     generate(node.wsStart) +
     generate(node.ifPart) +
-    generate(node.body) +
+    // generate(node.body) +
     generate(node.elseIfParts) +
     generate(node.elsePart) +
     generate(node.endif) +
@@ -81,6 +113,6 @@ const generators: NodeGenerators = {
     generate(node.wsEnd),
 };
 
-const generate = makeGenerator(generators);
+const generate = makeGeneratorPreprocessor(generators);
 
 export default generate;

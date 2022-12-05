@@ -1,19 +1,6 @@
-export interface Program {
-  type: 'program';
-  program: AstNode[];
-  wsStart?: string;
-  wsEnd?: string;
-}
+import { AnyAstNode } from './node';
 
-export interface AstNode {
-  type: string;
-  wsStart?: string;
-  wsEnd?: string;
-  // TODO: This may be a bad idea
-  [key: string]: any;
-}
-
-const isNode = (node: AstNode) => !!node?.type;
+const isNode = (node: AnyAstNode) => !!node?.type;
 const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 
 /**
@@ -23,44 +10,36 @@ const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
  * visitor function. Can these be merged into the same strategy?
  */
 
-export type NodeEvaluators = {
-  [nodeType: string]: (node: AstNode, visit: (node: AstNode) => any) => any;
-};
+export interface Program {
+  type: 'program';
+  program: AnyAstNode[];
+  wsStart?: string;
+  wsEnd?: string;
+}
 
-const evaluate = (ast: AstNode, visitors: NodeEvaluators) => {
-  const visit = (node: AstNode) => {
-    const visitor = visitors[node.type];
-    if (!visitor) {
-      throw new Error(`No evaluate() visitor for ${node.type}`);
-    }
-    return visitors[node.type](node, visit);
-  };
-  return visit(ast);
-};
-
-export type Path = {
-  node: AstNode;
-  parent: AstNode | undefined;
-  parentPath: Path | undefined;
+export type Path<NodeType> = {
+  node: NodeType;
+  parent: AnyAstNode | undefined;
+  parentPath: Path<any> | undefined;
   key: string | undefined;
   index: number | undefined;
   skip: () => void;
   remove: () => void;
-  replaceWith: (replacer: AstNode) => void;
-  findParent: (test: (p: Path) => boolean) => Path | undefined;
+  replaceWith: (replacer: AnyAstNode) => void;
+  findParent: (test: (p: Path<any>) => boolean) => Path<any> | undefined;
 
   skipped?: boolean;
   removed?: boolean;
   replaced?: any;
 };
 
-const makePath = (
-  node: AstNode,
-  parent: AstNode | undefined,
-  parentPath: Path | undefined,
+const makePath = <NodeType>(
+  node: NodeType,
+  parent: AnyAstNode | undefined,
+  parentPath: Path<any> | undefined,
   key: string | undefined,
   index: number | undefined
-): Path => ({
+): Path<NodeType> => ({
   node,
   parent,
   parentPath,
@@ -84,52 +63,65 @@ const makePath = (
   },
 });
 
+export type NodeVisitor<NodeType> = {
+  enter?: (p: Path<NodeType>) => void;
+  exit?: (p: Path<NodeType>) => void;
+};
+
+// This builds a type of all AST types to a visitor type. Aka it builds
+//   {
+//     function_call: NodeVisitor<FunctionCall>,
+//     ...
+//   }
+// AnyAstNode['type'] is the union of all the type properties of all AST nodes.
+// Extract pulls out the type from the AnyAstNode union where the "type"
+// property matches the NodeType (like "function_call"). Pretty sweet!
 export type NodeVisitors = {
-  [nodeType: string]: {
-    enter?: (p: Path) => void;
-    exit?: (p: Path) => void;
-  };
+  [NodeType in AnyAstNode['type']]?: NodeVisitor<
+    Extract<AnyAstNode, { type: NodeType }>
+  >;
 };
 
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
-const visit = (ast: AstNode, visitors: NodeVisitors) => {
+const visit = (ast: AnyAstNode, visitors: NodeVisitors) => {
   const visitNode = (
-    node: AstNode,
-    parent?: AstNode,
-    parentPath?: Path,
+    node: AnyAstNode,
+    parent?: AnyAstNode,
+    parentPath?: Path<any>,
     key?: string,
     index?: number
   ) => {
     const visitor = visitors[node.type];
     const path = makePath(node, parent, parentPath, key, index);
+    const parentNode = parent as any;
 
     if (visitor?.enter) {
-      visitor.enter(path);
+      visitor.enter(path as any);
       if (path.removed) {
         if (!key || !parent) {
           throw new Error(
-            `Asked to remove ${node.id} but no parent key was present in ${parent?.id}`
+            `Asked to remove ${node} but no parent key was present in ${parent}`
           );
         }
         if (typeof index === 'number') {
-          parent[key].splice(index, 1);
+          parentNode[key].splice(index, 1);
         } else {
-          parent[key] = null;
+          parentNode[key] = null;
         }
         return path;
       }
       if (path.replaced) {
         if (!key || !parent) {
           throw new Error(
-            `Asked to remove ${node.id} but no parent key was present in ${parent?.id}`
+            `Asked to remove ${node} but no parent key was present in ${parent}`
           );
         }
         if (typeof index === 'number') {
-          parent[key].splice(index, 1, path.replaced);
+          parentNode[key].splice(index, 1, path.replaced);
         } else {
-          parent[key] = path.replaced;
+          parentNode[key] = path.replaced;
         }
       }
       if (path.skipped) {
@@ -138,7 +130,7 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
     }
 
     Object.entries(node)
-      .filter(([nodeKey, nodeValue]) => isTraversable(nodeValue))
+      .filter(([_, nodeValue]) => isTraversable(nodeValue))
       .forEach(([nodeKey, nodeValue]) => {
         if (Array.isArray(nodeValue)) {
           for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
@@ -153,19 +145,29 @@ const visit = (ast: AstNode, visitors: NodeVisitors) => {
         }
       });
 
-    visitor?.exit?.(path);
-    // visitor?.exit?.(node, parent, key, index);
+    visitor?.exit?.(path as any);
   };
 
-  return visitNode(ast);
+  visitNode(ast);
 };
+
+type NodeGenerator<NodeType> = (node: NodeType) => string;
 
 export type NodeGenerators = {
-  [nodeType: string]: (n: AstNode) => string;
-};
+  [NodeType in AnyAstNode['type']]: NodeGenerator<
+    Extract<AnyAstNode, { type: NodeType }>
+  >;
+} & { program?: NodeGenerator<Program> };
 
 export type Generator = (
-  ast: Program | AstNode | AstNode[] | string | undefined | null
+  ast:
+    | Program
+    | AnyAstNode
+    | AnyAstNode[]
+    | string
+    | string[]
+    | undefined
+    | null
 ) => string;
 
 /**
@@ -173,7 +175,14 @@ export type Generator = (
  */
 const makeGenerator = (generators: NodeGenerators): Generator => {
   const gen = (
-    ast: Program | AstNode | AstNode[] | string | undefined | null
+    ast:
+      | Program
+      | AnyAstNode
+      | AnyAstNode[]
+      | string
+      | string[]
+      | undefined
+      | null
   ): string =>
     typeof ast === 'string'
       ? ast
@@ -182,15 +191,18 @@ const makeGenerator = (generators: NodeGenerators): Generator => {
       : Array.isArray(ast)
       ? ast.map(gen).join('')
       : ast.type in generators
-      ? generators[ast.type](ast)
+      ? (generators[ast.type] as Generator)(ast)
       : `NO GENERATOR FOR ${ast.type}` + ast;
   return gen;
 };
 
-export type EveryOtherGenerator = (nodes: AstNode[], eo: AstNode[]) => string;
+export type EveryOtherGenerator = (
+  nodes: AnyAstNode[],
+  eo: AnyAstNode[]
+) => string;
 
 const makeEveryOtherGenerator = (generate: Generator): EveryOtherGenerator => {
-  const everyOther = (nodes: AstNode[], eo: AstNode[]) =>
+  const everyOther = (nodes: AnyAstNode[], eo: AnyAstNode[]) =>
     nodes.reduce(
       (output, node, index) =>
         output +
@@ -201,4 +213,4 @@ const makeEveryOtherGenerator = (generate: Generator): EveryOtherGenerator => {
   return everyOther;
 };
 
-export { evaluate, visit, makeGenerator, makeEveryOtherGenerator };
+export { visit, makeGenerator, makeEveryOtherGenerator };

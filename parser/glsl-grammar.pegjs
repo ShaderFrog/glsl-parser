@@ -86,6 +86,18 @@
     ...attrs
   });
 
+  // A "partial" is data that's computed as part of a production, but is then
+  // merged into some higher rule, and doesn't itself become a node.
+  const partial = (typeNameOrAttrs, attrs) => ({
+    partial:
+      attrs === undefined
+        ? typeNameOrAttrs
+        : {
+            type: typeNameOrAttrs,
+            ...attrs,
+          },
+  });
+
   // Filter out "empty" elements from an array
   const xnil = (...args) => args.flat().filter(e =>
     e !== undefined && e !== null && e !== '' && e.length !== 0
@@ -103,42 +115,37 @@
   // Create a left associative tree of nodes
 	const leftAssociate = (...nodes) =>
     nodes.flat().reduce((current, [operator, expr]) => ({
-      type: "binary",
-      operator: operator,
+      type: 'binary',
+      operator,
       left: current,
       right: expr
     }));
 
-  // No longer needed?
-  // const without = (obj, ...keys) => Object.entries(obj).reduce((acc, [key, value]) => ({
-  //   ...acc,
-  //   ...(!keys.includes(key) && { [key]: value })
-  // }), {});
-
   // Group the statements in a switch statement into cases / default arrays
   const groupCases = (statements) => statements.reduce((cases, stmt) => {
-    if(stmt.type === 'case_label') {
+    const partial = stmt.partial || {};
+    if(partial.type === 'case_label') {
       return [
         ...cases,
         node(
           'switch_case',
           {
             statements: [],
-            case: stmt.case,
-            test: stmt.test,
-            colon: stmt.colon,
+            case: partial.case,
+            test: partial.test,
+            colon: partial.colon,
           }
         )
       ];
-    } else if(stmt.type === 'default_label') {
+    } else if(partial.type === 'default_label') {
       return [
         ...cases,
         node(
           'default_case',
           {
             statements: [],
-            default: stmt.default,
-            colon: stmt.colon,
+            default: partial.default,
+            colon: partial.colon,
           }
         )
       ];
@@ -352,8 +359,8 @@
 
 // Extra whitespace here at start is to help with screenshots by adding
 // extra linebreaks
-start = ws:_ program:translation_unit {
-  return { type: 'program', ws, program, scopes };
+start = wsStart:_ program:translation_unit {
+  return { type: 'program', wsStart, program, scopes };
 }
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
@@ -680,10 +687,10 @@ postfix_expression
       / primary_expression postfix_expression_suffix*
     ) {
       // Postfix becomes a left associative tree
-      return body.flat().reduceRight((postfix, expr) =>
+      return body.flat().reduceRight((postfix, expression) =>
           postfix ?
-            node('postfix', { expr, postfix }) :
-            expr
+            node('postfix', { expression, postfix }) :
+            expression
         );
     }
 postfix_expression_suffix
@@ -694,8 +701,8 @@ postfix_expression_suffix
 
 // Note these are reused in function_identifier for the part of
 // postfix_expression that is inlined
-integer_index = lb:LEFT_BRACKET expr:integer_expression rb:RIGHT_BRACKET {
-  return node('quantifier', { lb, expr, rb });
+integer_index = lb:LEFT_BRACKET expression:integer_expression rb:RIGHT_BRACKET {
+  return node('quantifier', { lb, expression, rb });
 }
 field_selection = dot:DOT selection:FIELD_SELECTION {
   return node('field_selection', { dot, selection });
@@ -707,7 +714,7 @@ integer_expression
   = expression
 
 function_call
-  = identifier:function_identifier
+  = function_identifier:function_identifier
     // The grammar has left_paren here. To help de-left-recurse
     // function_identifier, it's moved into the function identifier above.
     args:function_arguments?
@@ -716,9 +723,11 @@ function_call
       // function_call name is a "type_specifier" which can be "float[3](...)"
       // or a TYPE_NAME. If it's a TYPE_NAME, it will have an identifier, so
       // add it to the referenced scope. If it's a constructor (the "float"
-      // case) it won't, so don't add a reference ot it
+      // case) it won't, so don't add a reference to it
+      
+      const identifier = function_identifier.partial;
       const fnName = (identifier.identifier.type === 'postfix') ?
-        identifier.identifier.expr.identifier.specifier.identifier :
+        identifier.identifier.expression.identifier.specifier.identifier :
         identifier.identifier.specifier.identifier;
       
       const n = node('function_call', { ...identifier, args, rp });
@@ -759,21 +768,21 @@ function_identifier
   = identifier:(
     // Handle a().length()
     head:chained_function_call suffix:function_suffix lp:LEFT_PAREN {
-      return { head: [head, suffix], lp };
+      return partial({ head: [head, suffix], lp });
     }
     // Handle texture().rgb
     / head:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
-      return { head: [head, suffix], lp };
+      return partial({ head: [head, suffix], lp });
     }
   ) {
-    return {
-      lp: identifier.lp,
-      identifier: [identifier.head].flat().reduceRight((postfix, expr) =>
+    return partial({
+      lp: identifier.partial.lp,
+      identifier: [identifier.partial.head].flat().reduceRight((postfix, expression) =>
         postfix ?
-          node('postfix', { expr, postfix }) :
-          expr
+          node('postfix', { expression, postfix }) :
+          expression
       )
-    };
+    });
     }
 
 function_suffix
@@ -901,7 +910,7 @@ logical_or_expression
     }
 
 ternary_expression
-  = expr:logical_or_expression
+  = expression:logical_or_expression
     suffix:(
       question:QUESTION
       left:expression
@@ -913,8 +922,8 @@ ternary_expression
       // ? and : operators are right associative, which happens automatically
       // in pegjs grammar
       return suffix ?
-        node('ternary', { expr, ...suffix }) :
-        expr
+        node('ternary', { expression, ...suffix }) :
+        expression
     }
 
 assignment_expression
@@ -1163,16 +1172,16 @@ layout_qualifier
     qualifiers:(
       head:layout_qualifier_id
       tail:(COMMA layout_qualifier_id)* {
-        return {
+        return partial({
           qualifiers: [head, ...tail.map(t => t[1])],
           commas: tail.map(t => t[0])
-        };
+        });
       }
     )
     rp:RIGHT_PAREN {
       return node(
         'layout_qualifier',
-        { layout, lp, ...qualifiers, rp }
+        { layout, lp, ...(qualifiers.partial), rp }
       );
     }
 
@@ -1209,18 +1218,18 @@ storage_qualifier "storage qualifier"
       head:TYPE_NAME
       tail:(COMMA TYPE_NAME)*
       rp:RIGHT_PAREN {
-        return {
+        return partial({
           lp,
           type_names: [head, ...tail.map(t => t[1])],
           commas: tail.map(t => t[0]),
           rp,
-        };
+        });
       })? {
         return node(
           'subroutine_qualifier',
           {
             subroutine,
-            ...type_names,
+            ...(type_names?.partial),
           }
         );
       }
@@ -1402,7 +1411,7 @@ if_statement
           lp,
           condition,
           rp,
-          ...elseBranch && { 'else': elseBranch.flat() },
+          ...(elseBranch && { 'else': elseBranch.flat() }),
         });
   }
 
@@ -1431,10 +1440,10 @@ switch_statement
 
 case_label
   = caseSymbol:CASE test:expression colon:COLON {
-    return node('case_label', { 'case': caseSymbol, test, colon });
+    return partial('case_label', { 'case': caseSymbol, test, colon });
   }
   / defaultSymbol:DEFAULT colon:COLON {
-    return node('default_label', { default: defaultSymbol, colon });
+    return partial('default_label', { default: defaultSymbol, colon });
   }
 
 iteration_statement "iteration statement"
@@ -1506,8 +1515,7 @@ iteration_statement "iteration statement"
           condition,
           conditionSemi,
           operation,
-          rp,
-          body
+          rp
         }
       );
     }
@@ -1518,11 +1526,11 @@ condition
   // expression makes sense
   = specified_type:fully_specified_type
     identifier:IDENTIFIER
-    op:EQUAL
+    operator:EQUAL
     initializer:initializer {
       const n = node(
         'condition_expression',
-        { specified_type, identifier, op, initializer }
+        { specified_type, identifier, operator, initializer }
       );
       createBindings(scope, [identifier.identifier, n]);
       return n;

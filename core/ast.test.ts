@@ -1,40 +1,52 @@
-import { visit, AstNode } from './ast';
+import { visit } from './ast';
+import { AnyAstNode, BinaryNode } from './node';
 
 test('visit()', () => {
-  const tree = {
-    type: 'root',
+  const tree: BinaryNode = {
+    type: 'binary',
+    operator: '-',
     left: {
-      type: 'ident',
-      identifier: 'a',
+      type: 'binary',
+      operator: '+',
+      left: {
+        type: 'identifier',
+        identifier: 'foo',
+      },
+      right: {
+        type: 'identifier',
+        identifier: 'bar',
+      },
     },
     right: {
       type: 'group',
       expression: {
-        type: 'ident',
-        identifier: 'b',
+        type: 'identifier',
+        identifier: 'baz',
       },
     },
   };
 
-  let found1: AstNode | undefined;
-  let found2: AstNode | undefined;
+  let grandparent: AnyAstNode | undefined;
+  let parent: AnyAstNode | undefined;
   let unfound;
 
   visit(tree, {
-    ident: {
+    identifier: {
       enter: (path) => {
         const { node } = path;
-        if (node.identifier === 'b') {
-          found1 = path.findParent(({ node }) => node.type === 'root')?.node;
-          found2 = path.findParent(({ node }) => node.type === 'group')?.node;
+        if (node.identifier === 'foo') {
+          grandparent = path.findParent(({ node }) => node.operator === '-')
+            ?.node;
+          parent = path.findParent(({ node }) => node.operator === '+')?.node;
+          unfound = path.findParent(({ node }) => node.operator === '*')?.node;
         }
       },
     },
   });
 
-  expect(found1).not.toBeNull();
-  expect(found1?.type).toBe('root');
-  expect(found2).not.toBeNull();
-  expect(found2?.type).toBe('group');
+  expect(grandparent).not.toBeNull();
+  expect(grandparent?.type).toBe('binary');
+  expect(parent).not.toBeNull();
+  expect(parent?.type).toBe('binary');
   expect(unfound).not.toBeDefined();
 });

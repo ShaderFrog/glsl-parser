@@ -26,7 +26,7 @@
   // Create a left associative tree of nodes
 	const leftAssociate = (...nodes) =>
     nodes.flat().reduce((current, [operator, expr]) => ({
-      type: "binary",
+      type: 'binary',
       operator: operator,
       left: current,
       right: expr

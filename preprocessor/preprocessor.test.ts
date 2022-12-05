@@ -2,16 +2,19 @@ import fs from 'fs';
 import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
-import { preprocessComments, preprocessAst } from './preprocessor';
+import {
+  preprocessComments,
+  preprocessAst,
+  PreprocessorProgram,
+} from './preprocessor';
 import generate from './generator';
-import { Program } from '../core/ast';
 
 const fileContents = (filePath: string): string =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
 
 const grammar = fileContents('preprocessor-grammar.pegjs');
 const parser = peggy.generate(grammar, { cache: true });
-const parse = (src: string) => parser.parse(src) as Program;
+const parse = (src: string) => parser.parse(src) as PreprocessorProgram;
 
 const debugProgram = (program: string): void => {
   debugAst(parse(program));
@@ -66,6 +69,20 @@ X`;
   const ast = parse(program);
   preprocessAst(ast);
   expect(generate(ast)).toBe(`Z`);
+});
+
+test('binary evaluation', () => {
+  const program = `
+#if 1 + 1 > 0
+true
+#endif
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+true
+`);
 });
 
 test('if expression', () => {
