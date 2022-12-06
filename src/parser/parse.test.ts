@@ -6,7 +6,7 @@ import generate from './generator';
 import { AstNode, FunctionNode } from '../ast';
 import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
-import { preprocessAst } from '../preprocessor';
+import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor';
 
 const fileContents = (filePath: string) =>
