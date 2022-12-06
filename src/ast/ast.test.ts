@@ -1,4 +1,4 @@
-import { visit } from './ast';
+import { visit } from '.';
 import { AstNode, BinaryNode } from './node';
 
 test('visit()', () => {

@@ -1,4 +1,4 @@
-import { makeGenerator, NodeGenerators } from '../core/ast';
+import { makeGenerator, NodeGenerators } from '../ast';
 import { PreprocessorProgram } from './preprocessor';
 import { PreprocessorAstNode } from './preprocessor-node';
 

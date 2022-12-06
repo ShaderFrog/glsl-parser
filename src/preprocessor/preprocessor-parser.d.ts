@@ -1,4 +1,4 @@
-import type { AstNode, Program } from '../core/ast';
+import type { AstNode, Program } from '../ast';
 
 export type ParserOptions = {};
 

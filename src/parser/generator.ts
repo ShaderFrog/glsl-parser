@@ -1,8 +1,4 @@
-import {
-  makeGenerator,
-  makeEveryOtherGenerator,
-  NodeGenerators,
-} from '../core/ast';
+import { makeGenerator, makeEveryOtherGenerator, NodeGenerators } from '../ast';
 
 const generators: NodeGenerators = {
   program: (node) => generate(node.wsStart) + generate(node.program),

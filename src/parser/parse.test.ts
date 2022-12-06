@@ -3,11 +3,11 @@ import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
-import { AstNode, FunctionNode } from '../core/node';
+import { AstNode, FunctionNode } from '../ast';
 import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
-import { preprocessAst } from '../preprocessor/preprocessor';
-import generatePreprocess from '../preprocessor/generator';
+import { preprocessAst } from '../preprocessor';
+import generatePreprocess from '../preprocessor';
 
 const fileContents = (filePath: string) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
@@ -21,7 +21,7 @@ const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 const preprocess = (program: string) => {
   const ast = preprocessParser.parse(program);
   preprocessAst(ast);
-  return generatePreprocess(ast);
+  return generatePreprocess(ast, {});
 };
 
 const debugEntry = (bindings: ScopeIndex) => {
@@ -578,7 +578,7 @@ vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
   renameBindings(ast.scopes[0], (name) => `${name}_x`);
   renameFunctions(ast.scopes[0], (name) => `${name}_x`);
 
-  // console.log('scopes:', debugScopes(ast.scopes));
+  console.log('scopes:', debugScopes(ast.scopes));
   // console.log(generate(ast));
 });
 

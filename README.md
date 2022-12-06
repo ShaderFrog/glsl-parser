@@ -258,3 +258,10 @@ and `#extension` have no effect, and can be fully preserved as part of parsing.
 - Function calls in the grammar are TYPE_NAME LEFT_PAREN, in my grammar they're
   IDENTIFIER LEFT_PAREN, because TYPE_NAME is only used for structs, and
   function names are stored in their own separate place in the scope.
+
+# Local Development
+
+To run the tests (and do other things), you must first build the parser files
+using Peggy. Run `./build.sh` to generate these files.
+
+To work on the tests, run `npx jest --watch`.

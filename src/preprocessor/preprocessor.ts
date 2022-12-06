@@ -1,5 +1,4 @@
-import { visit, Path, NodeVisitor, Program } from '../core/ast';
-import { AstNode } from '../core/node';
+import { visit, Path, NodeVisitor, AstNode } from '../ast';
 import {
   PreprocessorAstNode,
   PreprocessorConditionalNode,

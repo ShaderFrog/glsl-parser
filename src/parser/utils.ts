@@ -1,4 +1,4 @@
-import { AstNode } from '../core/node';
+import { AstNode } from '../ast';
 import type { Scope } from './parser';
 
 export const renameBindings = (
@@ -11,7 +11,10 @@ export const renameBindings = (
         node.identifier.identifier = mangle(node.identifier.identifier, node);
       } else if (node.type === 'identifier') {
         node.identifier = mangle(node.identifier, node);
-      } else if (node.type === 'parameter_declaration') {
+      } else if (
+        node.type === 'parameter_declaration' &&
+        'identifier' in node.declaration
+      ) {
         node.declaration.identifier.identifier = mangle(
           node.declaration.identifier.identifier,
           node
@@ -42,7 +45,10 @@ export const renameTypes = (
         node.typeName.identifier = mangle(node.typeName.identifier, node);
       } else if (node.type === 'identifier') {
         node.identifier = mangle(node.identifier, node);
-      } else if (node.type === 'function_call') {
+      } else if (
+        node.type === 'function_call' &&
+        'specifier' in node.identifier
+      ) {
         node.identifier.specifier.identifier = mangle(
           node.identifier.specifier.identifier,
           node
@@ -66,18 +72,22 @@ export const renameFunctions = (
           node['prototype'].header.name.identifier,
           node
         );
-      } else if (node.type === 'function_call') {
-        if (node.identifier.type === 'postfix') {
-          node.identifier.expr.identifier.specifier.identifier = mangle(
-            node.identifier.expr.identifier.specifier.identifier,
-            node
-          );
-        } else {
-          node.identifier.specifier.identifier = mangle(
-            node.identifier.specifier.identifier,
-            node
-          );
-        }
+      } else if (
+        node.type === 'function_call' &&
+        node.identifier.type === 'postfix'
+      ) {
+        node.identifier.expression.identifier.specifier.identifier = mangle(
+          node.identifier.expression.identifier.specifier.identifier,
+          node
+        );
+      } else if (
+        node.type === 'function_call' &&
+        'specifier' in node.identifier
+      ) {
+        node.identifier.specifier.identifier = mangle(
+          node.identifier.specifier.identifier,
+          node
+        );
         // Structs type names also become constructors. However, their renaming is
         // handled by bindings
       } else if (node.type !== 'struct') {

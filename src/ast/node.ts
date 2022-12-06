@@ -177,7 +177,7 @@ export interface FunctionNode {
 
 export interface FunctionCallNode {
   type: 'function_call';
-  identifier: IdentifierNode;
+  identifier: AstNode;
   lp: LiteralNode;
   args: any[];
   rp: LiteralNode;
@@ -320,7 +320,7 @@ export interface StructNode {
   declarations: any[];
   rb: LiteralNode;
   struct: KeywordNode;
-  typeName: LiteralNode;
+  typeName: IdentifierNode;
 }
 
 export interface StructDeclarationNode {
