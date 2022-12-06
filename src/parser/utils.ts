@@ -1,5 +1,4 @@
-import { AstNode } from '../ast';
-import type { Scope } from './parser';
+import { AstNode, Scope } from '../ast';
 
 export const renameBindings = (
   scope: Scope,

@@ -1,21 +1,5 @@
 import type { AstNode, Program } from '../ast';
 
-export type ScopeIndex = {
-  [name: string]: { references: AstNode[] };
-};
-
-export type Scope = {
-  name: string;
-  parent?: Scope;
-  bindings: ScopeIndex;
-  types: ScopeIndex;
-  functions: ScopeIndex;
-};
-
-export interface ParserProgram extends Program {
-  scopes: Scope[];
-}
-
 export type ParserOptions = {
   quiet?: boolean;
 };
@@ -26,7 +10,7 @@ export type ParserOptions = {
 export { renameBindings, renameFunctions } from './utils';
 
 export type Parse = {
-  (input: string, options?: ParserOptions): ParserProgram;
+  (input: string, options?: ParserOptions): Program;
 };
 
 // Convenience export to cast the parser in tests

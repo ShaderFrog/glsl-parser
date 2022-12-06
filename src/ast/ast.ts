@@ -1,5 +1,17 @@
 import { AstNode } from './node';
 
+export type ScopeIndex = {
+  [name: string]: { references: AstNode[] };
+};
+
+export type Scope = {
+  name: string;
+  parent?: Scope;
+  bindings: ScopeIndex;
+  types: ScopeIndex;
+  functions: ScopeIndex;
+};
+
 const isNode = (node: AstNode) => !!node?.type;
 const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 
@@ -13,6 +25,7 @@ const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 export interface Program {
   type: 'program';
   program: AstNode[];
+  scopes: Scope[];
   wsStart?: string;
   wsEnd?: string;
 }
