@@ -8,6 +8,8 @@
   "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build",
+    "prepublishOnly": "./prepublish.sh",
+    "postpublish": "npm run build",
     "build": "./build.sh",
     "watch-test": "jest --watch",
     "test": "jest"
