@@ -93,7 +93,7 @@ export type NodeVisitors = {
   [NodeType in AstNode['type']]?: NodeVisitor<
     Extract<AstNode, { type: NodeType }>
   >;
-};
+} & { program?: NodeVisitor<Program> };
 
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
