@@ -236,7 +236,7 @@ export interface InterfaceDeclaratorNode {
   lp: LiteralNode;
   declarations: any;
   rp: LiteralNode;
-  identifier: QuantifiedIdentifierNode;
+  identifier?: QuantifiedIdentifierNode;
 }
 
 export interface LayoutQualifierIdNode {
