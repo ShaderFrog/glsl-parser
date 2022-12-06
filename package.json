@@ -13,7 +13,11 @@
     "test": "jest"
   },
   "files": [
-    "dist"
+    "ast",
+    "index.d.ts",
+    "index.js",
+    "parser",
+    "preprocessor"
   ],
   "repository": {
     "type": "git",
