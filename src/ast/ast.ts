@@ -32,7 +32,7 @@ export interface Program {
 
 export type Path<NodeType> = {
   node: NodeType;
-  parent: AstNode | undefined;
+  parent: Program | AstNode | undefined;
   parentPath: Path<any> | undefined;
   key: string | undefined;
   index: number | undefined;
@@ -48,7 +48,7 @@ export type Path<NodeType> = {
 
 const makePath = <NodeType>(
   node: NodeType,
-  parent: AstNode | undefined,
+  parent: AstNode | Program | undefined,
   parentPath: Path<any> | undefined,
   key: string | undefined,
   index: number | undefined
@@ -98,10 +98,10 @@ export type NodeVisitors = {
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
-const visit = (ast: AstNode, visitors: NodeVisitors) => {
+const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
   const visitNode = (
-    node: AstNode,
-    parent?: AstNode,
+    node: AstNode | Program,
+    parent?: AstNode | Program,
     parentPath?: Path<any>,
     key?: string,
     index?: number
