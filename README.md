@@ -25,7 +25,7 @@ npm install --save @shaderfrog/glsl-parser
 ## Parsing
 
 ```javascript
-const { parser, generate } = require('@shaderfrog/glsl-parser');
+import { parser, generate } from '@shaderfrog/glsl-parser';
 
 // To parse a GLSL program's source code into an AST:
 const ast = parser.parse('float a = 1.0;');
@@ -43,7 +43,7 @@ types of data. The Shaderfrog GLSL preprocessor can't be used as a C/C++
 preprocessor without modification.
 
 ```javascript
-const preprocess = require('@shaderfrog/glsl-parser/preprocessor');
+import preprocess from '@shaderfrog/glsl-parser/preprocessor';
 
 // Preprocess a program
 console.log(preprocess(`
@@ -76,12 +76,12 @@ If you want more  control over preprocessing, the `preprocess` function above is
 a convenience method for approximately the following:
 
 ```javascript
-const {
+import {
   preprocessAst,
   preprocessComments,
   generate,
   parser,
-} = require('@shaderfrog/glsl-parser/preprocessor');
+} from '@shaderfrog/glsl-parser/preprocessor';
 
 // Remove comments before preprocessing
 const commentsRemoved = preprocessComments(`float a = 1.0;`)
@@ -151,7 +151,7 @@ node itself. The path object:
 Visit an AST by calling the visit method with an AST and visitors:
 
 ```typescript
-import { visit } from '@shaderfrog/glsl-parser/core/ast.js';
+import { visit } from '@shaderfrog/glsl-parser/ast';
 
 visit(ast, visitors);
 ```
@@ -176,7 +176,7 @@ console.log('There are ', numberOfFunctionCalls, 'function calls');
 Rename all the variables in a program:
 
 ```typescript
-const { renameBindings, renameFunctions, renameTypes } = require('@shaderfrog/glsl-parser');
+import { renameBindings, renameFunctions, renameTypes } from '@shaderfrog/glsl-parser/utils';
 
 // ... parse an ast...
 
