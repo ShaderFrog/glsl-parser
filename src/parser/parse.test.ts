@@ -7,7 +7,7 @@ import { AstNode, FunctionNode } from '../ast';
 import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
-import generatePreprocess from '../preprocessor';
+import generatePreprocess from '../preprocessor/generator';
 
 const fileContents = (filePath: string) =>
   fs.readFileSync(path.join(__dirname, filePath)).toString();
@@ -21,7 +21,7 @@ const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 const preprocess = (program: string) => {
   const ast = preprocessParser.parse(program);
   preprocessAst(ast);
-  return generatePreprocess(ast, {});
+  return generatePreprocess(ast);
 };
 
 const debugEntry = (bindings: ScopeIndex) => {
@@ -41,7 +41,7 @@ const debugScopes = (scopes: Scope[]) =>
   }));
 
 const grammar = fileContents('./glsl-grammar.pegjs');
-const testFile = fileContents('../glsltest.glsl');
+const testFile = fileContents('./glsltest.glsl');
 
 const parser = peggy.generate(grammar, { cache: true }) as Parser;
 
@@ -532,8 +532,9 @@ float overloaded(float x) {
   expect(ast.scopes[0].functions.overloaded.references).toHaveLength(2);
 });
 
-test('rename binding test (does nothing fixme)', () => {
-  const ast = parser.parse(`
+test('rename bindings and functions', () => {
+  const ast = parser.parse(
+    `
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
 struct {
@@ -549,8 +550,10 @@ structType z;
 float shadowed;
 float reused;
 float unused;
+void x() {}
 vec3 fnName(float arg1, vec3 arg2) {
   float shadowed = arg1;
+  float y = x().length();
   structArr[0].x++;
 
   if(true) {
@@ -568,18 +571,60 @@ vec3 fnName(float arg1, vec3 arg2) {
   }
 }
 vec4 LinearToLinear( in vec4 value ) {
-	return value;
+  return value;
 }
 vec4 mapTexelToLinear( vec4 value ) { return LinearToLinear( value ); }
 vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
+`,
+    { quiet: true }
+  );
+
+  renameBindings(ast.scopes[0], (name) => `${name}_VARIABLE`);
+  renameFunctions(ast.scopes[0], (name) => `${name}_FUNCTION`);
+
+  // console.log('scopes:', debugScopes(ast.scopes));
+  expect(generate(ast)).toBe(`
+float a_VARIABLE, b_VARIABLE = 1.0, c_VARIABLE = a_VARIABLE;
+mat2x2 myMat_VARIABLE = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
+struct {
+  float s;
+  float t;
+} structArr_VARIABLE[];
+struct structType {
+  float s;
+  float t;
+};
+structType z_VARIABLE;
+
+float shadowed_VARIABLE;
+float reused_VARIABLE;
+float unused_VARIABLE;
+void x_FUNCTION() {}
+vec3 fnName_FUNCTION(float arg1, vec3 arg2) {
+  float shadowed = arg1;
+  float y = x_FUNCTION().length();
+  structArr_VARIABLE[0].x++;
+
+  if(true) {
+    float x = shadowed + 1 + reused_VARIABLE;
+  }
+
+  {
+    float compound;
+    compound = shadowed + reused_VARIABLE;
+  }
+
+  {
+    float compound;
+    compound = shadowed + reused_VARIABLE + compound;
+  }
+}
+vec4 LinearToLinear_FUNCTION( in vec4 value ) {
+  return value;
+}
+vec4 mapTexelToLinear_FUNCTION( vec4 value ) { return LinearToLinear_FUNCTION( value ); }
+vec4 linearToOutputTexel_FUNCTION( vec4 value ) { return LinearToLinear_FUNCTION( value ); }
 `);
-
-  // ast.scopes.forEach((s, i) => renameBindings(s, i));
-  renameBindings(ast.scopes[0], (name) => `${name}_x`);
-  renameFunctions(ast.scopes[0], (name) => `${name}_x`);
-
-  console.log('scopes:', debugScopes(ast.scopes));
-  // console.log(generate(ast));
 });
 
 test('detecting struct scope and usage', () => {
@@ -596,8 +641,8 @@ void main() {
 }
 `);
 
-  renameBindings(ast.scopes[0], (name) => `${name}_x`);
-  renameTypes(ast.scopes[0], (name) => `${name}_y`);
+  renameBindings(ast.scopes[0], (name) => `${name}_y`);
+  renameTypes(ast.scopes[0], (name) => `${name}_x`);
 
   expect(Object.keys(ast.scopes[0].functions)).toEqual(['main']);
   expect(Object.keys(ast.scopes[0].bindings)).toEqual(['reflectedLight']);
