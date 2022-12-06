@@ -1,5 +1,5 @@
 import { visit, Path, NodeVisitor, Program } from '../core/ast';
-import { AnyAstNode, AstNode } from '../core/node';
+import { AstNode } from '../core/node';
 import {
   PreprocessorAstNode,
   PreprocessorConditionalNode,
@@ -485,7 +485,7 @@ const preprocessAst = (
         if (evaluateIfPart(macros, node.ifPart)) {
           // Yuck! So much type casting in this file
           path.replaceWith(
-            (node as PreprocessorConditionalNode).ifPart.body as AnyAstNode
+            (node as PreprocessorConditionalNode).ifPart.body as AstNode
           );
           // Keeping this commented out block in case I can find a way to
           // conditionally evaluate shaders
@@ -502,12 +502,12 @@ const preprocessAst = (
               res ||
               (evaluteExpression(elif.expression, macros) &&
                 // path/visit hack to remove type error
-                (path.replaceWith(elif.body as AnyAstNode), true)),
+                (path.replaceWith(elif.body as AstNode), true)),
             false
           );
           if (!elseBranchHit) {
             if (node.elsePart) {
-              path.replaceWith(node.elsePart.body as AnyAstNode);
+              path.replaceWith(node.elsePart.body as AstNode);
             } else {
               path.remove();
             }

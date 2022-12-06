@@ -1,5 +1,5 @@
 import { visit } from './ast';
-import { AnyAstNode, BinaryNode } from './node';
+import { AstNode, BinaryNode } from './node';
 
 test('visit()', () => {
   const tree: BinaryNode = {
@@ -26,8 +26,8 @@ test('visit()', () => {
     },
   };
 
-  let grandparent: AnyAstNode | undefined;
-  let parent: AnyAstNode | undefined;
+  let grandparent: AstNode | undefined;
+  let parent: AstNode | undefined;
   let unfound;
 
   visit(tree, {

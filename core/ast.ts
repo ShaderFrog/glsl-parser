@@ -1,6 +1,6 @@
-import { AnyAstNode } from './node';
+import { AstNode } from './node';
 
-const isNode = (node: AnyAstNode) => !!node?.type;
+const isNode = (node: AstNode) => !!node?.type;
 const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 
 /**
@@ -12,20 +12,20 @@ const isTraversable = (node: any) => isNode(node) || Array.isArray(node);
 
 export interface Program {
   type: 'program';
-  program: AnyAstNode[];
+  program: AstNode[];
   wsStart?: string;
   wsEnd?: string;
 }
 
 export type Path<NodeType> = {
   node: NodeType;
-  parent: AnyAstNode | undefined;
+  parent: AstNode | undefined;
   parentPath: Path<any> | undefined;
   key: string | undefined;
   index: number | undefined;
   skip: () => void;
   remove: () => void;
-  replaceWith: (replacer: AnyAstNode) => void;
+  replaceWith: (replacer: AstNode) => void;
   findParent: (test: (p: Path<any>) => boolean) => Path<any> | undefined;
 
   skipped?: boolean;
@@ -35,7 +35,7 @@ export type Path<NodeType> = {
 
 const makePath = <NodeType>(
   node: NodeType,
-  parent: AnyAstNode | undefined,
+  parent: AstNode | undefined,
   parentPath: Path<any> | undefined,
   key: string | undefined,
   index: number | undefined
@@ -73,22 +73,22 @@ export type NodeVisitor<NodeType> = {
 //     function_call: NodeVisitor<FunctionCall>,
 //     ...
 //   }
-// AnyAstNode['type'] is the union of all the type properties of all AST nodes.
-// Extract pulls out the type from the AnyAstNode union where the "type"
+// AstNode['type'] is the union of all the type properties of all AST nodes.
+// Extract pulls out the type from the AstNode union where the "type"
 // property matches the NodeType (like "function_call"). Pretty sweet!
 export type NodeVisitors = {
-  [NodeType in AnyAstNode['type']]?: NodeVisitor<
-    Extract<AnyAstNode, { type: NodeType }>
+  [NodeType in AstNode['type']]?: NodeVisitor<
+    Extract<AstNode, { type: NodeType }>
   >;
 };
 
 /**
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
-const visit = (ast: AnyAstNode, visitors: NodeVisitors) => {
+const visit = (ast: AstNode, visitors: NodeVisitors) => {
   const visitNode = (
-    node: AnyAstNode,
-    parent?: AnyAstNode,
+    node: AstNode,
+    parent?: AstNode,
     parentPath?: Path<any>,
     key?: string,
     index?: number
@@ -154,20 +154,13 @@ const visit = (ast: AnyAstNode, visitors: NodeVisitors) => {
 type NodeGenerator<NodeType> = (node: NodeType) => string;
 
 export type NodeGenerators = {
-  [NodeType in AnyAstNode['type']]: NodeGenerator<
-    Extract<AnyAstNode, { type: NodeType }>
+  [NodeType in AstNode['type']]: NodeGenerator<
+    Extract<AstNode, { type: NodeType }>
   >;
 } & { program?: NodeGenerator<Program> };
 
 export type Generator = (
-  ast:
-    | Program
-    | AnyAstNode
-    | AnyAstNode[]
-    | string
-    | string[]
-    | undefined
-    | null
+  ast: Program | AstNode | AstNode[] | string | string[] | undefined | null
 ) => string;
 
 /**
@@ -175,14 +168,7 @@ export type Generator = (
  */
 const makeGenerator = (generators: NodeGenerators): Generator => {
   const gen = (
-    ast:
-      | Program
-      | AnyAstNode
-      | AnyAstNode[]
-      | string
-      | string[]
-      | undefined
-      | null
+    ast: Program | AstNode | AstNode[] | string | string[] | undefined | null
   ): string =>
     typeof ast === 'string'
       ? ast
@@ -196,13 +182,10 @@ const makeGenerator = (generators: NodeGenerators): Generator => {
   return gen;
 };
 
-export type EveryOtherGenerator = (
-  nodes: AnyAstNode[],
-  eo: AnyAstNode[]
-) => string;
+export type EveryOtherGenerator = (nodes: AstNode[], eo: AstNode[]) => string;
 
 const makeEveryOtherGenerator = (generate: Generator): EveryOtherGenerator => {
-  const everyOther = (nodes: AnyAstNode[], eo: AnyAstNode[]) =>
+  const everyOther = (nodes: AstNode[], eo: AstNode[]) =>
     nodes.reduce(
       (output, node, index) =>
         output +

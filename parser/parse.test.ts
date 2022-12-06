@@ -3,7 +3,7 @@ import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
-import { AnyAstNode, FunctionNode } from '../core/node';
+import { AstNode, FunctionNode } from '../core/node';
 import { ScopeIndex, Scope, Parser } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
@@ -52,7 +52,7 @@ const debugProgram = (program: string) => {
   console.log(util.inspect(ast.program, false, null, true));
 };
 
-const debugStatement = (stmt: AnyAstNode) => {
+const debugStatement = (stmt: AstNode) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
   const ast = parser.parse(program);
   console.log(
