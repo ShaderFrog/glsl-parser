@@ -1,4 +1,4 @@
 #!/bin/bash
 set -e
 
-cp dist/* .
+cp -r dist/* .
