@@ -375,7 +375,7 @@ export interface TernaryNode {
 
 export interface TypeSpecifierNode {
   type: 'type_specifier';
-  specifier: ArraySpecifierNode;
+  specifier: KeywordNode | IdentifierNode | StructNode;
   quantifier: any;
 }
 
