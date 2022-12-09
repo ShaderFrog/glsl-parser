@@ -734,8 +734,13 @@ function_call
 
       // struct constructors are stored in scope types, not scope functions,
       // skip them (the isDeclaredType check)
-      if(fnName && !isDeclaredType(scope, fnName) && !builtIns.has(fnName)) {
-        if(!isDeclaredFunction(scope, fnName)) {
+      const isDeclared = isDeclaredFunction(scope, fnName);
+      if(
+        fnName && !isDeclaredType(scope, fnName) &&
+        // GLSL has built in functions that users can override
+        (isDeclared || !builtIns.has(fnName))
+      ) {
+        if(!isDeclared) {
           warn(`Warning: Function "${fnName}" has not been declared`);
         }
         addFunctionReference(scope, fnName, n);
@@ -976,10 +981,8 @@ declaration_statement = declaration:declaration {
 // function_prototype_no_new_scope, so that fn prototypes go first, then
 // functions, then declarations
 declaration
-  // Statements starting with "precision", like "precision highp float"
-  // = precision_declarator SEMICOLON
-  // / function_prototype SEMICOLON
   = function_prototype_no_new_scope SEMICOLON
+  // Statements starting with "precision", like "precision highp float"
   / precision_declarator SEMICOLON
   // Grouped in/out/uniform/buffer declarations with a { members } block after.
   / interface_declarator SEMICOLON

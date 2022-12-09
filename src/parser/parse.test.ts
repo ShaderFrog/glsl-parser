@@ -206,12 +206,6 @@ test('declarations', () => {
   `);
 });
 
-test('hyo', () => {
-  // The following includes the varying/attribute case which only works in GL
-  // ES 1.00, and will need to be updated when the switch is implemented
-  debugProgram(`
-    uniform vec2 vUv;`);
-});
 test('headers', () => {
   // The following includes the varying/attribute case which only works in GL
   // ES 1.00, and will need to be updated when the switch is implemented
@@ -536,6 +530,24 @@ float overloaded(float x) {
     return x;
 }`);
   expect(ast.scopes[0].functions.overloaded.references).toHaveLength(2);
+});
+
+test('overriding glsl builtin function', () => {
+  // "noise" is a built-in GLSL function that should be identified and renamed
+  const ast = parser.parse(`
+float noise() {}
+float fn() {
+    uv += noise();
+}
+`);
+
+  renameFunctions(ast.scopes[0], (name) => `${name}_FUNCTION`);
+  expect(generate(ast)).toBe(`
+float noise_FUNCTION() {}
+float fn_FUNCTION() {
+    uv += noise_FUNCTION();
+}
+`);
 });
 
 test('rename bindings and functions', () => {
