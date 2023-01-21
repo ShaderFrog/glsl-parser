@@ -4,7 +4,7 @@ import peggy from 'peggy';
 import util from 'util';
 import generate from './generator';
 import { AstNode, FunctionNode, ScopeIndex, Scope } from '../ast';
-import { Parser } from './parser';
+import { Parser, ParserOptions } from './parser';
 import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
@@ -86,7 +86,10 @@ const parseStatement = (src: string, options = {}) => {
   return parser.parse(program, options);
 };
 
-const expectParsedProgram = (sourceGlsl: string, options = {}) => {
+const expectParsedProgram = (
+  sourceGlsl: string,
+  options: ParserOptions = {}
+) => {
   const ast = parser.parse(sourceGlsl, options);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
@@ -411,6 +414,20 @@ test('parses function_call . postfix_expression', () => {
 
 test('parses postfix_expression as function_identifier', () => {
   expectParsedStatement('a().length();', { quiet: true });
+});
+
+test('parses postfix expressions after non-function calls (aka map.length())', () => {
+  expectParsedProgram(
+    `
+void main() {
+  float y = x().length();
+  float x = map.length();
+  for (int i = 0; i < map.length(); i++) {
+  }
+}
+`,
+    { quiet: true }
+  );
 });
 
 test('postfix, unary, binary expressions', () => {

@@ -719,18 +719,28 @@ function_call
     // function_identifier, it's moved into the function identifier above.
     args:function_arguments?
     rp:RIGHT_PAREN {
-      // Warning: This may be brittle. The langauge spec says that a
-      // function_call name is a "type_specifier" which can be "float[3](...)"
-      // or a TYPE_NAME. If it's a TYPE_NAME, it will have an identifier, so
-      // add it to the referenced scope. If it's a constructor (the "float"
-      // case) it won't, so don't add a reference to it
       
-      const identifier = function_identifier.partial;
-      const fnName = (identifier.identifier.type === 'postfix') ?
-        identifier.identifier.expression.specifier.identifier :
-        identifier.identifier.specifier.identifier;
-      
-      const n = node('function_call', { ...identifier, args, rp });
+      const identifierPartial = function_identifier.partial;
+      const { identifier } = identifierPartial;
+
+      // Identify the function name, if present. Note: The inner postfix branch
+      // below probably means there's a discrepancy in how the postfix fn is
+      // identified, depending on the prefix.
+      const fnName =
+        identifier.type === 'postfix'
+          ? identifier.expression.identifier
+            ? // Handles the case where the postfix is x().length()
+              identifier.expression.identifier.specifier.identifier
+            : // Handles the case where the postfix is x.length()
+              identifier.expression.specifier.identifier
+          : // Not a postfix, a normal function call. A function_call name is a
+            // "type_specifier" which can be "float[3](...)" or a TYPE_NAME. If
+            // it's a TYPE_NAME, it will have an identifier, so add it to the
+            // referenced scope. If it's a constructor (the "float" case) it
+            // won't, so this will be null
+            identifier.specifier.identifier;
+
+      const n = node('function_call', { ...identifierPartial, args, rp });
 
       // struct constructors are stored in scope types, not scope functions,
       // skip them (the isDeclaredType check)
