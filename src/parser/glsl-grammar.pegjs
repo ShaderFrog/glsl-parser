@@ -727,7 +727,7 @@ function_call
       
       const identifier = function_identifier.partial;
       const fnName = (identifier.identifier.type === 'postfix') ?
-        identifier.identifier.expression.identifier.specifier.identifier :
+        identifier.identifier.expression.specifier.identifier :
         identifier.identifier.specifier.identifier;
       
       const n = node('function_call', { ...identifier, args, rp });
