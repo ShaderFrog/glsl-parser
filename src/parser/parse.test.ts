@@ -48,8 +48,11 @@ const parser = peggy.generate(grammar, { cache: true }) as Parser;
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
 const debugProgram = (program: string) => {
-  const ast = parser.parse(program);
-  console.log(util.inspect(ast.program, false, null, true));
+  debugAst(parser.parse(program).program);
+};
+
+const debugAst = (ast: AstNode | AstNode[]) => {
+  console.log(util.inspect(ast, false, null, true));
 };
 
 const debugStatement = (stmt: AstNode) => {
@@ -687,6 +690,23 @@ void main() {
   expect(Object.keys(ast.scopes[1].types)).toEqual(['StructName']);
 
   // console.log(generate(ast));
+});
+
+test('fn args shadowing global scope identified as separate bindings', () => {
+  const ast = parser.parse(`
+attribute vec3 position;
+vec3 func(vec3 position) {
+  return position;
+}`);
+  renameBindings(ast.scopes[0], (name) =>
+    name === 'position' ? 'renamed' : name
+  );
+  // The func arg "position" shadows the global binding, it should be untouched
+  expect(generate(ast)).toBe(`
+attribute vec3 renamed;
+vec3 func(vec3 position) {
+  return position;
+}`);
 });
 
 test('I do not yet know what to do with layout()', () => {

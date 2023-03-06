@@ -51,8 +51,10 @@
     // to the scope first.
     const foundScope = findBindingScope(scope, name);
     if(foundScope) {
+      // console.log(name, 'found in scope', foundScope);
       foundScope.bindings[name].references.push(reference);
     } else {
+      // console.log(name,'not found in current scope, creating binding in', scope);
       createBindings(scope, [name, reference]);
     }
   };
@@ -1041,6 +1043,16 @@ precision_declarator "precision statement"
 
 function_prototype_new_scope "function prototype"
   = header:function_header_new_scope params:function_parameters? rp:RIGHT_PAREN {
+    
+    // Add function parameters to current scope (which is the function scope
+    // created in function_header_new_scope) before we encounter the function
+    // body.
+    const bindings = (params?.parameters || [])
+      // Ignore any param without an identifier, aka main(void)
+      .filter(p => !!p.declaration.identifier)
+      .map(p => [p.declaration.identifier.identifier, p]);
+    createBindings(scope, ...bindings)
+
     return node('function_prototype', { header, ...params, rp });
   }
 
@@ -1098,10 +1110,12 @@ parameter_declarator "parameter declarator"
   = specifier:type_specifier
     identifier:IDENTIFIER
     quantifier:array_specifier? {
-      return node(
+      const n = node(
         'parameter_declarator',
         { specifier, identifier, quantifier }
       );
+      // createBindings(scope, [identifier.identifier, n]);
+      return n;
     }
 
 // I added this because on page 114, it says formal parameters can only have
@@ -1123,7 +1137,6 @@ init_declarator_list
 
       createBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
 
-      // TODO: I might need to start storing node parents for easy traversal
       return node(
         'declarator_list',
         {
@@ -1573,6 +1586,7 @@ preprocessor "prepocessor" = line:$('#' [^\n]*) _:_? { return node('preprocessor
 // Translation unit is start of grammar
 translation_unit = (external_declaration / preprocessor)+
 
+// Definitions without bodies, like "f(vec4, vec4);"
 function_prototype_statement = 
   declaration:function_prototype_no_new_scope semi:SEMICOLON {
     addFunctionReference(scope, declaration.header.name.identifier, declaration);
@@ -1595,7 +1609,7 @@ function_prototype =
 // "function_prototype_statement" isn't in the grammar. It's removed from
 // declaration_statement and added here to catch function prototypes. The issue
 // is that the other productions cause barfing:
-// - If function definitioss go first, they try to match prototypes, and
+// - If function definitions go first, they try to match prototypes, and
 //   introduce a new scope in function_prototype, but then *backtrack* and the
 //   scope isn't popped.
 // - If declaration_statement comes first (which in the originally grammar
@@ -1612,16 +1626,8 @@ external_declaration
 
 function_definition = prototype:function_prototype_new_scope body:compound_statement_no_new_scope {
   const n = node('function', { prototype, body });
-
-  const bindings = (prototype.parameters || [])
-    // Ignore any param without an identifier, aka main(void)
-    .filter(p => !!p.declaration.identifier)
-    .map(p => [p.declaration.identifier.identifier, p]);
-  createBindings(scope, ...bindings)
-
   scope = popScope(scope);
   addFunctionReference(scope, prototype.header.name.identifier, n);
-
   return n;
 }
 
