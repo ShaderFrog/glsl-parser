@@ -1,8 +1,9 @@
 import type { AstNode, Program } from '../ast';
 
-export type ParserOptions = {
-  quiet?: boolean;
-};
+export type ParserOptions = Partial<{
+  quiet: boolean;
+  grammarSource: any;
+}>;
 
 // Allow to fetch util functions from parser directly. I'd like to inline those
 // functions directly in this file, but then the tests can't find it since jest
