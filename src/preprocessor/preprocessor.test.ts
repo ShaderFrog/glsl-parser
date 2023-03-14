@@ -10,9 +10,9 @@ import {
 import generate from './generator';
 
 const fileContents = (filePath: string): string =>
-  fs.readFileSync(path.join(__dirname, filePath)).toString();
+  fs.readFileSync(filePath).toString();
 
-const grammar = fileContents('preprocessor-grammar.pegjs');
+const grammar = fileContents('./src/preprocessor/preprocessor-grammar.pegjs');
 const parser = peggy.generate(grammar, { cache: true });
 const parse = (src: string) => parser.parse(src) as PreprocessorProgram;
 

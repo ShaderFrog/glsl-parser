@@ -10,7 +10,7 @@
     "postpublish": "./postbuild.sh",
     "build": "./build.sh",
     "watch-test": "jest --watch",
-    "test": "jest"
+    "test": "jest --colors"
   },
   "files": [
     "ast",

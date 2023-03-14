@@ -9,12 +9,11 @@ import { renameBindings, renameFunctions, renameTypes } from './utils';
 import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
 
-const fileContents = (filePath: string) =>
-  fs.readFileSync(path.join(__dirname, filePath)).toString();
+const fileContents = (filePath: string) => fs.readFileSync(filePath).toString();
 
 // Preprocessor setup
 const preprocessorGrammar = fileContents(
-  '../preprocessor/preprocessor-grammar.pegjs'
+  './src/preprocessor/preprocessor-grammar.pegjs'
 );
 const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 
@@ -40,8 +39,8 @@ const debugScopes = (scopes: Scope[]) =>
     functions: debugEntry(s.functions),
   }));
 
-const grammar = fileContents('./glsl-grammar.pegjs');
-const testFile = fileContents('./glsltest.glsl');
+const grammar = fileContents('./src/parser/glsl-grammar.pegjs');
+const testFile = fileContents('./src/parser/glsltest.glsl');
 
 const parser = peggy.generate(grammar, { cache: true }) as Parser;
 
