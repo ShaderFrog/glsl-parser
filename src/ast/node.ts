@@ -4,70 +4,80 @@
  * *any* types where I was lazy or didn't know the core type.
  */
 
-export interface LiteralNode {
+type Location = { offset: number; line: number; column: number };
+
+export interface BaseNode {
+  loc: {
+    source?: any;
+    start: Location;
+    end: Location;
+  };
+}
+
+export interface LiteralNode extends BaseNode {
   type: 'literal';
   literal: string;
   whitespace: string | string[];
 }
 
-export interface KeywordNode {
+export interface KeywordNode extends BaseNode {
   type: 'keyword';
   token: string;
   whitespace: string | string[];
 }
 
-export interface IdentifierNode {
+export interface IdentifierNode extends BaseNode {
   type: 'identifier';
   identifier: string;
   whitespace: string;
 }
 
-export interface ArraySpecifierNode {
+export interface ArraySpecifierNode extends BaseNode {
   type: 'array_specifier';
   lb: LiteralNode;
   expression: any;
   rb: LiteralNode;
 }
 
-export interface ArraySpecifiersNode {
+export interface ArraySpecifiersNode extends BaseNode {
   type: 'array_specifiers';
   specifiers: ArraySpecifierNode[];
 }
 
-export interface AssignmentNode {
+export interface AssignmentNode extends BaseNode {
   type: 'assignment';
   left: any;
   operator: LiteralNode;
   right: any;
 }
 
-export interface BinaryNode {
+export interface BinaryNode extends BaseNode {
   type: 'binary';
   operator: any;
   left: any;
   right: any;
 }
 
-export interface BoolConstantNode {
+export interface BoolConstantNode extends BaseNode {
   type: 'bool_constant';
   token: string;
   whitespace: string;
 }
 
-export interface BreakStatementNode {
+export interface BreakStatementNode extends BaseNode {
   type: 'break_statement';
   break: KeywordNode;
   semi: LiteralNode;
 }
 
-export interface CompoundStatementNode {
+export interface CompoundStatementNode extends BaseNode {
   type: 'compound_statement';
   lb: LiteralNode;
   statements: any[];
   rb: LiteralNode;
 }
 
-export interface ConditionExpressionNode {
+export interface ConditionExpressionNode extends BaseNode {
   type: 'condition_expression';
   specified_type: any;
   identifier: IdentifierNode;
@@ -75,19 +85,19 @@ export interface ConditionExpressionNode {
   initializer: any;
 }
 
-export interface ContinueStatementNode {
+export interface ContinueStatementNode extends BaseNode {
   type: 'continue_statement';
   continue: KeywordNode;
   semi: LiteralNode;
 }
 
-export interface DeclarationStatementNode {
+export interface DeclarationStatementNode extends BaseNode {
   type: 'declaration_statement';
   declaration: any;
   semi: LiteralNode;
 }
 
-export interface DeclarationNode {
+export interface DeclarationNode extends BaseNode {
   type: 'declaration';
   identifier: IdentifierNode;
   quantifier: any;
@@ -95,27 +105,27 @@ export interface DeclarationNode {
   initializer: any;
 }
 
-export interface DeclaratorListNode {
+export interface DeclaratorListNode extends BaseNode {
   type: 'declarator_list';
   specified_type: any;
   declarations: any[];
   commas: LiteralNode[];
 }
 
-export interface DefaultCaseNode {
+export interface DefaultCaseNode extends BaseNode {
   type: 'default_case';
   statements: [];
   default: any;
   colon: LiteralNode;
 }
 
-export interface DiscardStatementNode {
+export interface DiscardStatementNode extends BaseNode {
   type: 'discard_statement';
   discard: KeywordNode;
   semi: LiteralNode;
 }
 
-export interface DoStatementNode {
+export interface DoStatementNode extends BaseNode {
   type: 'do_statement';
   do: KeywordNode;
   body: any;
@@ -126,31 +136,31 @@ export interface DoStatementNode {
   semi: LiteralNode;
 }
 
-export interface DoubleConstantNode {
+export interface DoubleConstantNode extends BaseNode {
   type: 'double_constant';
   token: string;
   whitespace: string;
 }
 
-export interface ExpressionStatementNode {
+export interface ExpressionStatementNode extends BaseNode {
   type: 'expression_statement';
   expression: any;
   semi: LiteralNode;
 }
 
-export interface FieldSelectionNode {
+export interface FieldSelectionNode extends BaseNode {
   type: 'field_selection';
   dot: LiteralNode;
   selection: LiteralNode;
 }
 
-export interface FloatConstantNode {
+export interface FloatConstantNode extends BaseNode {
   type: 'float_constant';
   token: string;
   whitespace: string;
 }
 
-export interface ForStatementNode {
+export interface ForStatementNode extends BaseNode {
   type: 'for_statement';
   for: KeywordNode;
   body: any;
@@ -163,19 +173,19 @@ export interface ForStatementNode {
   rp: LiteralNode;
 }
 
-export interface FullySpecifiedTypeNode {
+export interface FullySpecifiedTypeNode extends BaseNode {
   type: 'fully_specified_type';
   qualifiers: any[];
   specifier: TypeSpecifierNode;
 }
 
-export interface FunctionNode {
+export interface FunctionNode extends BaseNode {
   type: 'function';
   prototype: FunctionPrototypeNode;
   body: CompoundStatementNode;
 }
 
-export interface FunctionCallNode {
+export interface FunctionCallNode extends BaseNode {
   type: 'function_call';
   identifier: AstNode;
   lp: LiteralNode;
@@ -183,14 +193,14 @@ export interface FunctionCallNode {
   rp: LiteralNode;
 }
 
-export interface FunctionHeaderNode {
+export interface FunctionHeaderNode extends BaseNode {
   type: 'function_header';
   returnType: FullySpecifiedTypeNode;
   name: IdentifierNode;
   lp: LiteralNode;
 }
 
-export interface FunctionPrototypeNode {
+export interface FunctionPrototypeNode extends BaseNode {
   type: 'function_prototype';
   header: FunctionHeaderNode;
   parameters: any[];
@@ -198,14 +208,14 @@ export interface FunctionPrototypeNode {
   rp: LiteralNode;
 }
 
-export interface GroupNode {
+export interface GroupNode extends BaseNode {
   type: 'group';
   lp: LiteralNode;
   expression: any;
   rp: LiteralNode;
 }
 
-export interface IfStatementNode {
+export interface IfStatementNode extends BaseNode {
   type: 'if_statement';
   if: KeywordNode;
   body: any;
@@ -215,7 +225,7 @@ export interface IfStatementNode {
   else: any[];
 }
 
-export interface InitializerListNode {
+export interface InitializerListNode extends BaseNode {
   type: 'initializer_list';
   lb: LiteralNode;
   initializers: any[];
@@ -223,13 +233,13 @@ export interface InitializerListNode {
   rb: LiteralNode;
 }
 
-export interface IntConstantNode {
+export interface IntConstantNode extends BaseNode {
   type: 'int_constant';
   token: string;
   whitespace: string;
 }
 
-export interface InterfaceDeclaratorNode {
+export interface InterfaceDeclaratorNode extends BaseNode {
   type: 'interface_declarator';
   qualifiers: any;
   interface_type: any;
@@ -239,14 +249,14 @@ export interface InterfaceDeclaratorNode {
   identifier?: QuantifiedIdentifierNode;
 }
 
-export interface LayoutQualifierIdNode {
+export interface LayoutQualifierIdNode extends BaseNode {
   type: 'layout_qualifier_id';
   identifier: IdentifierNode;
   operator: LiteralNode;
   expression: any;
 }
 
-export interface LayoutQualifierNode {
+export interface LayoutQualifierNode extends BaseNode {
   type: 'layout_qualifier';
   layout: KeywordNode;
   lp: LiteralNode;
@@ -255,66 +265,66 @@ export interface LayoutQualifierNode {
   rp: LiteralNode;
 }
 
-export interface ParameterDeclarationNode {
+export interface ParameterDeclarationNode extends BaseNode {
   type: 'parameter_declaration';
   qualifier: any[];
   declaration: ParameterDeclaratorNode | TypeSpecifierNode;
 }
 
-export interface ParameterDeclaratorNode {
+export interface ParameterDeclaratorNode extends BaseNode {
   type: 'parameter_declarator';
   specifier: any;
   identifier: IdentifierNode;
   quantifier: any;
 }
 
-export interface PostfixNode {
+export interface PostfixNode extends BaseNode {
   type: 'postfix';
   expression: any;
   postfix: any;
 }
 
-export interface PrecisionNode {
+export interface PrecisionNode extends BaseNode {
   type: 'precision';
   prefix: KeywordNode;
   qualifier: KeywordNode;
   specifier: TypeSpecifierNode;
 }
 
-export interface PreprocessorNode {
+export interface PreprocessorNode extends BaseNode {
   type: 'preprocessor';
   line: string;
   _: string | string[];
 }
 
-export interface QualifierDeclaratorNode {
+export interface QualifierDeclaratorNode extends BaseNode {
   type: 'qualifier_declarator';
   qualifiers: any[];
   declarations: IdentifierNode[];
   commas: LiteralNode[];
 }
 
-export interface QuantifiedIdentifierNode {
+export interface QuantifiedIdentifierNode extends BaseNode {
   type: 'quantified_identifier';
   identifier: IdentifierNode;
   quantifier: any;
 }
 
-export interface QuantifierNode {
+export interface QuantifierNode extends BaseNode {
   type: 'quantifier';
   lb: LiteralNode;
   expression: any;
   rb: LiteralNode;
 }
 
-export interface ReturnStatementNode {
+export interface ReturnStatementNode extends BaseNode {
   type: 'return_statement';
   return: KeywordNode;
   expression: any;
   semi: LiteralNode;
 }
 
-export interface StructNode {
+export interface StructNode extends BaseNode {
   type: 'struct';
   lb: LiteralNode;
   declarations: any[];
@@ -323,20 +333,20 @@ export interface StructNode {
   typeName: IdentifierNode;
 }
 
-export interface StructDeclarationNode {
+export interface StructDeclarationNode extends BaseNode {
   type: 'struct_declaration';
   declaration: StructDeclaratorNode;
   semi: LiteralNode;
 }
 
-export interface StructDeclaratorNode {
+export interface StructDeclaratorNode extends BaseNode {
   type: 'struct_declarator';
   specified_type: FullySpecifiedTypeNode;
   declarations: QuantifiedIdentifierNode[];
   commas: LiteralNode[];
 }
 
-export interface SubroutineQualifierNode {
+export interface SubroutineQualifierNode extends BaseNode {
   type: 'subroutine_qualifier';
   subroutine: KeywordNode;
   lp: LiteralNode;
@@ -345,7 +355,7 @@ export interface SubroutineQualifierNode {
   rp: LiteralNode;
 }
 
-export interface SwitchCaseNode {
+export interface SwitchCaseNode extends BaseNode {
   type: 'switch_case';
   statements: [];
   case: any;
@@ -353,7 +363,7 @@ export interface SwitchCaseNode {
   colon: LiteralNode;
 }
 
-export interface SwitchStatementNode {
+export interface SwitchStatementNode extends BaseNode {
   type: 'switch_statement';
   switch: KeywordNode;
   lp: LiteralNode;
@@ -364,7 +374,7 @@ export interface SwitchStatementNode {
   rb: LiteralNode;
 }
 
-export interface TernaryNode {
+export interface TernaryNode extends BaseNode {
   type: 'ternary';
   expression: any;
   question: LiteralNode;
@@ -373,25 +383,25 @@ export interface TernaryNode {
   colon: LiteralNode;
 }
 
-export interface TypeSpecifierNode {
+export interface TypeSpecifierNode extends BaseNode {
   type: 'type_specifier';
   specifier: KeywordNode | IdentifierNode | StructNode;
   quantifier: any;
 }
 
-export interface UintConstantNode {
+export interface UintConstantNode extends BaseNode {
   type: 'uint_constant';
   token: string;
   whitespace: string;
 }
 
-export interface UnaryNode {
+export interface UnaryNode extends BaseNode {
   type: 'unary';
   operator: LiteralNode;
   expression: any;
 }
 
-export interface WhileStatementNode {
+export interface WhileStatementNode extends BaseNode {
   type: 'while_statement';
   while: KeywordNode;
   lp: LiteralNode;

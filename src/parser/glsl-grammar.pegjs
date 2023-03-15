@@ -83,10 +83,7 @@
   const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
   const isDeclaredFunction = (scope, fnName) => fnName in findGlobalScope(scope).functions;
 
-  const node = (type, attrs) => ({
-    type,
-    ...attrs
-  });
+  
 
   // A "partial" is data that's computed as part of a production, but is then
   // merged into some higher rule, and doesn't itself become a node.
@@ -123,48 +120,6 @@
       right: expr
     }));
 
-  // Group the statements in a switch statement into cases / default arrays
-  const groupCases = (statements) => statements.reduce((cases, stmt) => {
-    const partial = stmt.partial || {};
-    if(partial.type === 'case_label') {
-      return [
-        ...cases,
-        node(
-          'switch_case',
-          {
-            statements: [],
-            case: partial.case,
-            test: partial.test,
-            colon: partial.colon,
-          }
-        )
-      ];
-    } else if(partial.type === 'default_label') {
-      return [
-        ...cases,
-        node(
-          'default_case',
-          {
-            statements: [],
-            default: partial.default,
-            colon: partial.colon,
-          }
-        )
-      ];
-    // It would be nice to encode this in the grammar instead of a manual check
-    } else if(!cases.length) {
-      throw new Error('A switch statement body must start with a case or default label');
-    } else {
-      const tail = cases.slice(-1)[0];
-      return [...cases.slice(0, -1), {
-        ...tail,
-        statements: [
-          ...tail.statements,
-          stmt
-        ]
-      }];
-    }
-  }, []);
 
   // From https://www.khronos.org/registry/OpenGL-Refpages/gl4/index.php
   // excluding gl_ prefixed builtins, which don't appear to be functions
@@ -340,6 +295,58 @@
 
 // Per-parse initializations
 {
+  // location() (and etc. functions) are not available in global scope, 
+  // so node() is moved to per-parse scope
+  const node = (type, attrs) => {
+    return {
+    type,
+    ...attrs,
+    loc: location()
+  }};
+
+  // Group the statements in a switch statement into cases / default arrays
+  const groupCases = (statements) => statements.reduce((cases, stmt) => {
+    const partial = stmt.partial || {};
+    if(partial.type === 'case_label') {
+      return [
+        ...cases,
+        node(
+          'switch_case',
+          {
+            statements: [],
+            case: partial.case,
+            test: partial.test,
+            colon: partial.colon,
+          }
+        )
+      ];
+    } else if(partial.type === 'default_label') {
+      return [
+        ...cases,
+        node(
+          'default_case',
+          {
+            statements: [],
+            default: partial.default,
+            colon: partial.colon,
+          }
+        )
+      ];
+    // It would be nice to encode this in the grammar instead of a manual check
+    } else if(!cases.length) {
+      throw new Error('A switch statement body must start with a case or default label');
+    } else {
+      const tail = cases.slice(-1)[0];
+      return [...cases.slice(0, -1), {
+        ...tail,
+        statements: [
+          ...tail.statements,
+          stmt
+        ]
+      }];
+    }
+  }, []);
+
   const warn = (...args) => !options.quiet && console.warn(...args);
 
   let scope = makeScope('global');

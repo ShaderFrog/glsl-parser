@@ -5,6 +5,11 @@ test('visit()', () => {
   const tree: BinaryNode = {
     type: 'binary',
     operator: '-',
+    // mock location data
+    loc: {
+      start: { line: 0, column: 0, offset: 0 },
+      end: { line: 0, column: 0, offset: 0 },
+    },
     left: {
       type: 'binary',
       operator: '+',
@@ -35,8 +40,9 @@ test('visit()', () => {
       enter: (path) => {
         const { node } = path;
         if (node.identifier === 'foo') {
-          grandparent = path.findParent(({ node }) => node.operator === '-')
-            ?.node;
+          grandparent = path.findParent(
+            ({ node }) => node.operator === '-'
+          )?.node;
           parent = path.findParent(({ node }) => node.operator === '+')?.node;
           unfound = path.findParent(({ node }) => node.operator === '*')?.node;
         }
