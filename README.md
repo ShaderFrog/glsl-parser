@@ -34,6 +34,28 @@ const ast = parser.parse('float a = 1.0;');
 const program = generate(ast);
 ```
 
+The parser accepts an optional second `options` argument:
+```js
+parser.parse('float a = 1.0;', options);
+```
+
+Where `options` is:
+
+```js
+{
+  // Hide warnings. If set to false or not set, then the parser logs warnings
+  // like undefined functions and variables
+  quiet: boolean,
+  // The origin of the GLSL, for debugging. For example, "main.js", If the
+  // parser raises an error (specifically a GrammarError), and you call
+  // error.format([]) on it, the error shows { source: 'main.js', ... }
+  grammarSource: string | object,
+  // If true, sets location information on each AST node, in the form of
+  // { column: number, line: number, offset: number }
+  includeLocation: boolean
+}
+```
+
 ## Preprocessing
 
 See the [GLSL Langauge Spec](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf) to learn more about GLSL preprocessing. Some notable 

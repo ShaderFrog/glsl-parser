@@ -2,7 +2,8 @@ import type { AstNode, Program } from '../ast';
 
 export type ParserOptions = Partial<{
   quiet: boolean;
-  grammarSource: any;
+  grammarSource: string | object;
+  includeLocation: boolean;
 }>;
 
 // Allow to fetch util functions from parser directly. I'd like to inline those

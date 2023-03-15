@@ -4,13 +4,12 @@
  * *any* types where I was lazy or didn't know the core type.
  */
 
-type Location = { offset: number; line: number; column: number };
+type LocationInfo = { offset: number; line: number; column: number };
 
 export interface BaseNode {
-  loc: {
-    source?: any;
-    start: Location;
-    end: Location;
+  location: {
+    start: LocationInfo;
+    end: LocationInfo;
   };
 }
 

@@ -1,6 +1,6 @@
 import fs from 'fs';
 import path from 'path';
-import peggy from 'peggy';
+import peggy, { GrammarError } from 'peggy';
 import util from 'util';
 import generate from './generator';
 import { AstNode, FunctionNode, ScopeIndex, Scope } from '../ast';
@@ -18,7 +18,7 @@ const preprocessorGrammar = fileContents(
 const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 
 const preprocess = (program: string) => {
-  const ast = preprocessParser.parse(program);
+  const ast = preprocessParser.parse(program, { grammarSource: program });
   preprocessAst(ast);
   return generatePreprocess(ast);
 };
@@ -46,8 +46,24 @@ const parser = peggy.generate(grammar, { cache: true }) as Parser;
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
+const parseSrc = (src: string, options: ParserOptions = {}) => {
+  try {
+    return parser.parse(src, {
+      ...options,
+      grammarSource: '<anonymous glsl>',
+    });
+  } catch (e) {
+    const err = e as GrammarError;
+    if ('format' in err) {
+      console.error(err.format([{ source: src, text: src }]));
+    }
+    console.error(`Error parsing lexeme!\n"${src}"`);
+    throw err;
+  }
+};
+
 const debugProgram = (program: string) => {
-  debugAst(parser.parse(program).program);
+  debugAst(parseSrc(program).program);
 };
 
 const debugAst = (ast: AstNode | AstNode[]) => {
@@ -68,35 +84,27 @@ const debugStatement = (stmt: AstNode) => {
 };
 
 const expectParsedStatement = (src: string, options = {}) => {
-  try {
-    const program = `void main() {/* start */${src}/* end */}`;
-    const ast = parser.parse(program, options);
-    const glsl = generate(ast);
-    if (glsl !== program) {
-      console.log(util.inspect(ast.program[0], false, null, true));
-      // @ts-ignore
-      expect(glsl.match(middle)[1]).toBe(src);
-    }
-  } catch (e) {
-    console.error(`Error parsing lexeme!\n"${src}"`);
-    throw e;
+  const program = `void main() {/* start */${src}/* end */}`;
+  const ast = parseSrc(program, options);
+  const glsl = generate(ast);
+  if (glsl !== program) {
+    console.log(util.inspect(ast.program[0], false, null, true));
+    // @ts-ignore
+    expect(glsl.match(middle)[1]).toBe(src);
   }
 };
 
-const parseStatement = (src: string, options = {}) => {
+const parseStatement = (src: string, options: ParserOptions = {}) => {
   const program = `void main() {${src}}`;
   return parser.parse(program, options);
 };
 
-const expectParsedProgram = (
-  sourceGlsl: string,
-  options: ParserOptions = {}
-) => {
-  const ast = parser.parse(sourceGlsl, options);
+const expectParsedProgram = (src: string, options: ParserOptions = {}) => {
+  const ast = parseSrc(src, options);
   const glsl = generate(ast);
-  if (glsl !== sourceGlsl) {
+  if (glsl !== src) {
     console.log(util.inspect(ast, false, null, true));
-    expect(glsl).toBe(sourceGlsl);
+    expect(glsl).toBe(src);
   }
 };
 
@@ -229,12 +237,12 @@ test('headers', () => {
 
 test('if statement', () => {
   expectParsedStatement(
-    `
-    if(i != 0) { aFunction(); }
-    else if(i == 2) { bFunction(); }
-    else { cFunction(); }
-  `,
-    { quiet: true }
+    `if(i != 0) { aFunction(); }
+else if(i == 2) { bFunction(); }
+else { cFunction(); }`,
+    {
+      quiet: true,
+    }
   );
 });
 
@@ -387,7 +395,7 @@ test('comments', () => {
     `
     /* starting comment */
     // hi
-    void main() {
+    void main(x) {
       /* comment */// hi
       /* comment */ // hi
       statement(); // hi
@@ -726,4 +734,16 @@ uniform Material
 {
 uniform vec2 vProp;
 };`);
+});
+
+test('Parser locations', () => {
+  const src = `void main() {}`;
+  let ast = parseSrc(src);
+  expect(ast.program[0].location).toBe(undefined);
+
+  ast = parseSrc(src, { includeLocation: true });
+  expect(ast.program[0].location).toStrictEqual({
+    start: { column: 1, line: 1, offset: 0 },
+    end: { column: 15, line: 1, offset: 14 },
+  });
 });

@@ -83,8 +83,6 @@
   const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
   const isDeclaredFunction = (scope, fnName) => fnName in findGlobalScope(scope).functions;
 
-  
-
   // A "partial" is data that's computed as part of a production, but is then
   // merged into some higher rule, and doesn't itself become a node.
   const partial = (typeNameOrAttrs, attrs) => ({
@@ -298,11 +296,19 @@
   // location() (and etc. functions) are not available in global scope, 
   // so node() is moved to per-parse scope
   const node = (type, attrs) => {
-    return {
-    type,
-    ...attrs,
-    loc: location()
-  }};
+    const n = {
+      type,
+      ...attrs,
+    }
+    if(options.includeLocation) {
+      const info = location();
+      n.location = {
+        start: info.start,
+        end: info.end
+      }
+    }
+    return n;
+  };
 
   // Group the statements in a switch statement into cases / default arrays
   const groupCases = (statements) => statements.reduce((cases, stmt) => {
