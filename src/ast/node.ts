@@ -6,11 +6,13 @@
 
 type LocationInfo = { offset: number; line: number; column: number };
 
+export type LocationObject = {
+  start: LocationInfo;
+  end: LocationInfo;
+};
+
 export interface BaseNode {
-  location: {
-    start: LocationInfo;
-    end: LocationInfo;
-  };
+  location: LocationObject;
 }
 
 export interface LiteralNode extends BaseNode {
