@@ -301,11 +301,8 @@
       ...attrs,
     }
     if(options.includeLocation) {
-      const info = location();
-      n.location = {
-        start: info.start,
-        end: info.end
-      }
+      const { start, end } = location();
+      n.location = { start, end }
     }
     return n;
   };
@@ -360,6 +357,12 @@
 
   const pushScope = scope => {
     // console.log('pushing scope at ',text());
+
+    if(options.includeLocation){
+      let { start } = location();
+      scope.location = { start };
+    }
+
     scopes.push(scope);
     return scope;
   };
@@ -1404,7 +1407,15 @@ compound_statement =
   })
   statements:statement_list?
   rb:RIGHT_BRACE {
+
+    if(options.includeLocation){
+      // using start of right bracket, so trailing whitespace is not counted towards scope range
+      let end = rb.location.start;
+      scope.location.end = end;
+    }
+
     scope = popScope(scope);
+
     return node(
       'compound_statement',
       { lb, statements: (statements || []).flat(), rb }
@@ -1494,7 +1505,15 @@ iteration_statement "iteration statement"
     condition:condition
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
+
+      if(options.includeLocation){
+        // use right bracket or fallback to location.end
+        let end = body.rb ? body.rb.location.start : body.location.end;
+        scope.location.end = end;
+      }
+      
       scope = popScope(scope);
+
       return node(
         'while_statement',
         {
@@ -1542,7 +1561,14 @@ iteration_statement "iteration statement"
     operation:expression?
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
+
+      if(options.includeLocation){
+        let end = body.rb ? body.rb.location.start : body.location.end;
+        scope.location.end = end;
+      }
+      
       scope = popScope(scope);
+
       return node(
         'for_statement',
         {
@@ -1637,12 +1663,22 @@ function_prototype =
 external_declaration
   = function_prototype_statement / function_definition / declaration_statement
 
-function_definition = prototype:function_prototype_new_scope body:compound_statement_no_new_scope {
-  const n = node('function', { prototype, body });
-  scope = popScope(scope);
-  addFunctionReference(scope, prototype.header.name.identifier, n);
-  return n;
-}
+function_definition = 
+  prototype:function_prototype_new_scope 
+  body:compound_statement_no_new_scope {
+    
+    const n = node('function', { prototype, body });
+
+    if(options.includeLocation){
+      let end = body.rb.location.start;
+      scope.location.end = end;
+    }
+
+    scope = popScope(scope);
+
+    addFunctionReference(scope, prototype.header.name.identifier, n);
+    return n;
+  }
 
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */

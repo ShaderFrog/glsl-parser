@@ -1,4 +1,4 @@
-import { AstNode } from './node';
+import type { AstNode, LocationObject } from './node';
 
 export type ScopeIndex = {
   [name: string]: { references: AstNode[] };
@@ -10,6 +10,7 @@ export type Scope = {
   bindings: ScopeIndex;
   types: ScopeIndex;
   functions: ScopeIndex;
+  location: LocationObject;
 };
 
 const isNode = (node: AstNode) => !!node?.type;
