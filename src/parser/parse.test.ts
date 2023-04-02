@@ -47,15 +47,16 @@ const parser = peggy.generate(grammar, { cache: true }) as Parser;
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
 const parseSrc = (src: string, options: ParserOptions = {}) => {
+  const grammarSource = '<anonymous glsl>';
   try {
     return parser.parse(src, {
       ...options,
-      grammarSource: '<anonymous glsl>',
+      grammarSource,
     });
   } catch (e) {
     const err = e as GrammarError;
     if ('format' in err) {
-      console.error(err.format([{ source: src, text: src }]));
+      console.error(err.format([{ source: grammarSource, text: src }]));
     }
     console.error(`Error parsing lexeme!\n"${src}"`);
     throw err;
