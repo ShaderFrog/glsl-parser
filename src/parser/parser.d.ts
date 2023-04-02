@@ -2,7 +2,7 @@ import type { AstNode, Program } from '../ast';
 
 export type ParserOptions = Partial<{
   quiet: boolean;
-  grammarSource: string | object;
+  grammarSource: string;
   includeLocation: boolean;
 }>;
 
