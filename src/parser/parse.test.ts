@@ -10,12 +10,31 @@ import { preprocessAst } from '../preprocessor/preprocessor';
 import generatePreprocess from '../preprocessor/generator';
 
 const fileContents = (filePath: string) => fs.readFileSync(filePath).toString();
+const inspect = (arg: any) => console.log(util.inspect(arg, false, null, true));
 
-// Preprocessor setup
-const preprocessorGrammar = fileContents(
+// Most of this ceremony around building a parser is dealing with Peggy's error
+// format() function, where the grammarSource has to line up in generate() and
+// format() to get nicely formatted errors if there's a syntax error in the
+// grammar
+const buildParser = (file: string) => {
+  const grammar = fileContents(file);
+  try {
+    return peggy.generate(grammar, {
+      grammarSource: file,
+      cache: true,
+    });
+  } catch (e) {
+    const err = e as SyntaxError;
+    if ('format' in err && typeof err.format === 'function') {
+      console.error(err.format([{ source: file, text: grammar }]));
+    }
+    throw e;
+  }
+};
+
+const preprocessParser = buildParser(
   './src/preprocessor/preprocessor-grammar.pegjs'
 );
-const preprocessParser = peggy.generate(preprocessorGrammar, { cache: true });
 
 const preprocess = (program: string) => {
   const ast = preprocessParser.parse(program, { grammarSource: program });
@@ -39,10 +58,9 @@ const debugScopes = (scopes: Scope[]) =>
     functions: debugEntry(s.functions),
   }));
 
-const grammar = fileContents('./src/parser/glsl-grammar.pegjs');
 const testFile = fileContents('./src/parser/glsltest.glsl');
 
-const parser = peggy.generate(grammar, { cache: true }) as Parser;
+const parser = buildParser('./src/parser/glsl-grammar.pegjs');
 
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
@@ -63,25 +81,14 @@ const parseSrc = (src: string, options: ParserOptions = {}) => {
   }
 };
 
-const debugProgram = (program: string) => {
-  debugAst(parseSrc(program).program);
-};
-
-const debugAst = (ast: AstNode | AstNode[]) => {
-  console.log(util.inspect(ast, false, null, true));
+const debugSrc = (src: string) => {
+  inspect(parseSrc(src).program);
 };
 
 const debugStatement = (stmt: AstNode) => {
   const program = `void main() {/* start */${stmt}/* end */}`;
-  const ast = parser.parse(program);
-  console.log(
-    util.inspect(
-      (ast.program[0] as FunctionNode).body.statements[0],
-      false,
-      null,
-      true
-    )
-  );
+  const ast = parseSrc(program);
+  inspect((ast.program[0] as FunctionNode).body.statements[0]);
 };
 
 const expectParsedStatement = (src: string, options = {}) => {
@@ -89,7 +96,7 @@ const expectParsedStatement = (src: string, options = {}) => {
   const ast = parseSrc(program, options);
   const glsl = generate(ast);
   if (glsl !== program) {
-    console.log(util.inspect(ast.program[0], false, null, true));
+    inspect(ast.program[0]);
     // @ts-ignore
     expect(glsl.match(middle)[1]).toBe(src);
   }
@@ -97,20 +104,20 @@ const expectParsedStatement = (src: string, options = {}) => {
 
 const parseStatement = (src: string, options: ParserOptions = {}) => {
   const program = `void main() {${src}}`;
-  return parser.parse(program, options);
+  return parseSrc(program, options);
 };
 
 const expectParsedProgram = (src: string, options: ParserOptions = {}) => {
   const ast = parseSrc(src, options);
   const glsl = generate(ast);
   if (glsl !== src) {
-    console.log(util.inspect(ast, false, null, true));
+    inspect(ast);
     expect(glsl).toBe(src);
   }
 };
 
 test('scope bindings and type names', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 float a, b = 1.0, c = a;
 vec2 texcoord1, texcoord2;
 vec3 position;
@@ -150,7 +157,7 @@ coherent buffer Block {
 });
 
 test('scope references', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
 struct {
@@ -302,12 +309,12 @@ test('for loops', () => {
 test('switch error', () => {
   // Test the semantic analysis case
   expect(() =>
-    parseStatement(
-      `
+    parser.parse(
+      `void main() {
     switch (easingId) {
       result = cubicIn();
     }
-  `,
+}`,
       { quiet: true }
     )
   ).toThrow(/must start with a case or default label/);
@@ -446,7 +453,6 @@ test('postfix, unary, binary expressions', () => {
 });
 
 test('parses a test file', () => {
-  // console.log(debugProgram(preprocess(testFile)));
   expectParsedProgram(preprocess(testFile));
 });
 
@@ -539,7 +545,7 @@ test('subroutines', () => {
 });
 
 test('struct constructor', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 struct light {
   float intensity;
   vec3 position;
@@ -550,7 +556,7 @@ light lightVar = light(3.0, vec3(1.0, 2.0, 3.0));
 });
 
 test('overloaded scope test', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 vec4 overloaded(vec4 x) {
   return x;
 }
@@ -562,7 +568,7 @@ float overloaded(float x) {
 
 test('overriding glsl builtin function', () => {
   // "noise" is a built-in GLSL function that should be identified and renamed
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 float noise() {}
 float fn() {
     uv += noise();
@@ -579,7 +585,7 @@ float fn_FUNCTION() {
 });
 
 test('rename bindings and functions', () => {
-  const ast = parser.parse(
+  const ast = parseSrc(
     `
 float a, b = 1.0, c = a;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
@@ -674,7 +680,7 @@ vec4 linearToOutputTexel_FUNCTION( vec4 value ) { return LinearToLinear_FUNCTION
 });
 
 test('detecting struct scope and usage', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 struct StructName {
   vec3 color;
 };
@@ -701,7 +707,7 @@ void main() {
 });
 
 test('fn args shadowing global scope identified as separate bindings', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 attribute vec3 position;
 vec3 func(vec3 position) {
   return position;
@@ -718,7 +724,7 @@ vec3 func(vec3 position) {
 });
 
 test('I do not yet know what to do with layout()', () => {
-  const ast = parser.parse(`
+  const ast = parseSrc(`
 layout(std140,column_major) uniform;
 float a;
 uniform Material
@@ -737,14 +743,45 @@ uniform vec2 vProp;
 };`);
 });
 
-test('Parser locations', () => {
+test('Locations with location disabled', () => {
   const src = `void main() {}`;
-  let ast = parseSrc(src);
+  const ast = parseSrc(src); // default argument is no location information
   expect(ast.program[0].location).toBe(undefined);
+  expect(ast.scopes[0].location).toBe(undefined);
+});
 
-  ast = parseSrc(src, { includeLocation: true });
+test('Parser locations', () => {
+  const src = `// Some comment
+void main() {
+  float x = 1.0;
+
+  {
+    float x = 1.0;
+  }
+}`;
+  const ast = parseSrc(src, { includeLocation: true });
+  // The main fn location should start at "void"
   expect(ast.program[0].location).toStrictEqual({
-    start: { column: 1, line: 1, offset: 0 },
-    end: { column: 15, line: 1, offset: 14 },
+    start: { line: 2, column: 1, offset: 16 },
+    end: { line: 8, column: 2, offset: 76 },
+  });
+
+  // The global scope is the entire program
+  expect(ast.scopes[0].location).toStrictEqual({
+    start: { line: 1, column: 1, offset: 0 },
+    end: { line: 8, column: 2, offset: 76 },
+  });
+
+  // The scope created by the main fn should start at the open paren of the fn
+  // header, because fn scopes include fn arguments
+  expect(ast.scopes[1].location).toStrictEqual({
+    start: { line: 2, column: 10, offset: 25 },
+    end: { line: 8, column: 1, offset: 75 },
+  });
+
+  // The inner compound statement { scope }
+  expect(ast.scopes[2].location).toStrictEqual({
+    start: { line: 5, column: 3, offset: 50 },
+    end: { line: 7, column: 3, offset: 73 },
   });
 });

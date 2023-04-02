@@ -6,14 +6,6 @@
   // https://github.com/pegjs/pegjs/issues/187
   const OPEN_CURLY = String.fromCharCode(123);
 
-  const makeScope = (name, parent) => ({
-    name,
-    parent,
-    bindings: {},
-    types: {},
-    functions: {},
-  });
-
   // Types (aka struct) scope
   const addTypes = (scope, ...types) => {
     types.forEach(([identifier, type]) => {
@@ -293,7 +285,17 @@
 
 // Per-parse initializations
 {
-  // location() (and etc. functions) are not available in global scope, 
+  const getLocation = (loc) => {
+    // Try to avoid calling getLocation() more than neccessary
+    if(!options.includeLocation) {
+      return;
+    }
+    // Intentionally drop the "source" and "offset" keys from the location object
+    const { start, end } = loc || location();
+    return { start, end };
+  }
+
+  // getLocation() (and etc. functions) are not available in global scope, 
   // so node() is moved to per-parse scope
   const node = (type, attrs) => {
     const n = {
@@ -301,10 +303,48 @@
       ...attrs,
     }
     if(options.includeLocation) {
-      const { start, end } = location();
-      n.location = { start, end }
+      n.location = getLocation();
     }
     return n;
+  };
+
+  const makeScope = (name, parent, startLocation) => {
+    let newLocation = getLocation(startLocation);
+
+    return {
+      name,
+      parent,
+      ...(newLocation ? { location: newLocation } : false),
+      bindings: {},
+      types: {},
+      functions: {},
+    };
+  };
+
+  const warn = (...args) => !options.quiet && console.warn(...args);
+
+  let scope = makeScope('global');
+  let scopes = [scope];
+
+  const pushScope = scope => {
+    // console.log('pushing scope at ',text());
+    scopes.push(scope);
+    return scope;
+  };
+  const popScope = scope => {
+    // console.log('popping scope at ',text());
+    if(!scope.parent) {
+      throw new Error('popped bad scope', scope, 'at', text());
+    }
+    return scope.parent;
+  };
+  const setScopeEnd = (scope, end) => {
+    if(options.includeLocation) {
+      if(!scope.location) {
+        console.error('no end location at', text());
+      }
+      scope.location.end = end;
+    }
   };
 
   // Group the statements in a switch statement into cases / default arrays
@@ -349,37 +389,15 @@
       }];
     }
   }, []);
-
-  const warn = (...args) => !options.quiet && console.warn(...args);
-
-  let scope = makeScope('global');
-  let scopes = [scope];
-
-  const pushScope = scope => {
-    // console.log('pushing scope at ',text());
-
-    if(options.includeLocation){
-      let { start } = location();
-      scope.location = { start };
-    }
-
-    scopes.push(scope);
-    return scope;
-  };
-  const popScope = scope => {
-    // console.log('popping scope at ',text());
-    if(!scope.parent) {
-      throw new Error('popped bad scope', scope, 'at', text());
-    }
-    return scope.parent;
-  };
 }
 
-// Extra whitespace here at start is to help with screenshots by adding
-// extra linebreaks
+// Entrypoint to parsing!
 start = wsStart:_ program:translation_unit {
-  return { type: 'program', wsStart, program, scopes };
+  // Set the global scope end to the end of the program
+  setScopeEnd(scope, getLocation()?.end);
+  return node('program', { wsStart, program, scopes });
 }
+
 // "compatibility profile only and vertex language only; same as in when in a
 // vertex shader"
 ATTRIBUTE = token:"attribute" t:terminal { return node('keyword', { token, whitespace: t }); }
@@ -1080,7 +1098,7 @@ function_header_new_scope "function header"
         'function_header',
         { returnType, name, lp }
       );
-      scope = pushScope(makeScope(name.identifier, scope));
+      scope = pushScope(makeScope(name.identifier, scope, lp.location));
       return n;
     }
 
@@ -1407,12 +1425,9 @@ compound_statement =
   })
   statements:statement_list?
   rb:RIGHT_BRACE {
-
-    if(options.includeLocation){
-      // using start of right bracket, so trailing whitespace is not counted towards scope range
-      let end = rb.location.start;
-      scope.location.end = end;
-    }
+    // Use start of right bracket, so trailing whitespace is not counted towards
+    // scope range
+    setScopeEnd(scope, rb.location?.start);
 
     scope = popScope(scope);
 
@@ -1505,12 +1520,9 @@ iteration_statement "iteration statement"
     condition:condition
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
-
-      if(options.includeLocation){
-        // use right bracket or fallback to location.end
-        let end = body.rb ? body.rb.location.start : body.location.end;
-        scope.location.end = end;
-      }
+      // use right bracket or fallback to location.end
+      const end = body.rb ? body.rb.location?.start : body.location?.end;
+      setScopeEnd(scope, end);
       
       scope = popScope(scope);
 
@@ -1561,11 +1573,8 @@ iteration_statement "iteration statement"
     operation:expression?
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
-
-      if(options.includeLocation){
-        let end = body.rb ? body.rb.location.start : body.location.end;
-        scope.location.end = end;
-      }
+      const end = body.rb ? body.rb.location?.start : body.location?.end;
+      setScopeEnd(scope, end);
       
       scope = popScope(scope);
 
@@ -1669,10 +1678,7 @@ function_definition =
     
     const n = node('function', { prototype, body });
 
-    if(options.includeLocation){
-      let end = body.rb.location.start;
-      scope.location.end = end;
-    }
+    setScopeEnd(scope, body.rb.location?.start);
 
     scope = popScope(scope);
 

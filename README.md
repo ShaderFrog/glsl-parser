@@ -2,7 +2,7 @@
 
 The [Shaderfrog](https://shaderfrog.com/app) GLSL compiler is an open source
 GLSL 1.00 and 3.00 parser and preprocessor that compiles [back to
-GLSL](parser/generator.ts). Both the parser and preprocessor can preserve
+GLSL](src/parser/generator.ts). Both the parser and preprocessor can preserve
 comments and whitespace.
 
 The parser uses PEG grammar via the Peggy Javascript library. The PEG grammars
@@ -49,7 +49,7 @@ Where `options` is:
   // The origin of the GLSL, for debugging. For example, "main.js", If the
   // parser raises an error (specifically a GrammarError), and you call
   // error.format([]) on it, the error shows { source: 'main.js', ... }
-  grammarSource: string | object,
+  grammarSource: string,
   // If true, sets location information on each AST node, in the form of
   // { column: number, line: number, offset: number }
   includeLocation: boolean
