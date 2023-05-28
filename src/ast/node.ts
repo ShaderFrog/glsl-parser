@@ -12,7 +12,7 @@ export type LocationObject = {
 };
 
 export interface BaseNode {
-  location: LocationObject;
+  location?: LocationObject;
 }
 
 export interface LiteralNode extends BaseNode {
