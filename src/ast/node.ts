@@ -15,22 +15,24 @@ export interface BaseNode {
   location?: LocationObject;
 }
 
+type Whitespace = string | string[];
+
 export interface LiteralNode extends BaseNode {
   type: 'literal';
   literal: string;
-  whitespace: string | string[];
+  whitespace: Whitespace;
 }
 
 export interface KeywordNode extends BaseNode {
   type: 'keyword';
   token: string;
-  whitespace: string | string[];
+  whitespace: Whitespace;
 }
 
 export interface IdentifierNode extends BaseNode {
   type: 'identifier';
   identifier: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface ArraySpecifierNode extends BaseNode {
@@ -62,7 +64,7 @@ export interface BinaryNode extends BaseNode {
 export interface BoolConstantNode extends BaseNode {
   type: 'bool_constant';
   token: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface BreakStatementNode extends BaseNode {
@@ -140,7 +142,7 @@ export interface DoStatementNode extends BaseNode {
 export interface DoubleConstantNode extends BaseNode {
   type: 'double_constant';
   token: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface ExpressionStatementNode extends BaseNode {
@@ -158,7 +160,7 @@ export interface FieldSelectionNode extends BaseNode {
 export interface FloatConstantNode extends BaseNode {
   type: 'float_constant';
   token: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface ForStatementNode extends BaseNode {
@@ -237,7 +239,7 @@ export interface InitializerListNode extends BaseNode {
 export interface IntConstantNode extends BaseNode {
   type: 'int_constant';
   token: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface InterfaceDeclaratorNode extends BaseNode {
@@ -393,7 +395,7 @@ export interface TypeSpecifierNode extends BaseNode {
 export interface UintConstantNode extends BaseNode {
   type: 'uint_constant';
   token: string;
-  whitespace: string;
+  whitespace: Whitespace;
 }
 
 export interface UnaryNode extends BaseNode {
