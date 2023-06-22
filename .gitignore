@@ -2,3 +2,5 @@ node_modules
 dist
 .vscode
 .DS_Store
+tmp
+src/parser/parser.js

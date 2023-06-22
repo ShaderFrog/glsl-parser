@@ -1,10 +1,21 @@
-import { visit } from '.';
-import { AstNode, BinaryNode } from './node';
+import { AstNode, BinaryNode, IdentifierNode, LiteralNode } from './ast-types';
+import { visit } from './visit';
+
+const literal = (literal: string): LiteralNode => ({
+  type: 'literal',
+  literal,
+  whitespace: '',
+});
+const identifier = (identifier: string): IdentifierNode => ({
+  type: 'identifier',
+  identifier,
+  whitespace: '',
+});
 
 test('visit()', () => {
   const tree: BinaryNode = {
     type: 'binary',
-    operator: '-',
+    operator: literal('-'),
     // mock location data
     location: {
       start: { line: 0, column: 0, offset: 0 },
@@ -12,22 +23,15 @@ test('visit()', () => {
     },
     left: {
       type: 'binary',
-      operator: '+',
-      left: {
-        type: 'identifier',
-        identifier: 'foo',
-      },
-      right: {
-        type: 'identifier',
-        identifier: 'bar',
-      },
+      operator: literal('+'),
+      left: identifier('foo'),
+      right: identifier('bar'),
     },
     right: {
       type: 'group',
-      expression: {
-        type: 'identifier',
-        identifier: 'baz',
-      },
+      lp: literal('('),
+      rp: literal(')'),
+      expression: identifier('baz'),
     },
   };
 
@@ -40,10 +44,13 @@ test('visit()', () => {
       enter: (path) => {
         const { node } = path;
         if (node.identifier === 'foo') {
-          grandparent = path.findParent(({ node }) => node.operator === '-')
+          grandparent = path.findParent(
+            ({ node }) => node.operator.literal === '-'
+          )?.node;
+          parent = path.findParent(({ node }) => node.operator.literal === '+')
             ?.node;
-          parent = path.findParent(({ node }) => node.operator === '+')?.node;
-          unfound = path.findParent(({ node }) => node.operator === '*')?.node;
+          unfound = path.findParent(({ node }) => node.operator.literal === '*')
+            ?.node;
         }
       },
     },

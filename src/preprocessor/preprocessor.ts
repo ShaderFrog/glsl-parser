@@ -1,4 +1,4 @@
-import { visit, Path, NodeVisitor, AstNode } from '../ast';
+import { NodeVisitor, Path, visit } from '../ast/visit';
 import {
   PreprocessorAstNode,
   PreprocessorConditionalNode,
@@ -129,11 +129,13 @@ type NodeEvaluator<NodeType> = (
   visit: (node: PreprocessorAstNode) => any
 ) => any;
 
-export type NodeEvaluators = {
-  [NodeType in PreprocessorAstNode['type']]: NodeEvaluator<
-    Extract<PreprocessorAstNode, { type: NodeType }>
-  >;
-};
+export type NodeEvaluators = Partial<
+  {
+    [NodeType in PreprocessorAstNode['type']]: NodeEvaluator<
+      Extract<PreprocessorAstNode, { type: NodeType }>
+    >;
+  }
+>;
 
 const evaluate = (ast: PreprocessorAstNode, evaluators: NodeEvaluators) => {
   const visit = (node: PreprocessorAstNode) => {
@@ -141,6 +143,8 @@ const evaluate = (ast: PreprocessorAstNode, evaluators: NodeEvaluators) => {
     if (!evaluator) {
       throw new Error(`No evaluate() evaluator for ${node.type}`);
     }
+
+    // I can't figure out why evalutor has node type never here
     // @ts-ignore
     return evaluator(node, visit);
   };
@@ -275,10 +279,8 @@ const expandInExpressions = (
   ...expressions: PreprocessorAstNode[]
 ) => {
   expressions.filter(identity).forEach((expression) => {
-    // @ts-ignore
-    visit(expression, {
+    visitPreprocessedAst(expression, {
       unary_defined: {
-        // @ts-ignore
         enter: (path) => {
           path.skip();
         },
@@ -304,7 +306,6 @@ const evaluateIfPart = (macros: Macros, ifPart: PreprocessorAstNode) => {
 
 // TODO: Are all of these operators equivalent between javascript and GLSL?
 const evaluteExpression = (node: PreprocessorAstNode, macros: Macros) =>
-  // @ts-ignore
   evaluate(node, {
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
@@ -407,7 +408,9 @@ const evaluteExpression = (node: PreprocessorAstNode, macros: Macros) =>
     },
   });
 
-const shouldPreserve = (preserve: NodePreservers = {}) => (path: Path<any>) => {
+const shouldPreserve = (preserve: NodePreservers = {}) => (
+  path: PathOverride<PreprocessorAstNode>
+) => {
   const test = preserve?.[path.node.type];
   return typeof test === 'function' ? test(path) : test;
 };
@@ -418,8 +421,7 @@ const shouldPreserve = (preserve: NodePreservers = {}) => (path: Path<any>) => {
 // visitor/evaluator/path pattern. I took a stab at it but it become tricky to
 // track all the nested generics. Instead, I hack re-cast the visit function
 // here, which at least gives some minor type safety.
-// @ts-ignore
-const visitPreprocessedAst = visit as (
+type VisitorOverride = (
   ast: PreprocessorAstNode | PreprocessorProgram,
   visitors: {
     [NodeType in PreprocessorAstNode['type']]?: NodeVisitor<
@@ -427,6 +429,27 @@ const visitPreprocessedAst = visit as (
     >;
   }
 ) => void;
+
+// @ts-ignore
+const visitPreprocessedAst = visit as VisitorOverride;
+
+type PathOverride<NodeType> = {
+  node: NodeType;
+  parent: PreprocessorAstNode | undefined;
+  parentPath: Path<any> | undefined;
+  key: string | undefined;
+  index: number | undefined;
+  skip: () => void;
+  remove: () => void;
+  replaceWith: (replacer: PreprocessorAstNode) => void;
+  findParent: (test: (p: Path<any>) => boolean) => Path<any> | undefined;
+
+  skipped?: boolean;
+  removed?: boolean;
+  replaced?: any;
+};
+const convertPath = (p: Path<any>) =>
+  (p as unknown) as PathOverride<typeof p['node']>;
 
 /**
  * Perform the preprocessing logic, aka the "preprocessing" phase of the compiler.
@@ -437,13 +460,16 @@ const visitPreprocessedAst = visit as (
  * TODO: Handle __LINE__ and other constants.
  */
 
-export type NodePreservers = { [nodeType: string]: (path: any) => boolean };
+export type NodePreservers = {
+  [nodeType: string]: (path: PathOverride<any>) => boolean;
+};
 
 export type PreprocessorOptions = {
   defines?: { [definitionName: string]: object };
   preserve?: NodePreservers;
   preserveComments?: boolean;
   stopOnError?: boolean;
+  // ignoreMacro?: boolean;
 };
 
 const preprocessAst = (
@@ -455,14 +481,15 @@ const preprocessAst = (
     {}
   );
   // const defineValues = { ...options.defines };
-  // @ts-ignore
-  const { preserve, ignoreMacro } = options;
+
+  // const { preserve, ignoreMacro } = options;
+  const { preserve } = options;
   const preserveNode = shouldPreserve(preserve);
 
   visitPreprocessedAst(program, {
     conditional: {
-      // @ts-ignore
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         const { node } = path;
         // TODO: Determining if we need to handle edge case conditionals here
         if (preserveNode(path)) {
@@ -483,9 +510,7 @@ const preprocessAst = (
 
         if (evaluateIfPart(macros, node.ifPart)) {
           // Yuck! So much type casting in this file
-          path.replaceWith(
-            (node as PreprocessorConditionalNode).ifPart.body as AstNode
-          );
+          path.replaceWith(node.ifPart.body);
           // Keeping this commented out block in case I can find a way to
           // conditionally evaluate shaders
           // path.replaceWith({
@@ -501,12 +526,12 @@ const preprocessAst = (
               res ||
               (evaluteExpression(elif.expression, macros) &&
                 // path/visit hack to remove type error
-                (path.replaceWith(elif.body as AstNode), true)),
+                (path.replaceWith(elif.body as PreprocessorAstNode), true)),
             false
           );
           if (!elseBranchHit) {
             if (node.elsePart) {
-              path.replaceWith(node.elsePart.body as AstNode);
+              path.replaceWith(node.elsePart.body as PreprocessorAstNode);
             } else {
               path.remove();
             }
@@ -515,12 +540,14 @@ const preprocessAst = (
       },
     },
     text: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         path.node.text = expandMacros(path.node.text, macros);
       },
     },
     define_arguments: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         const {
           identifier: { identifier },
           body,
@@ -532,7 +559,8 @@ const preprocessAst = (
       },
     },
     define: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         const {
           identifier: { identifier },
           body,
@@ -549,13 +577,15 @@ const preprocessAst = (
       },
     },
     undef: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         delete macros[path.node.identifier.identifier];
         !preserveNode(path) && path.remove();
       },
     },
     error: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         if (options.stopOnError) {
           throw new Error(path.node.message);
         }
@@ -563,23 +593,27 @@ const preprocessAst = (
       },
     },
     pragma: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         !preserveNode(path) && path.remove();
       },
     },
     version: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         !preserveNode(path) && path.remove();
       },
     },
     extension: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         !preserveNode(path) && path.remove();
       },
     },
     // TODO: Causes a failure
     line: {
-      enter: (path) => {
+      enter: (initialPath) => {
+        const path = convertPath(initialPath);
         !preserveNode(path) && path.remove();
       },
     },

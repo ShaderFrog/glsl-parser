@@ -1,401 +1,73 @@
-// https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.40.pdf
-// https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf
+/**
+ * Peggyjs (formerly Peg.js) grammar for Khronos OpenGL ES 3.00. The Khronos
+ * grammar is not defined as a PEG grammar. This grammar makes the neccessary
+ * translations for PEG, like making sure productions are defined with specific
+ * ordering.
+ *
+ * Full grammar reference: https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.40.pdf
+ */
 
+// Global parser definitions, shared between all parsers
 {{
   // Apparently peggy can't handle an open curly brace in a string, see
   // https://github.com/pegjs/pegjs/issues/187
   const OPEN_CURLY = String.fromCharCode(123);
 
-  // Types (aka struct) scope
-  const addTypes = (scope, ...types) => {
-    types.forEach(([identifier, type]) => {
-      scope.types[identifier] = {
-        references: [type]
-      };
-    });
-  };
-  const addTypeReference = (scope, name, reference) => {
-    scope.types[name].references.push(reference);
-  };
-  const findTypeScope = (scope, typeName) => {
-    if(!scope) {
-      return null;
-    }
-    if(typeName in scope.types) {
-      return scope;
-    }
-    return findTypeScope(scope.parent, typeName);
-  }
-  const isDeclaredType = (scope, typeName) => findTypeScope(scope, typeName) !== null;
-
-  // Bindings (aka variables, parameters) scope
-  const createBindings = (scope, ...bindings) => {
-    bindings.forEach(([identifier, binding]) => {
-      const newBinding = scope.bindings[identifier] || { references: [] };
-      newBinding.initializer = binding;
-      newBinding.references.unshift(binding);
-      scope.bindings[identifier] = newBinding
-    });
-  };
-  const addBindingReference = (scope, name, reference) => {
-    // In the case of "float a = 1, b = a;" we parse the final "a" before the
-    // parent declarator list is parsed. So we might need to add the final "a"
-    // to the scope first.
-    const foundScope = findBindingScope(scope, name);
-    if(foundScope) {
-      // console.log(name, 'found in scope', foundScope);
-      foundScope.bindings[name].references.push(reference);
-    } else {
-      // console.log(name,'not found in current scope, creating binding in', scope);
-      createBindings(scope, [name, reference]);
-    }
-  };
-  const findBindingScope = (scope, name) => {
-    if(!scope) {
-      return null;
-    }
-    if(name in scope.bindings) {
-      return scope;
-    }
-    return findBindingScope(scope.parent, name);
-  }
-
-  // Function scope
-  const createFunction = (scope, name, declaration) => {
-    scope.functions[name] = { references: [declaration] }
-  };
-  const addFunctionReference = (scope, name, reference) => {
-    const global = findGlobalScope(scope);
-    if(name in global.functions) {
-      global.functions[name].references.push(reference);
-    } else {
-      createFunction(global, name, reference);
-    }
-  };
-  const findGlobalScope = scope => scope.parent ? findGlobalScope(scope.parent) : scope;
-  const isDeclaredFunction = (scope, fnName) => fnName in findGlobalScope(scope).functions;
-
-  // A "partial" is data that's computed as part of a production, but is then
-  // merged into some higher rule, and doesn't itself become a node.
-  const partial = (typeNameOrAttrs, attrs) => ({
-    partial:
-      attrs === undefined
-        ? typeNameOrAttrs
-        : {
-            type: typeNameOrAttrs,
-            ...attrs,
-          },
-  });
-
-  // Filter out "empty" elements from an array
-  const xnil = (...args) => args.flat().filter(e =>
-    e !== undefined && e !== null && e !== '' && e.length !== 0
-  )
-
-  // Given an array of nodes with potential null empty values, convert to text.
-  // Kind of like $(rule) but filters out empty rules
-  const toText = (...args) => xnil(args).join('');
-
-  const ifOnly = arr => arr.length > 1 ? arr : arr[0];
-
-  // Remove empty elements and return value if only 1 element remains
-  const collapse = (...args) => ifOnly(xnil(args));
-
-  // Create a left associative tree of nodes
-	const leftAssociate = (...nodes) =>
-    nodes.flat().reduce((current, [operator, expr]) => ({
-      type: 'binary',
-      operator,
-      left: current,
-      right: expr
-    }));
-
-
-  // From https://www.khronos.org/registry/OpenGL-Refpages/gl4/index.php
-  // excluding gl_ prefixed builtins, which don't appear to be functions
-  const builtIns = new Set([
-    'abs',
-    'acos',
-    'acosh',
-    'all',
-    'any',
-    'asin',
-    'asinh',
-    'atan',
-    'atanh',
-    'atomicAdd',
-    'atomicAnd',
-    'atomicCompSwap',
-    'atomicCounter',
-    'atomicCounterDecrement',
-    'atomicCounterIncrement',
-    'atomicExchange',
-    'atomicMax',
-    'atomicMin',
-    'atomicOr',
-    'atomicXor',
-    'barrier',
-    'bitCount',
-    'bitfieldExtract',
-    'bitfieldInsert',
-    'bitfieldReverse',
-    'ceil',
-    'clamp',
-    'cos',
-    'cosh',
-    'cross',
-    'degrees',
-    'determinant',
-    'dFdx',
-    'dFdxCoarse',
-    'dFdxFine',
-    'dFdy',
-    'dFdyCoarse',
-    'dFdyFine',
-    'distance',
-    'dot',
-    'EmitStreamVertex',
-    'EmitVertex',
-    'EndPrimitive',
-    'EndStreamPrimitive',
-    'equal',
-    'exp',
-    'exp2',
-    'faceforward',
-    'findLSB',
-    'findMSB',
-    'floatBitsToInt',
-    'floatBitsToUint',
-    'floor',
-    'fma',
-    'fract',
-    'frexp',
-    'fwidth',
-    'fwidthCoarse',
-    'fwidthFine',
-    'greaterThan',
-    'greaterThanEqual',
-    'groupMemoryBarrier',
-    'imageAtomicAdd',
-    'imageAtomicAnd',
-    'imageAtomicCompSwap',
-    'imageAtomicExchange',
-    'imageAtomicMax',
-    'imageAtomicMin',
-    'imageAtomicOr',
-    'imageAtomicXor',
-    'imageLoad',
-    'imageSamples',
-    'imageSize',
-    'imageStore',
-    'imulExtended',
-    'intBitsToFloat',
-    'interpolateAtCentroid',
-    'interpolateAtOffset',
-    'interpolateAtSample',
-    'inverse',
-    'inversesqrt',
-    'isinf',
-    'isnan',
-    'ldexp',
-    'length',
-    'lessThan',
-    'lessThanEqual',
-    'log',
-    'log2',
-    'matrixCompMult',
-    'max',
-    'memoryBarrier',
-    'memoryBarrierAtomicCounter',
-    'memoryBarrierBuffer',
-    'memoryBarrierImage',
-    'memoryBarrierShared',
-    'min',
-    'mix',
-    'mod',
-    'modf',
-    'noise',
-    'noise1',
-    'noise2',
-    'noise3',
-    'noise4',
-    'normalize',
-    'not',
-    'notEqual',
-    'outerProduct',
-    'packDouble2x32',
-    'packHalf2x16',
-    'packSnorm2x16',
-    'packSnorm4x8',
-    'packUnorm',
-    'packUnorm2x16',
-    'packUnorm4x8',
-    'pow',
-    'radians',
-    'reflect',
-    'refract',
-    'round',
-    'roundEven',
-    'sign',
-    'sin',
-    'sinh',
-    'smoothstep',
-    'sqrt',
-    'step',
-    'tan',
-    'tanh',
-    'texelFetch',
-    'texelFetchOffset',
-    'texture',
-    'textureGather',
-    'textureGatherOffset',
-    'textureGatherOffsets',
-    'textureGrad',
-    'textureGradOffset',
-    'textureLod',
-    'textureLodOffset',
-    'textureOffset',
-    'textureProj',
-    'textureProjGrad',
-    'textureProjGradOffset',
-    'textureProjLod',
-    'textureProjLodOffset',
-    'textureProjOffset',
-    'textureQueryLevels',
-    'textureQueryLod',
-    'textureSamples',
-    'textureSize',
-    'transpose',
-    'trunc',
-    'uaddCarry',
-    'uintBitsToFloat',
-    'umulExtended',
-    'unpackDouble2x32',
-    'unpackHalf2x16',
-    'unpackSnorm2x16',
-    'unpackSnorm4x8',
-    'unpackUnorm',
-    'unpackUnorm2x16',
-    'unpackUnorm4x8',
-    'usubBorrow',
-    // GLSL ES 1.00
-    'texture2D', 'textureCube'
-  ]);
+  const {
+    makeLocals,
+    collapse,
+    partial,
+    leftAssociate,
+    isDeclaredFunction,
+    findGlobalScope,
+    makeScopeIndex,
+    findTypeScope,
+    isDeclaredType,
+    findBindingScope,
+    extractConstant,
+    quantifiersSignature,
+    signature,
+    ifOnly,
+    xnil,
+    builtIns,
+  // This require() without a file extension is an intentional hack. For local
+  // development, this will find the TypeScript file grammar.ts. When publihsed
+  // to npm, it will find the compiled Javascript file grammar.js.
+  } = require('./grammar');
 }}
 
-// Per-parse initializations
+// Local parser code, unique to each invocation of the parser
 {
-  const getLocation = (loc) => {
-    // Try to avoid calling getLocation() more than neccessary
-    if(!options.includeLocation) {
-      return;
-    }
-    // Intentionally drop the "source" and "offset" keys from the location object
-    const { start, end } = loc || location();
-    return { start, end };
-  }
-
-  // getLocation() (and etc. functions) are not available in global scope, 
-  // so node() is moved to per-parse scope
-  const node = (type, attrs) => {
-    const n = {
-      type,
-      ...attrs,
-    }
-    if(options.includeLocation) {
-      n.location = getLocation();
-    }
-    return n;
+  const context = { 
+    options,
+    location,
+    text,
   };
-
-  const makeScope = (name, parent, startLocation) => {
-    let newLocation = getLocation(startLocation);
-
-    return {
-      name,
-      parent,
-      ...(newLocation ? { location: newLocation } : false),
-      bindings: {},
-      types: {},
-      functions: {},
-    };
-  };
-
-  const warn = (...args) => !options.quiet && console.warn(...args);
-
-  let scope = makeScope('global');
-  let scopes = [scope];
-
-  const pushScope = scope => {
-    // console.log('pushing scope at ',text());
-    scopes.push(scope);
-    return scope;
-  };
-  const popScope = scope => {
-    // console.log('popping scope at ',text());
-    if(!scope.parent) {
-      throw new Error('popped bad scope', scope, 'at', text());
-    }
-    return scope.parent;
-  };
-  const setScopeEnd = (scope, end) => {
-    if(options.includeLocation) {
-      if(!scope.location) {
-        console.error('no end location at', text());
-      }
-      scope.location.end = end;
-    }
-  };
-
-  // Group the statements in a switch statement into cases / default arrays
-  const groupCases = (statements) => statements.reduce((cases, stmt) => {
-    const partial = stmt.partial || {};
-    if(partial.type === 'case_label') {
-      return [
-        ...cases,
-        node(
-          'switch_case',
-          {
-            statements: [],
-            case: partial.case,
-            test: partial.test,
-            colon: partial.colon,
-          }
-        )
-      ];
-    } else if(partial.type === 'default_label') {
-      return [
-        ...cases,
-        node(
-          'default_case',
-          {
-            statements: [],
-            default: partial.default,
-            colon: partial.colon,
-          }
-        )
-      ];
-    // It would be nice to encode this in the grammar instead of a manual check
-    } else if(!cases.length) {
-      throw new Error('A switch statement body must start with a case or default label');
-    } else {
-      const tail = cases.slice(-1)[0];
-      return [...cases.slice(0, -1), {
-        ...tail,
-        statements: [
-          ...tail.statements,
-          stmt
-        ]
-      }];
-    }
-  }, []);
+  const { 
+    getLocation,
+    node,
+    makeScope,
+    warn,
+    pushScope,
+    popScope,
+    setScopeEnd,
+    createFunctionPrototype,
+    addFunctionCallReference,
+    createFunctionDefinition,
+    addTypeReference,
+    addTypeIfFound,
+    createType,
+    addOrCreateBindingReference,
+    createBindings,
+    groupCases
+  } = makeLocals(context);
 }
 
 // Entrypoint to parsing!
 start = wsStart:_ program:translation_unit {
   // Set the global scope end to the end of the program
-  setScopeEnd(scope, getLocation()?.end);
-  return node('program', { wsStart, program, scopes });
+  setScopeEnd(context.scope, getLocation()?.end);
+  return node('program', { wsStart, program, scopes: context.scopes });
 }
 
 // "compatibility profile only and vertex language only; same as in when in a
@@ -649,30 +321,11 @@ CARET = token:"^" _:_? { return node('literal', { literal: token, whitespace: _ 
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace: _ }); }
 
-IDENTIFIER = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, whitespace: _ }); }
-TYPE_NAME = !keyword ident:IDENTIFIER {
-  const { identifier } = ident;
-
-  // We do scope checking and parsing all in one pass. In the case of calling an
-  // undefined function, here, we don't know that we're in a function, so we
-  // can't warn appropriately. If we return false for the missing typename, the
-  // program won't parse, since the function call node won't match since it uses
-  // type_name for the function_identifier. So all we can do here is go on our
-  // merry way if the type isn't known.
-
-  // This only applies to structs. I'm not sure if it's right. Because TYPE_NAME
-  // is used in lots of places, it's easier to put this check here.
-  let found;
-  if(found = findTypeScope(scope, identifier)) {
-    addTypeReference(found, identifier, ident);
-  // I removed this because a type name reference here can't be renamed because
-  // it's just a string and we don't know the parent node. This might apply
-  // to the type reference above as well
-  // } else if(found = findFunctionScope(scope, identifier)) {
-    // addFunctionReference(found, identifier, identifier);
-  }
-  
-  return ident;
+IDENTIFIER = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? {
+  return node('identifier', { identifier, whitespace: _ });
+}
+TYPE_NAME = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? {
+  return node('type_name', { identifier, whitespace: _ });
 }
 
 // Integers
@@ -710,7 +363,7 @@ primary_expression "primary expression"
   }
   / ident:IDENTIFIER {
     const { identifier } = ident;
-    addBindingReference(scope, identifier, ident);
+    addOrCreateBindingReference(context.scope, identifier, ident);
     return ident;
   }
 
@@ -776,20 +429,30 @@ function_call
             // won't, so this will be null
             identifier.specifier.identifier;
 
-      const n = node('function_call', { ...identifierPartial, args, rp });
+      const n = node('function_call', { ...identifierPartial, args: args || [], rp });
 
-      // struct constructors are stored in scope types, not scope functions,
-      // skip them (the isDeclaredType check)
-      const isDeclared = isDeclaredFunction(scope, fnName);
+      // Scope check for function call
       if(
-        fnName && !isDeclaredType(scope, fnName) &&
-        // GLSL has built in functions that users can override
-        (isDeclared || !builtIns.has(fnName))
+        fnName &&
+        // You can override built-in functions like "noise", so only add "noise"
+        // to scope usage if it's declared by the user
+        (isDeclaredFunction(context.scope, fnName) || !builtIns.has(fnName))
       ) {
-        if(!isDeclared) {
-          warn(`Warning: Function "${fnName}" has not been declared`);
+        // Structs constructors look like function calls. If this is a struct,
+        // track it as such. Otherwise it becomes a function reference
+        if(isDeclaredType(context.scope, fnName)) {
+          if(identifier.type === 'type_specifier') {
+            addTypeReference(
+              context.scope,
+              fnName,
+              identifier.specifier
+            );
+          } else {
+            throw new Error(`Unknown function call identifier type ${identifier.type}. Please file a bug against @shaderfrog/glsl-parser and incldue your source grammar.`)
+          }
+        } else {
+          addFunctionCallReference(context.scope, fnName, n);
         }
-        addFunctionReference(scope, fnName, n);
       }
 
       return n;
@@ -1004,75 +667,87 @@ expression "expression"
 constant_expression
   = ternary_expression
 
-declaration_statement = declaration:declaration {
-  return node(
-    'declaration_statement',
-    {
-        declaration: declaration[0],
-        semi: declaration[1],
-      }
-  );
-}
-
 // Note the grammar allows prototypes inside function bodies, but:
 //  "Function declarations (prototypes) cannot occur inside of functions;
 //   they must be at global scope, or for the built-in functions, outside the
 //   global scope, otherwise a compile-time error results."
 
-// Don't factor out the semicolon from these lines up into
-// "declaration_statement". Doing so causes some productions to consume input
-// that's meant for a later production.
+// Each statement below has a semicolon it. This deviates from the grammar, but
+// is required at least for init_declarator_list_statement - otherwise the
+// type_specifier at the start of it consumes "fn" in "fn()", adds the type
+// "fn" to the type scope, then backtracks when it hits the semicolon, but has
+// a pollute scope.
 //
-// The "function_prototype SEMICOLON" was moved out of this list and into
-// function_prototype_no_new_scope, so that fn prototypes go first, then
+// "function_prototype" was moved out of this list and into
+// "function_prototype_no_new_scope", so that fn prototypes go first, then
 // functions, then declarations
-declaration
-  = function_prototype_no_new_scope SEMICOLON
-  // Statements starting with "precision", like "precision highp float"
-  / precision_declarator SEMICOLON
-  // Grouped in/out/uniform/buffer declarations with a { members } block after.
-  / interface_declarator SEMICOLON
-  // A statement starting with only qualifiers like "in precision a;"
-  / qualifier_declarator SEMICOLON
-  // Handles most identifiers. Interface declarator handles layout() {} blocks.
-  // init_declartor_list needs to come after it, otherwise it eats the layout
-  // part without handling the open brace after it
-  / init_declarator_list SEMICOLON
-
-qualifier_declarator =
-  qualifiers:type_qualifiers
-  head:IDENTIFIER?
-  tail:(COMMA IDENTIFIER)* {
+declaration_statement
+  = declaration:(
+    // Statements starting with "precision", like "precision highp float"
+    precision_declarator_statement
+    // Grouped in/out/uniform/buffer declarations with a { members } block after.
+    / interface_declarator_statement
+    // A statement starting with only qualifiers like "in precision a;"
+    / qualifier_declarator_statement
+    // Handles most identifiers. Interface declarator handles layout() {} blocks.
+    // init_declartor_list needs to come after it, otherwise it eats the layout
+    // part without handling the open brace after it
+    / init_declarator_list_statement
+  ) {
     return node(
-      'qualifier_declarator',
+      'declaration_statement',
       {
-        qualifiers,
-        // Head is optional, so remove falsey
-        declarations: xnil([head, ...tail.map(t => t[1])]),
-        commas: tail.map(t => t[0])
+        declaration: declaration.partial.node,
+        semi: declaration.partial.semi,
       }
     );
   }
 
-interface_declarator
+qualifier_declarator_statement =
+  qualifiers:type_qualifiers
+  head:IDENTIFIER?
+  tail:(COMMA IDENTIFIER)*
+  semi:SEMICOLON {
+    return partial({
+      node: node(
+        'qualifier_declarator',
+        {
+          qualifiers,
+          // Head is optional, so remove falsey
+          declarations: xnil([head, ...tail.map(t => t[1])]),
+          commas: tail.map(t => t[0])
+        }
+      ),
+      semi
+    });
+  }
+
+interface_declarator_statement
   = qualifiers:type_qualifiers
     interface_type:IDENTIFIER
     lp:LEFT_BRACE
     declarations:struct_declaration_list
     rp:RIGHT_BRACE
-    identifier:quantified_identifier? {
+    identifier:quantified_identifier? 
+    semi:SEMICOLON {
       const n = node(
         'interface_declarator',
         { qualifiers, interface_type, lp, declarations, rp, identifier }
       );
-      createBindings(scope, [interface_type.identifier, n]);
-      return n;
+      createBindings(context.scope, [interface_type.identifier, n]);
+      return partial({
+        node: n,
+        semi
+      });
     }
 
-precision_declarator "precision statement"
+precision_declarator_statement "precision statement"
   // As in "precision highp float"
-  = prefix:PRECISION qualifier:precision_qualifier specifier:type_specifier {
-    return node('precision', { prefix, qualifier, specifier });
+  = prefix:PRECISION qualifier:precision_qualifier specifier:type_specifier semi: SEMICOLON{
+    return partial({
+      node: node('precision', { prefix, qualifier, specifier }),
+      semi
+    });
   }
 
 function_prototype_new_scope "function prototype"
@@ -1083,9 +758,9 @@ function_prototype_new_scope "function prototype"
     // body.
     const bindings = (params?.parameters || [])
       // Ignore any param without an identifier, aka main(void)
-      .filter(p => !!p.declaration.identifier)
-      .map(p => [p.declaration.identifier.identifier, p]);
-    createBindings(scope, ...bindings)
+      .filter(p => !!p.identifier)
+      .map(p => [p.identifier.identifier, p]);
+    createBindings(context.scope, ...bindings)
 
     return node('function_prototype', { header, ...params, rp });
   }
@@ -1098,7 +773,7 @@ function_header_new_scope "function header"
         'function_header',
         { returnType, name, lp }
       );
-      scope = pushScope(makeScope(name.identifier, scope, lp.location));
+      context.scope = pushScope(makeScope(name.identifier, context.scope, lp.location));
       return n;
     }
 
@@ -1132,24 +807,17 @@ function_parameters "function parameters"
 // Parameter note: vec4[1] param and vec4 param[1] are equivalent
 parameter_declaration "parameter declaration"
   = qualifier:parameter_qualifier*
-    declaration:(parameter_declarator / type_specifier) {
+    specifier:type_specifier
+    declaration:(IDENTIFIER array_specifiers?)? {
       return node(
         'parameter_declaration',
-        { qualifier, declaration }
+        {
+          qualifier,
+          specifier,
+          identifier: declaration?.[0],
+          quantifier: declaration?.[1]
+        }
       );
-    }
-
-// Note array_specifier is "[const_expr]"
-parameter_declarator "parameter declarator"
-  = specifier:type_specifier
-    identifier:IDENTIFIER
-    quantifier:array_specifier? {
-      const n = node(
-        'parameter_declarator',
-        { specifier, identifier, quantifier }
-      );
-      // createBindings(scope, [identifier.identifier, n]);
-      return n;
     }
 
 // I added this because on page 114, it says formal parameters can only have
@@ -1159,31 +827,38 @@ parameter_declarator "parameter declarator"
 parameter_qualifier = CONST / IN / OUT / INOUT / memory_qualifier / precision_qualifier
 memory_qualifier = COHERENT / VOLATILE / RESTRICT / READONLY / WRITEONLY
 
-init_declarator_list
+init_declarator_list_statement
   = head:initial_declaration
     tail:(
       op:COMMA
       expr:subsequent_declaration
-    )* {
+    )*
+    semi:SEMICOLON {
       const declarations = [
         head.declaration, ...tail.map(t => t[1])
       ].filter(decl => !!decl.identifier);
 
-      createBindings(scope, ...declarations.map(decl => [decl.identifier.identifier, decl]));
+      addTypeIfFound(context.scope, head.specified_type);
 
-      return node(
-        'declarator_list',
-        {
-          specified_type: head.specified_type,
-          declarations,
-          commas: tail.map(t => t[0])
-        }
-      );
+      // initial_declaration also adds bindings to support "int a = 1, b = a;"
+      createBindings(context.scope, ...tail.map(t => t[1]).map(decl => [decl.identifier.identifier, decl]));
+
+      return partial({
+        node: node(
+          'declarator_list',
+          {
+            specified_type: head.specified_type,
+            declarations,
+            commas: tail.map(t => t[0])
+          }
+        ),
+        semi
+      });
     }
 
 subsequent_declaration
   = identifier:IDENTIFIER
-    quantifier:array_specifier?
+    quantifier:array_specifiers?
     suffix:(
       EQUAL initializer
     )? {
@@ -1194,17 +869,25 @@ subsequent_declaration
       );
   }
 
-// declaration > init_declarator_list > single_declaration
+// declaration > init_declarator_list
 initial_declaration
-  // Apparently "float;" is a legal statement. I have no idea why.
+  // The grammar allows for "float;" as a legal statement, because
+  // fully_specified_type is what holds struct_specifier, which lets you define
+  // a struct without an identifier.
   = specified_type:fully_specified_type
     suffix:(
-      IDENTIFIER array_specifier? (EQUAL initializer)?
+      IDENTIFIER array_specifiers? (EQUAL initializer)?
     )? {
       // No gaurantee of a suffix because fully_specified_type contains a
-      // type_specifier which includes structs and type_names (IDENTIFIERs)
+      // type_specifier which includes structs and type_names
       const [identifier, quantifier, suffix_tail] = suffix || [];
       const [operator, initializer] = suffix_tail || [];
+
+      // This production is used as part of init_declarator_list, where we also
+      // add bindings, but I add bindings here to support "int a = 1, b = a;"
+      if(identifier) {
+        createBindings(context.scope, [identifier.identifier, identifier]);
+      }
 
       // Break out the specified type so it can be grouped into the
       // declarator_list
@@ -1295,7 +978,7 @@ storage_qualifier "storage qualifier"
       }
 
 type_specifier "type specifier"
-  = specifier:type_specifier_nonarray quantifier:array_specifier? {
+  = specifier:type_specifier_nonarray quantifier:array_specifiers? {
     return node('type_specifier', { specifier, quantifier });
   }
 
@@ -1324,13 +1007,13 @@ type_specifier_nonarray "type specifier"
   / IMAGE2DMS / IIMAGE2DMS / UIMAGE2DMS / IMAGE2DMSARRAY / IIMAGE2DMSARRAY
   / UIMAGE2DMSARRAY / struct_specifier / TYPE_NAME
 
-array_specifier "array specifier"
+array_specifiers "array specifier"
   = specifiers:(
       lb:LEFT_BRACKET expression:constant_expression? rb:RIGHT_BRACKET {
         return node('array_specifier', { lb, expression, rb });
       }
     )+ {
-      return node('array_specifiers', { specifiers });
+      return specifiers;
     }
 
 precision_qualifier "precision qualifier"
@@ -1338,19 +1021,14 @@ precision_qualifier "precision qualifier"
 
 struct_specifier "struct specifier"
   = struct:STRUCT
-    typeName:IDENTIFIER?
+    typeName:TYPE_NAME?
     lb:LEFT_BRACE
     declarations:struct_declaration_list
     rb:RIGHT_BRACE {
       const n = node('struct', { lb, declarations, rb, struct, typeName });
       // Anonymous structs don't get a type name
       if(typeName) {
-        addTypes(scope, [typeName.identifier, n]);
-
-        // Struct names also become constructors for functions. Needing to track
-        // this as both a type and a function makes me think my scope data model
-        // is probably wrong
-        // addFunctionReference(scope, typeName.identifier, n);
+        createType(context.scope, typeName.identifier, n.typeName);
       }
       return n;
     }
@@ -1358,6 +1036,7 @@ struct_specifier "struct specifier"
 struct_declaration_list = (
     declaration:struct_declaration
     semi:SEMICOLON {
+      addTypeIfFound(context.scope, declaration.specified_type);
       return node('struct_declaration', { declaration, semi });
     }
   )+
@@ -1366,6 +1045,7 @@ struct_declaration
   = specified_type:fully_specified_type
     head:quantified_identifier
     tail:(COMMA quantified_identifier)* {
+      if(specified_type)
       return node(
         'struct_declarator', 
         {
@@ -1378,7 +1058,7 @@ struct_declaration
 
 // Fields inside of structs and interace blocks. They don't show up in scope
 quantified_identifier
-  = identifier:IDENTIFIER quantifier:array_specifier? {
+  = identifier:IDENTIFIER quantifier:array_specifiers? {
     return node('quantified_identifier', { identifier, quantifier });
   }
 
@@ -1414,22 +1094,23 @@ simple_statement
   / expression_statement
   / if_statement
   / switch_statement
+  // TODO: This does not end in semicolon and returns a partial :O
   / case_label
   / iteration_statement
 
 // { block of statements } that introduces a new scope
 compound_statement =
   lb:(sym:LEFT_BRACE {
-    scope = pushScope(makeScope(OPEN_CURLY, scope));
+    context.scope = pushScope(makeScope(OPEN_CURLY, context.scope));
     return sym;
   })
   statements:statement_list?
   rb:RIGHT_BRACE {
     // Use start of right bracket, so trailing whitespace is not counted towards
     // scope range
-    setScopeEnd(scope, rb.location?.start);
+    setScopeEnd(context.scope, rb.location?.start);
 
-    scope = popScope(scope);
+    context.scope = popScope(context.scope);
 
     return node(
       'compound_statement',
@@ -1513,7 +1194,7 @@ case_label
 
 iteration_statement "iteration statement"
   = whileSymbol:(sym:WHILE {
-      scope = pushScope(makeScope('while', scope));
+      context.scope = pushScope(makeScope('while', context.scope));
       return sym;
     })
     lp:LEFT_PAREN
@@ -1522,9 +1203,9 @@ iteration_statement "iteration statement"
     body:statement_no_new_scope {
       // use right bracket or fallback to location.end
       const end = body.rb ? body.rb.location?.start : body.location?.end;
-      setScopeEnd(scope, end);
+      setScopeEnd(context.scope, end);
       
-      scope = popScope(scope);
+      context.scope = popScope(context.scope);
 
       return node(
         'while_statement',
@@ -1560,7 +1241,7 @@ iteration_statement "iteration statement"
       );
     }
   / forSymbol:(sym:FOR {
-      scope = pushScope(makeScope('for', scope));
+      context.scope = pushScope(makeScope('for', context.scope));
       return sym;
     })
     lp:LEFT_PAREN
@@ -1574,9 +1255,9 @@ iteration_statement "iteration statement"
     rp:RIGHT_PAREN
     body:statement_no_new_scope {
       const end = body.rb ? body.rb.location?.start : body.location?.end;
-      setScopeEnd(scope, end);
+      setScopeEnd(context.scope, end);
       
-      scope = popScope(scope);
+      context.scope = popScope(context.scope);
 
       return node(
         'for_statement',
@@ -1606,7 +1287,7 @@ condition
         'condition_expression',
         { specified_type, identifier, operator, initializer }
       );
-      createBindings(scope, [identifier.identifier, n]);
+      createBindings(context.scope, [identifier.identifier, n]);
       return n;
     }
     / expression
@@ -1634,10 +1315,14 @@ preprocessor "prepocessor" = line:$('#' [^\n]*) _:_? { return node('preprocessor
 // Translation unit is start of grammar
 translation_unit = (external_declaration / preprocessor)+
 
-// Definitions without bodies, like "f(vec4, vec4);"
+// Definitions without bodies, like "void f(vec4, vec4);"
 function_prototype_statement = 
   declaration:function_prototype_no_new_scope semi:SEMICOLON {
-    addFunctionReference(scope, declaration.header.name.identifier, declaration);
+    (declaration.parameters || []).forEach(p => addTypeIfFound(context.scope, p.specifier));
+    addTypeIfFound(context.scope, declaration.header.returnType);
+
+    createFunctionPrototype(context.scope, declaration.header.name.identifier, declaration);
+    
     const n = node(
       'declaration_statement',
       {
@@ -1646,12 +1331,6 @@ function_prototype_statement =
         }
     );
     return n;
-  }
-
-function_prototype = 
-  fp:function_prototype_no_new_scope semi:SEMICOLON {
-    addFunctionReference(scope, fp.header.name.identifier, fp);
-    return [fp, semi];
   }
 
 // "function_prototype_statement" isn't in the grammar. It's removed from
@@ -1675,14 +1354,23 @@ external_declaration
 function_definition = 
   prototype:function_prototype_new_scope 
   body:compound_statement_no_new_scope {
-    
     const n = node('function', { prototype, body });
 
-    setScopeEnd(scope, body.rb.location?.start);
+    setScopeEnd(context.scope, body.rb.location?.start);
 
-    scope = popScope(scope);
+    context.scope = popScope(context.scope);
 
-    addFunctionReference(scope, prototype.header.name.identifier, n);
+    // Check the return type and parameters for any customer type usage. This
+    // has to be done in the global scope, even though function parameters are
+    // bound to the function scope, becuase the *types* come from the global
+    // scope. In:
+    //    void main(MyStruct x) { struct MyStruct {...} } 
+    // MyStruct is global, and shouldn't match the inner shadowing MyStruct, so
+    // the check for types has to be done after we pop the scope
+    (prototype.parameters || []).forEach(p => addTypeIfFound(context.scope, p.specifier));
+    addTypeIfFound(context.scope, prototype.header.returnType);
+
+    createFunctionDefinition(context.scope, prototype.header.name.identifier, n, n);
     return n;
   }
 
@@ -1699,7 +1387,9 @@ comment
   // can be followed by more multiline comments, or a single comment, and
   // collapse everything into one array
   / a:multiline_comment d:(
-    x:whitespace cc:comment { return xnil(x, cc); }
+    x:whitespace cc:comment {
+      return xnil(x, cc);
+    }
   )* { return xnil(a, d.flat()); }
 
 single_comment = $('//' [^\n]*)

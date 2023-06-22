@@ -1,2 +1,3 @@
 export * from './ast';
-export * from './node';
+export * from './visit';
+export * from './ast-types';
