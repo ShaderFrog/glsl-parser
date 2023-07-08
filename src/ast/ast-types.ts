@@ -9,7 +9,7 @@ import { Scope } from '../parser/scope';
 // The overall result of parsing, which incldues the AST and scopes
 export interface Program {
   type: 'program';
-  program: AstNode[];
+  program: (PreprocessorNode | DeclarationStatementNode | FunctionNode)[];
   scopes: Scope[];
   wsStart?: string;
   wsEnd?: string;
@@ -38,15 +38,45 @@ export type TypeQualifiers = (
 export type Semicolon = LiteralNode<';'>;
 export type Comma = LiteralNode<','>;
 
+// This is my best guess at what can be in an expression. It's probably wrong!
+export type Expression =
+  | LiteralNode
+  | KeywordNode
+  | IdentifierNode
+  | TypeNameNode
+  | ArraySpecifierNode
+  | AssignmentNode
+  | BinaryNode
+  | BoolConstantNode
+  | ConditionExpressionNode
+  | DefaultCaseNode
+  | DoubleConstantNode
+  | FieldSelectionNode
+  | FloatConstantNode
+  | FullySpecifiedTypeNode
+  | FunctionCallNode
+  | GroupNode
+  | InitializerListNode
+  | IntConstantNode
+  | PostfixNode
+  | PreprocessorNode
+  | QuantifiedIdentifierNode
+  | QuantifierNode
+  | SwitchCaseNode
+  | TernaryNode
+  | TypeSpecifierNode
+  | UintConstantNode
+  | UnaryNode;
+
 export interface LiteralNode<Literal = string> extends BaseNode {
   type: 'literal';
   literal: Literal;
   whitespace: Whitespace;
 }
 
-export interface KeywordNode extends BaseNode {
+export interface KeywordNode<Token = string> extends BaseNode {
   type: 'keyword';
-  token: string;
+  token: Token;
   whitespace: Whitespace;
 }
 
@@ -64,15 +94,17 @@ export interface TypeNameNode extends BaseNode {
 
 export interface ArraySpecifierNode extends BaseNode {
   type: 'array_specifier';
-  lb: LiteralNode;
-  expression: AstNode;
-  rb: LiteralNode;
+  lb: LiteralNode<'['>;
+  expression: Expression;
+  rb: LiteralNode<']'>;
 }
 
 export interface AssignmentNode extends BaseNode {
   type: 'assignment';
   left: AstNode;
-  operator: LiteralNode;
+  operator: LiteralNode<
+    '=' | '*=' | '/=' | '%=' | '+=' | '-=' | '<<="' | '>>=' | '&=' | '^=' | '|='
+  >;
   right: AstNode;
 }
 
@@ -91,15 +123,15 @@ export interface BoolConstantNode extends BaseNode {
 
 export interface BreakStatementNode extends BaseNode {
   type: 'break_statement';
-  break: KeywordNode;
+  break: KeywordNode<'break'>;
   semi: Semicolon;
 }
 
 export interface CompoundStatementNode extends BaseNode {
   type: 'compound_statement';
-  lb: LiteralNode;
+  lb: LiteralNode<'['>;
   statements: AstNode[];
-  rb: LiteralNode;
+  rb: LiteralNode<']'>;
 }
 
 export interface ConditionExpressionNode extends BaseNode {
@@ -112,8 +144,8 @@ export interface ConditionExpressionNode extends BaseNode {
 
 export interface ContinueStatementNode extends BaseNode {
   type: 'continue_statement';
-  continue: KeywordNode;
-  semi: LiteralNode<';'>;
+  continue: KeywordNode<'continue'>;
+  semi: Semicolon;
 }
 
 export interface DeclarationStatementNode extends BaseNode {
@@ -124,7 +156,7 @@ export interface DeclarationStatementNode extends BaseNode {
     | QualifierDeclaratorNode
     | DeclaratorListNode
     | FunctionHeaderNode;
-  semi: LiteralNode<';'>;
+  semi: Semicolon;
 }
 
 export interface DeclarationNode extends BaseNode {
@@ -138,31 +170,31 @@ export interface DeclarationNode extends BaseNode {
 export interface DeclaratorListNode extends BaseNode {
   type: 'declarator_list';
   specified_type: FullySpecifiedTypeNode;
-  declarations: AstNode[];
+  declarations: DeclarationNode[];
   commas: Comma[];
 }
 
 export interface DefaultCaseNode extends BaseNode {
   type: 'default_case';
   statements: [];
-  default: AstNode;
-  colon: LiteralNode;
+  default: KeywordNode<'default'>;
+  colon: LiteralNode<':'>;
 }
 
 export interface DiscardStatementNode extends BaseNode {
   type: 'discard_statement';
-  discard: KeywordNode;
+  discard: KeywordNode<'discard'>;
   semi: Semicolon;
 }
 
 export interface DoStatementNode extends BaseNode {
   type: 'do_statement';
-  do: KeywordNode;
+  do: KeywordNode<'do'>;
   body: AstNode;
-  while: KeywordNode;
-  lp: LiteralNode;
-  expression: AstNode;
-  rp: LiteralNode;
+  while: KeywordNode<'while'>;
+  lp: LiteralNode<'('>;
+  expression: Expression;
+  rp: LiteralNode<')'>;
   semi: Semicolon;
 }
 
@@ -174,7 +206,7 @@ export interface DoubleConstantNode extends BaseNode {
 
 export interface ExpressionStatementNode extends BaseNode {
   type: 'expression_statement';
-  expression: AstNode;
+  expression: Expression;
   semi: Semicolon;
 }
 
@@ -203,15 +235,15 @@ type SimpleStatement =
 
 export interface ForStatementNode extends BaseNode {
   type: 'for_statement';
-  for: KeywordNode;
+  for: KeywordNode<'for'>;
   body: CompoundStatementNode | SimpleStatement;
-  lp: LiteralNode;
+  lp: LiteralNode<'('>;
   init: AstNode;
   initSemi: Semicolon;
   condition: ConditionExpressionNode;
   conditionSemi: Semicolon;
   operation: AstNode;
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
 }
 
 export interface FullySpecifiedTypeNode extends BaseNode {
@@ -228,17 +260,17 @@ export interface FunctionNode extends BaseNode {
 
 export interface FunctionCallNode extends BaseNode {
   type: 'function_call';
-  identifier: AstNode;
-  lp: LiteralNode;
+  identifier: TypeSpecifierNode | PostfixNode;
+  lp: LiteralNode<'('>;
   args: AstNode[];
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
 }
 
 export interface FunctionHeaderNode extends BaseNode {
   type: 'function_header';
   returnType: FullySpecifiedTypeNode;
   name: IdentifierNode;
-  lp: LiteralNode;
+  lp: LiteralNode<'('>;
 }
 
 export interface FunctionPrototypeNode extends BaseNode {
@@ -246,32 +278,32 @@ export interface FunctionPrototypeNode extends BaseNode {
   header: FunctionHeaderNode;
   parameters: ParameterDeclarationNode[];
   commas: Comma[];
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
 }
 
 export interface GroupNode extends BaseNode {
   type: 'group';
-  lp: LiteralNode;
-  expression: AstNode;
-  rp: LiteralNode;
+  lp: LiteralNode<'('>;
+  expression: Expression;
+  rp: LiteralNode<')'>;
 }
 
 export interface IfStatementNode extends BaseNode {
   type: 'if_statement';
-  if: KeywordNode;
+  if: KeywordNode<'if'>;
   body: AstNode;
-  lp: LiteralNode;
+  lp: LiteralNode<'('>;
   condition: AstNode;
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
   else: AstNode[];
 }
 
 export interface InitializerListNode extends BaseNode {
   type: 'initializer_list';
-  lb: LiteralNode;
+  lb: LiteralNode<'['>;
   initializers: AstNode[];
   commas: Comma[];
-  rb: LiteralNode;
+  rb: LiteralNode<']'>;
 }
 
 export interface IntConstantNode extends BaseNode {
@@ -284,9 +316,9 @@ export interface InterfaceDeclaratorNode extends BaseNode {
   type: 'interface_declarator';
   qualifiers: TypeQualifiers;
   interface_type: IdentifierNode;
-  lp: LiteralNode;
+  lp: LiteralNode<'('>;
   declarations: AstNode;
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
   identifier?: QuantifiedIdentifierNode;
 }
 
@@ -294,21 +326,21 @@ export interface LayoutQualifierIdNode extends BaseNode {
   type: 'layout_qualifier_id';
   identifier: IdentifierNode;
   operator: LiteralNode;
-  expression: AstNode;
+  expression: Expression;
 }
 
 export interface LayoutQualifierNode extends BaseNode {
   type: 'layout_qualifier';
-  layout: KeywordNode;
-  lp: LiteralNode;
+  layout: KeywordNode<'layout'>;
+  lp: LiteralNode<'('>;
   qualifiers: LayoutQualifierIdNode[];
   commas: Comma[];
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
 }
 
 export interface ParameterDeclarationNode extends BaseNode {
   type: 'parameter_declaration';
-  qualifier: AstNode[];
+  qualifier: KeywordNode[];
   specifier: TypeSpecifierNode;
   identifier: IdentifierNode;
   quantifier: ArraySpecifierNode[];
@@ -316,14 +348,14 @@ export interface ParameterDeclarationNode extends BaseNode {
 
 export interface PostfixNode extends BaseNode {
   type: 'postfix';
-  expression: AstNode;
+  expression: Expression;
   postfix: AstNode;
 }
 
 export interface PrecisionNode extends BaseNode {
   type: 'precision';
-  prefix: KeywordNode;
-  qualifier: KeywordNode;
+  prefix: KeywordNode<'prefix'>;
+  qualifier: KeywordNode<'highp' | 'mediump' | 'lowp'>;
   specifier: TypeSpecifierNode;
 }
 
@@ -348,24 +380,24 @@ export interface QuantifiedIdentifierNode extends BaseNode {
 
 export interface QuantifierNode extends BaseNode {
   type: 'quantifier';
-  lb: LiteralNode;
-  expression: AstNode;
-  rb: LiteralNode;
+  lb: LiteralNode<'['>;
+  expression: Expression;
+  rb: LiteralNode<']'>;
 }
 
 export interface ReturnStatementNode extends BaseNode {
   type: 'return_statement';
-  return: KeywordNode;
-  expression: AstNode;
+  return: KeywordNode<'return'>;
+  expression: Expression;
   semi: Semicolon;
 }
 
 export interface StructNode extends BaseNode {
   type: 'struct';
-  lb: LiteralNode;
-  declarations: AstNode[];
-  rb: LiteralNode;
-  struct: KeywordNode;
+  lb: LiteralNode<'['>;
+  declarations: StructDeclarationNode[];
+  rb: LiteralNode<']'>;
+  struct: KeywordNode<'struct'>;
   typeName: TypeNameNode;
 }
 
@@ -384,39 +416,39 @@ export interface StructDeclaratorNode extends BaseNode {
 
 export interface SubroutineQualifierNode extends BaseNode {
   type: 'subroutine_qualifier';
-  subroutine: KeywordNode;
-  lp: LiteralNode;
+  subroutine: KeywordNode<'subroutine'>;
+  lp: LiteralNode<'('>;
   type_names: TypeNameNode[];
   commas: Comma[];
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
 }
 
 export interface SwitchCaseNode extends BaseNode {
   type: 'switch_case';
   statements: [];
-  case: AstNode;
+  case: KeywordNode<'case'>;
   test: AstNode;
-  colon: LiteralNode;
+  colon: LiteralNode<':'>;
 }
 
 export interface SwitchStatementNode extends BaseNode {
   type: 'switch_statement';
-  switch: KeywordNode;
-  lp: LiteralNode;
-  expression: AstNode;
-  rp: LiteralNode;
-  lb: LiteralNode;
+  switch: KeywordNode<'switch'>;
+  lp: LiteralNode<'('>;
+  expression: Expression;
+  rp: LiteralNode<')'>;
+  lb: LiteralNode<'['>;
   cases: AstNode[];
-  rb: LiteralNode;
+  rb: LiteralNode<']'>;
 }
 
 export interface TernaryNode extends BaseNode {
   type: 'ternary';
-  expression: AstNode;
-  question: LiteralNode;
+  expression: Expression;
+  question: LiteralNode<'?'>;
   left: AstNode;
   right: AstNode;
-  colon: LiteralNode;
+  colon: LiteralNode<':'>;
 }
 
 export interface TypeSpecifierNode extends BaseNode {
@@ -433,16 +465,16 @@ export interface UintConstantNode extends BaseNode {
 
 export interface UnaryNode extends BaseNode {
   type: 'unary';
-  operator: LiteralNode;
-  expression: AstNode;
+  operator: LiteralNode<'++' | '--' | '+' | '-' | '!' | '~'>;
+  expression: Expression;
 }
 
 export interface WhileStatementNode extends BaseNode {
   type: 'while_statement';
-  while: KeywordNode;
-  lp: LiteralNode;
+  while: KeywordNode<'while'>;
+  lp: LiteralNode<'('>;
   condition: AstNode;
-  rp: LiteralNode;
+  rp: LiteralNode<')'>;
   body: AstNode;
 }
 

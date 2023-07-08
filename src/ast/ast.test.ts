@@ -1,7 +1,7 @@
 import { AstNode, BinaryNode, IdentifierNode, LiteralNode } from './ast-types';
 import { visit } from './visit';
 
-const literal = (literal: string): LiteralNode => ({
+const literal = <T>(literal: T): LiteralNode<T> => ({
   type: 'literal',
   literal,
   whitespace: '',
