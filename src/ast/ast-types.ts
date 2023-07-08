@@ -6,6 +6,7 @@
 
 import { Scope } from '../parser/scope';
 
+// The overall result of parsing, which incldues the AST and scopes
 export interface Program {
   type: 'program';
   program: AstNode[];
@@ -14,6 +15,7 @@ export interface Program {
   wsEnd?: string;
 }
 
+// Optional source code location info, set by { includeLocation: true }
 export type LocationInfo = { offset: number; line: number; column: number };
 
 export type LocationObject = {
@@ -27,9 +29,18 @@ export interface BaseNode {
 
 type Whitespace = string | string[];
 
-export interface LiteralNode extends BaseNode {
+// Types reused across nodes
+export type TypeQualifiers = (
+  | KeywordNode
+  | SubroutineQualifierNode
+  | LayoutQualifierNode
+)[];
+export type Semicolon = LiteralNode<';'>;
+export type Comma = LiteralNode<','>;
+
+export interface LiteralNode<Literal = string> extends BaseNode {
   type: 'literal';
-  literal: string;
+  literal: Literal;
   whitespace: Whitespace;
 }
 
@@ -81,7 +92,7 @@ export interface BoolConstantNode extends BaseNode {
 export interface BreakStatementNode extends BaseNode {
   type: 'break_statement';
   break: KeywordNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface CompoundStatementNode extends BaseNode {
@@ -93,22 +104,27 @@ export interface CompoundStatementNode extends BaseNode {
 
 export interface ConditionExpressionNode extends BaseNode {
   type: 'condition_expression';
-  specified_type: AstNode;
+  specified_type: FullySpecifiedTypeNode;
   identifier: IdentifierNode;
   operator: LiteralNode;
-  initializer: AstNode;
+  initializer: InitializerListNode;
 }
 
 export interface ContinueStatementNode extends BaseNode {
   type: 'continue_statement';
   continue: KeywordNode;
-  semi: LiteralNode;
+  semi: LiteralNode<';'>;
 }
 
 export interface DeclarationStatementNode extends BaseNode {
   type: 'declaration_statement';
-  declaration: AstNode;
-  semi: LiteralNode;
+  declaration:
+    | PrecisionNode
+    | InterfaceDeclaratorNode
+    | QualifierDeclaratorNode
+    | DeclaratorListNode
+    | FunctionHeaderNode;
+  semi: LiteralNode<';'>;
 }
 
 export interface DeclarationNode extends BaseNode {
@@ -121,9 +137,9 @@ export interface DeclarationNode extends BaseNode {
 
 export interface DeclaratorListNode extends BaseNode {
   type: 'declarator_list';
-  specified_type: AstNode;
+  specified_type: FullySpecifiedTypeNode;
   declarations: AstNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
 }
 
 export interface DefaultCaseNode extends BaseNode {
@@ -136,7 +152,7 @@ export interface DefaultCaseNode extends BaseNode {
 export interface DiscardStatementNode extends BaseNode {
   type: 'discard_statement';
   discard: KeywordNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface DoStatementNode extends BaseNode {
@@ -147,7 +163,7 @@ export interface DoStatementNode extends BaseNode {
   lp: LiteralNode;
   expression: AstNode;
   rp: LiteralNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface DoubleConstantNode extends BaseNode {
@@ -159,7 +175,7 @@ export interface DoubleConstantNode extends BaseNode {
 export interface ExpressionStatementNode extends BaseNode {
   type: 'expression_statement';
   expression: AstNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface FieldSelectionNode extends BaseNode {
@@ -191,16 +207,16 @@ export interface ForStatementNode extends BaseNode {
   body: CompoundStatementNode | SimpleStatement;
   lp: LiteralNode;
   init: AstNode;
-  initSemi: LiteralNode;
+  initSemi: Semicolon;
   condition: ConditionExpressionNode;
-  conditionSemi: LiteralNode;
+  conditionSemi: Semicolon;
   operation: AstNode;
   rp: LiteralNode;
 }
 
 export interface FullySpecifiedTypeNode extends BaseNode {
   type: 'fully_specified_type';
-  qualifiers: AstNode[];
+  qualifiers?: TypeQualifiers;
   specifier: TypeSpecifierNode;
 }
 
@@ -229,7 +245,7 @@ export interface FunctionPrototypeNode extends BaseNode {
   type: 'function_prototype';
   header: FunctionHeaderNode;
   parameters: ParameterDeclarationNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
   rp: LiteralNode;
 }
 
@@ -254,7 +270,7 @@ export interface InitializerListNode extends BaseNode {
   type: 'initializer_list';
   lb: LiteralNode;
   initializers: AstNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
   rb: LiteralNode;
 }
 
@@ -266,8 +282,8 @@ export interface IntConstantNode extends BaseNode {
 
 export interface InterfaceDeclaratorNode extends BaseNode {
   type: 'interface_declarator';
-  qualifiers: AstNode;
-  interface_type: AstNode;
+  qualifiers: TypeQualifiers;
+  interface_type: IdentifierNode;
   lp: LiteralNode;
   declarations: AstNode;
   rp: LiteralNode;
@@ -285,8 +301,8 @@ export interface LayoutQualifierNode extends BaseNode {
   type: 'layout_qualifier';
   layout: KeywordNode;
   lp: LiteralNode;
-  qualifiers: AstNode[];
-  commas: LiteralNode[];
+  qualifiers: LayoutQualifierIdNode[];
+  commas: Comma[];
   rp: LiteralNode;
 }
 
@@ -319,9 +335,9 @@ export interface PreprocessorNode extends BaseNode {
 
 export interface QualifierDeclaratorNode extends BaseNode {
   type: 'qualifier_declarator';
-  qualifiers: AstNode[];
+  qualifiers: TypeQualifiers;
   declarations: IdentifierNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
 }
 
 export interface QuantifiedIdentifierNode extends BaseNode {
@@ -341,7 +357,7 @@ export interface ReturnStatementNode extends BaseNode {
   type: 'return_statement';
   return: KeywordNode;
   expression: AstNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface StructNode extends BaseNode {
@@ -356,14 +372,14 @@ export interface StructNode extends BaseNode {
 export interface StructDeclarationNode extends BaseNode {
   type: 'struct_declaration';
   declaration: StructDeclaratorNode;
-  semi: LiteralNode;
+  semi: Semicolon;
 }
 
 export interface StructDeclaratorNode extends BaseNode {
   type: 'struct_declarator';
   specified_type: FullySpecifiedTypeNode;
   declarations: QuantifiedIdentifierNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
 }
 
 export interface SubroutineQualifierNode extends BaseNode {
@@ -371,7 +387,7 @@ export interface SubroutineQualifierNode extends BaseNode {
   subroutine: KeywordNode;
   lp: LiteralNode;
   type_names: TypeNameNode[];
-  commas: LiteralNode[];
+  commas: Comma[];
   rp: LiteralNode;
 }
 
