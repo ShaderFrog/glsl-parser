@@ -85,7 +85,7 @@ const generators: NodeGenerators = {
   declaration: (node) =>
     generate(node.identifier) +
     generate(node.quantifier) +
-    generate(node.operator) +
+    generate(node.equal) +
     generate(node.initializer),
   declarator_list: (node) =>
     generate(node.specified_type) +

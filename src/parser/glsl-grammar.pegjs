@@ -835,10 +835,10 @@ init_declarator_list_statement
     )*
     semi:SEMICOLON {
       const declarations = [
-        head.declaration, ...tail.map(t => t[1])
+        head.partial.declaration, ...tail.map(t => t[1])
       ].filter(decl => !!decl.identifier);
 
-      addTypeIfFound(context.scope, head.specified_type);
+      addTypeIfFound(context.scope, head.partial.specified_type);
 
       // initial_declaration also adds bindings to support "int a = 1, b = a;"
       createBindings(context.scope, ...tail.map(t => t[1]).map(decl => [decl.identifier.identifier, decl]));
@@ -847,7 +847,7 @@ init_declarator_list_statement
         node: node(
           'declarator_list',
           {
-            specified_type: head.specified_type,
+            specified_type: head.partial.specified_type,
             declarations,
             commas: tail.map(t => t[0])
           }
@@ -862,10 +862,10 @@ subsequent_declaration
     suffix:(
       EQUAL initializer
     )? {
-      const [operator, initializer] = suffix || [];
+      const [equal, initializer] = suffix || [];
       return node(
         'declaration',
-        { identifier, quantifier, operator, initializer }
+        { identifier, quantifier, equal, initializer }
       );
   }
 
@@ -881,7 +881,7 @@ initial_declaration
       // No gaurantee of a suffix because fully_specified_type contains a
       // type_specifier which includes structs and type_names
       const [identifier, quantifier, suffix_tail] = suffix || [];
-      const [operator, initializer] = suffix_tail || [];
+      const [equal, initializer] = suffix_tail || [];
 
       // This production is used as part of init_declarator_list, where we also
       // add bindings, but I add bindings here to support "int a = 1, b = a;"
@@ -891,13 +891,13 @@ initial_declaration
 
       // Break out the specified type so it can be grouped into the
       // declarator_list
-      return {
+      return partial({
         declaration: node(
           'declaration',
-          { identifier, quantifier, operator, initializer }
+          { identifier, quantifier, equal, initializer }
         ),
         specified_type
-      };
+      });
   }
 
 fully_specified_type

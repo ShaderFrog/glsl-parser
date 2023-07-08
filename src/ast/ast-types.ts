@@ -163,8 +163,8 @@ export interface DeclarationNode extends BaseNode {
   type: 'declaration';
   identifier: IdentifierNode;
   quantifier: ArraySpecifierNode[];
-  operator: LiteralNode;
-  initializer: AstNode;
+  equal?: LiteralNode<'='>;
+  initializer?: AstNode;
 }
 
 export interface DeclaratorListNode extends BaseNode {
