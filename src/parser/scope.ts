@@ -27,7 +27,7 @@ export type FunctionOverloadDefinition = {
   returnType: string;
   parameterTypes: string[];
   declaration?: FunctionNode;
-  references: AstNode[];
+  references: (FunctionNode | FunctionCallNode | FunctionPrototypeNode)[];
 };
 export type FunctionOverloadIndex = {
   [signature: string]: FunctionOverloadDefinition;
@@ -206,7 +206,7 @@ export const functionUseSignature = (
 export const newOverloadIndex = (
   returnType: string,
   parameterTypes: string[],
-  firstReference: AstNode,
+  firstReference: FunctionNode | FunctionCallNode | FunctionPrototypeNode,
   declaration?: FunctionNode
 ): FunctionOverloadDefinition => ({
   returnType,
