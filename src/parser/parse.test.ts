@@ -1,4 +1,4 @@
-import { AstNode, TypeSpecifierNode, visit } from '../ast';
+import { AstNode, FunctionCallNode, TypeSpecifierNode, visit } from '../ast';
 import { buildParser, inspect } from './test-helpers';
 
 let c!: ReturnType<typeof buildParser>;
@@ -349,21 +349,18 @@ void main() {
   expect(ast.scopes[0].functions).not.toHaveProperty('texture2D');
   expect(ast.scopes[1].functions).not.toHaveProperty('texture2D');
 
-  let specifier: TypeSpecifierNode;
+  let call: FunctionCallNode;
   visit(ast, {
     function_call: {
       enter: (path) => {
-        inspect(path.node);
-        if (path.node.identifier.type === 'type_specifier') {
-          specifier = path.node.identifier;
-        }
+        call = path.node;
       },
     },
   });
 
-  // Builtins like texture2D should be recognized as a type_name since that's
+  // Builtins like texture2D should be recognized as a identifier since that's
   // how user defined functions are treated
-  expect(specifier!.specifier.type).toBe('type_name');
+  expect(call!.identifier.type).toBe('identifier');
 
   // Should not warn about built in function call being undefined
   expect(console.warn).not.toHaveBeenCalled();

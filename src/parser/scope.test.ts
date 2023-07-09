@@ -548,3 +548,14 @@ void a() {
   // Struct should get added to inner scope
   expect(ast.scopes[1].types).toHaveProperty('MyStruct');
 });
+
+test('postfix is added to scope', () => {
+  const ast = c.parseSrc(`
+void a() {}
+void main() {
+  float y = a().xyz;
+  float z = a().length();
+}`);
+  const a = Object.values(ast.scopes[0].functions.a)[0];
+  expect(a.references).toHaveLength(3);
+});

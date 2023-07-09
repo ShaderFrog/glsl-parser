@@ -79,6 +79,11 @@ export const renameFunctions = (
             node.identifier.specifier.identifier,
             node
           );
+        } else if (
+          node.type === 'function_call' &&
+          node.identifier.type === 'identifier'
+        ) {
+          node.identifier.identifier = mangle(node.identifier.identifier, node);
         } else {
           console.warn('Unknown function node to rename', node);
           throw new Error(`Function for type ${node.type} not recognized`);

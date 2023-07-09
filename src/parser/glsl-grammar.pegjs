@@ -5,6 +5,8 @@
  * ordering.
  *
  * Full grammar reference: https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.40.pdf
+ * Other helpful resources:
+ *  - The ANGLE GLSL Yacc grammar https://github.com/google/angle/blob/main/src/compiler/translator/glslang.y
  */
 
 // Global parser definitions, shared between all parsers
@@ -420,43 +422,83 @@ function_call
       // Identify the function name, if present. Note: The inner postfix branch
       // below probably means there's a discrepancy in how the postfix fn is
       // identified, depending on the prefix.
-      const fnName =
+      let fnIdentifier =
         identifier.type === 'postfix'
           ? identifier.expression.identifier
-            ? // Handles the case where the postfix is x().length()
-              identifier.expression.identifier.specifier.identifier
-            : // Handles the case where the postfix is x.length()
-              identifier.expression.specifier.identifier
-          : // Not a postfix, a normal function call. A function_call name is a
-            // "type_specifier" which can be "float[3](...)" or a TYPE_NAME. If
-            // it's a TYPE_NAME, it will have an identifier, so add it to the
-            // referenced scope. If it's a constructor (the "float" case) it
-            // won't, so this will be null
-            identifier.specifier.identifier;
+            // Handles the case where the postfix is x().length()
+            ? identifier.expression.identifier.specifier
+            // Handles the case where the postfix is x.length()
+            : identifier.expression.specifier
+          // Non-built-in-type (like "vec4") function call
+          : identifier.specifier;
+      
+      let fnName = fnIdentifier.identifier;
 
       const n = node('function_call', { ...identifierPartial, args: args || [], rp });
 
-      // Scope check for function call
-      if(
-        fnName &&
-        // You can override built-in functions like "noise", so only add "noise"
-        // to scope usage if it's declared by the user
-        (isDeclaredFunction(context.scope, fnName) || !builtIns.has(fnName))
-      ) {
-        // Structs constructors look like function calls. If this is a struct,
-        // track it as such. Otherwise it becomes a function reference
-        if(isDeclaredType(context.scope, fnName)) {
-          if(identifier.type === 'type_specifier') {
-            addTypeReference(
-              context.scope,
-              fnName,
-              identifier.specifier
-            );
+      const isDeclaredFn = isDeclaredFunction(context.scope, fnName);
+      const isBuiltIn = builtIns.has(fnName);
+      const isType = isDeclaredType(context.scope, fnName);
+
+      // fnName will be undefined here if the identifier is a keyword
+      // constructor (like "vec4()"). We don't care about scope/renaming in
+      // these cases
+      if(fnName) {
+        /*
+        * This complexity is from the intentional choice of the parser to allow
+        * for undeclared structs and functions, combined with the fact that
+        * struct names can be used as function constructors. There are two
+        * cases where this matters:
+        * 1. "MyStruct()" when MyStruct isn't defined
+        * 2. "texture2D()" which is a built-in function call
+        * In the Khronos grammar, the first case is supposed to fail, because
+        * when it checks TYPE_NAME, it doesn't find it declared, and then it
+        * moves on to the second case, which is what texture2D does. In the
+        * Khronos grammar, POSTFIX then catches the IDENTIFIER in both cases. In
+        * this parser, TYPE_NAME catches it, because it's ambiguous if this is
+        * a type or an identifier, since we alllow undefined types. Fortunately
+        * this is the only place in the grammar where a TYPE_NAME and IDENTIFIER
+        * could be used in the same place, so we only have to handle this here.
+        * 
+        * So once we define the function_call, we need to check if we really did
+        * hit a type name, or not, or a built in (like "texture2D()"), here
+        * we mutate the function header to be an identifier rather than a type.
+        */
+        if(!isType && fnIdentifier.type === 'type_name' && (!isDeclaredFn || isBuiltIn)) {
+            fnIdentifier = node('identifier', {
+              identifier: fnIdentifier.identifier,
+              whitespace: fnIdentifier.whitespace
+            });
+            if(n.identifier.type === 'postfix') {
+              n.identifier.expression.identifier = fnIdentifier;
+            } else {
+              n.identifier = fnIdentifier;
+            }
+        }
+        
+        // Now do the scope check
+        if(
+          // You can override built-in functions like "noise", so only add
+          // "noise" to scope usage if it's declared by the user
+          (isDeclaredFn || !isBuiltIn)
+        ) {
+          // Struct constructors look like function calls. If this is a struct,
+          // treat it as a type.
+          if(isType) {
+            if(identifier.type === 'type_specifier') {
+              addTypeReference(
+                context.scope,
+                fnName,
+                identifier.specifier
+              );
+            } else {
+              throw new Error(`Unknown function call identifier type ${
+                identifier.type
+              }. Please file a bug against @shaderfrog/glsl-parser and incldue your source grammar.`)
+            }
           } else {
-            throw new Error(`Unknown function call identifier type ${identifier.type}. Please file a bug against @shaderfrog/glsl-parser and incldue your source grammar.`)
+            addFunctionCallReference(context.scope, fnName, n);
           }
-        } else {
-          addFunctionCallReference(context.scope, fnName, n);
         }
       }
 
@@ -493,6 +535,9 @@ function_identifier
     / head:type_specifier suffix:function_suffix? lp:LEFT_PAREN {
       return partial({ head: [head, suffix], lp });
     }
+    // / head:IDENTIFIER lp:LEFT_PAREN {
+    //   return partial({ head: [head], lp });
+    // }
   ) {
     return partial({
       lp: identifier.partial.lp,
