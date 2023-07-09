@@ -324,6 +324,11 @@ QUESTION = token:"?" _:_? { return node('literal', { literal: token, whitespace:
 IDENTIFIER = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? {
   return node('identifier', { identifier, whitespace: _ });
 }
+
+// TODO: type_name is used at the end of "type_specifier_nonarray" which already
+// excludes many keywords. Is there an opportunity for speed-up here by inlining
+// a negative keyword predicate? And moving keywords into a Set and using & {}
+// predicate?
 TYPE_NAME = !keyword identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? {
   return node('type_name', { identifier, whitespace: _ });
 }

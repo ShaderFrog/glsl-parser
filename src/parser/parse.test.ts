@@ -1,4 +1,5 @@
-import { buildParser } from './test-helpers';
+import { AstNode, TypeSpecifierNode, visit } from '../ast';
+import { buildParser, inspect } from './test-helpers';
 
 let c!: ReturnType<typeof buildParser>;
 beforeAll(() => (c = buildParser()));
@@ -333,6 +334,39 @@ test('Locations with location disabled', () => {
   const ast = c.parseSrc(src); // default argument is no location information
   expect(ast.program[0].location).toBe(undefined);
   expect(ast.scopes[0].location).toBe(undefined);
+});
+
+test('built-in function names should be identified as keywords', () => {
+  console.warn = jest.fn();
+
+  const src = `
+void main() {
+  void x = texture2D();
+}`;
+  const ast = c.parseSrc(src);
+
+  // Built-ins should not appear in scope
+  expect(ast.scopes[0].functions).not.toHaveProperty('texture2D');
+  expect(ast.scopes[1].functions).not.toHaveProperty('texture2D');
+
+  let specifier: TypeSpecifierNode;
+  visit(ast, {
+    function_call: {
+      enter: (path) => {
+        inspect(path.node);
+        if (path.node.identifier.type === 'type_specifier') {
+          specifier = path.node.identifier;
+        }
+      },
+    },
+  });
+
+  // Builtins like texture2D should be recognized as a type_name since that's
+  // how user defined functions are treated
+  expect(specifier!.specifier.type).toBe('type_name');
+
+  // Should not warn about built in function call being undefined
+  expect(console.warn).not.toHaveBeenCalled();
 });
 
 test('Parser locations', () => {
