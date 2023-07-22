@@ -85,17 +85,17 @@ const generators: NodeGenerators = {
   declaration: (node) =>
     generate(node.identifier) +
     generate(node.quantifier) +
-    generate(node.operator) +
+    generate(node.equal) +
     generate(node.initializer),
   declarator_list: (node) =>
     generate(node.specified_type) +
     generateWithEveryOther(node.declarations, node.commas),
   type_specifier: (node) =>
     generate(node.specifier) + generate(node.quantifier),
-  array_specifiers: (node) => generate(node.specifiers),
   array_specifier: (node) =>
     generate(node.lb) + generate(node.expression) + generate(node.rb),
   identifier: (node) => node.identifier + generate(node.whitespace),
+  type_name: (node) => node.identifier + generate(node.whitespace),
   function_header: (node) =>
     generate(node.returnType) + generate(node.name) + generate(node.lp),
   function_prototype: (node) =>
@@ -107,7 +107,10 @@ const generators: NodeGenerators = {
       : '') +
     generate(node.rp),
   parameter_declaration: (node) =>
-    generate(node.qualifier) + generate(node.declaration),
+    generate(node.qualifier) +
+    generate(node.specifier) +
+    generate(node.identifier) +
+    generate(node.quantifier),
   compound_statement: (node) =>
     generate(node.lb) + generate(node.statements) + generate(node.rb),
   function: (node) => generate(node['prototype']) + generate(node.body),
@@ -116,10 +119,6 @@ const generators: NodeGenerators = {
     generate(node.lp) +
     generate(node.args) +
     generate(node.rp),
-  parameter_declarator: (node) =>
-    generate(node.specifier) +
-    generate(node.identifier) +
-    generate(node.quantifier),
   postfix: (node) => generate(node.expression) + generate(node.postfix),
   quantifier: (node) =>
     generate(node.lb) + generate(node.expression) + generate(node.rb),

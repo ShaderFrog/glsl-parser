@@ -28,10 +28,10 @@ npm install --save @shaderfrog/glsl-parser
 import { parser, generate } from '@shaderfrog/glsl-parser';
 
 // To parse a GLSL program's source code into an AST:
-const ast = parser.parse('float a = 1.0;');
+const program = parser.parse('float a = 1.0;');
 
 // To turn a parsed AST back into a source program
-const program = generate(ast);
+const transpiled = generate(program);
 ```
 
 The parser accepts an optional second `options` argument:
@@ -41,18 +41,24 @@ parser.parse('float a = 1.0;', options);
 
 Where `options` is:
 
-```js
-{
+```typescript
+type ParserOptions = {
   // Hide warnings. If set to false or not set, then the parser logs warnings
-  // like undefined functions and variables
-  quiet: boolean,
+  // like undefined functions and variables. If `failOnWarn` is set to true,
+  // warnings will still cause the parser to raise an error. Defaults to false.
+  quiet: boolean;
   // The origin of the GLSL, for debugging. For example, "main.js", If the
   // parser raises an error (specifically a GrammarError), and you call
-  // error.format([]) on it, the error shows { source: 'main.js', ... }
-  grammarSource: string,
+  // error.format([]) on it, the error shows { source: 'main.js', ... }.
+  // Defaults to null.
+  grammarSource: string;
   // If true, sets location information on each AST node, in the form of
-  // { column: number, line: number, offset: number }
-  includeLocation: boolean
+  // { column: number, line: number, offset: number }. Defaults to false.
+  includeLocation: boolean;
+  // If true, causes the parser to raise an error instead of log a warning.
+  // The parser does limited type checking, and things like undeclared variables
+  // are treated as warnings. Defaults to false.
+  failOnWarn: boolean;
 }
 ```
 
@@ -76,8 +82,8 @@ console.log(preprocess(`
 
 Where `options` is:
 
-```js
-{
+```typescript
+type PreprocessorOptions = {
   // Don't strip comments before preprocessing
   preserveComments: boolean,
   // Macro definitions to use when preprocessing
@@ -109,15 +115,97 @@ import {
 const commentsRemoved = preprocessComments(`float a = 1.0;`)
 
 // Parse the source text into an AST
-const ast = parser.parse(commentsRemoved);
+const program = parser.parse(commentsRemoved);
 
 // Then preproces it, expanding #defines, evaluating #ifs, etc
-preprocessAst(ast);
+preprocessAst(program);
 
 // Then convert it back into a program string, which can be passed to the
 // core glsl parser
-const preprocessed = preprocessorGenerate(ast);
+const preprocessed = preprocessorGenerate(program);
 ```
+
+## Scope
+
+`parse()` returns a [`Program`], which has a `scopes` array on it. A scope looks
+like:
+```typescript
+type Scope = {
+  name: string;
+  parent?: Scope;
+  bindings: ScopeIndex;
+  types: TypeScopeIndex;
+  functions: FunctionScopeIndex;
+  location?: LocationObject;
+}
+```
+
+The `name` of a scope is either `"global"`, the name of the function that
+introduced the scope, or in anonymous blocks, `"{"`. In each scope, `bindings` represents variables,
+`types` represents user-created types (structs in GLSL), and `functions` represents
+functions.
+
+For `bindings` and `types`, the scope index looks like:
+```typescript
+type ScopeIndex = {
+  [name: string]: {
+    declaration?: AstNode;
+    references: AstNode[];
+  }
+}
+```
+
+Where `name` is the name of the variable or type. `declaration` is the AST node
+where the variable was declared. In the case the variable is used without being
+declared, `declaration` won't be present. If you set the [`failOnWarn` parser
+option](#Parsing) to `true`, the parser will throw an error when encountering
+an undeclared variable, rather than allow a scope entry without a declaration.
+
+For `functions`, the scope index is slighty different:
+```typescript
+type FunctionScopeIndex = {
+  [name: string]: {
+    [signature: string]: {
+      returnType: string;
+      parameterTypes: string[];
+      declaration?: FunctionNode;
+      references: AstNode[];
+    }
+  }
+};
+```
+
+Where `name` is the name of the function, and `signature` is a string representing
+the function's return and parameter types, in the form of `"returnType: paramType1, paramType2, ..."`
+or `"returnType: void"` in the case of no arguments. Each `signature` in this
+index represents an "overloaded" function in GLSL, as in:
+
+```glsl
+void someFunction(int x) {};
+void someFunction(int x, int y) {};
+```
+
+With this source code, there will be two entries under `name`, one for each
+overload signature. The `references` are the uses of that specific overloaded
+version of the function. `references` also contains the function prototypes
+for the overloaded function, if present.
+
+In the case there is only one declaration for a function, there will still be
+a single entry under `name` with the function's `signature`.
+
+⚠️ Caution! This parser does very limited type checking. This leads to a known
+case where a function call can match to the wrong overload in scope:
+
+```glsl
+void someFunction(float, float);
+void someFunction(bool, bool);
+someFunction(true, true); // This will be attributed to the wrong scope entry
+```
+
+The parser doesn't know the type of the operands in the function call, so it
+matches based on the name and arity of the functions.
+
+See also [#Utility-Functions] for renaming scope references.
 
 ## Manipulating and Searching ASTs
 
@@ -283,7 +371,17 @@ and `#extension` have no effect, and can be fully preserved as part of parsing.
 
 # Local Development
 
-To run the tests (and do other things), you must first build the parser files
-using Peggy. Run `./build.sh` to generate these files.
-
 To work on the tests, run `npx jest --watch`.
+
+The GLSL grammar definition lives in `src/parser/glsl-grammar.pegjs`. Peggyjs
+supports inlining Javascript code in the `.pegjs` file to define utility
+functions, but that means you have to write in vanilla Javascript, which is
+terrible. Instead, I've pulled out utility functions into the `grammar.ts`
+entrypoint. Some functions need access to Peggy's local variables, like
+`location(s)`, so the `makeLocals()` function uses a closure to provide that
+access.
+
+To submit a change, please open a pull request. Tests are appreciated!
+
+See [the Github workflow](.github/workflows/main.yml) for the checks run against
+each PR.
