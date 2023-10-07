@@ -24,7 +24,6 @@ type Generator = (
 /**
  * Stringify an AST
  */
-// const makeGenerator = (generators: NodeGenerators): Generator => {
 // @ts-ignore
 const makeGeneratorPreprocessor = makeGenerator as (
   generators: NodePreprocessorGenerators

@@ -85,6 +85,41 @@ true
 `);
 });
 
+test('ifdef inside else is properly expanded', () => {
+  // Regression: Make sure #ifdef MACRO inside #else isn't expanded
+  const program = `
+#define MACRO
+#ifdef NOT_DEFINED
+  false
+#else
+  #ifdef MACRO
+____true
+  #endif
+#endif
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+____true
+`);
+});
+
+test('macro without body becoms empty string', () => {
+  // There is intentionally whitespace after MACRO to make sure it doesn't apply
+  // to the expansion-to-nothing
+  const program = `
+#define MACRO   
+fn(MACRO);
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+fn();
+`);
+});
+
 test('if expression', () => {
   const program = `
 #define A

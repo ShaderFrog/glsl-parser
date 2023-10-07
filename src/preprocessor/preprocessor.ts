@@ -1,7 +1,6 @@
 import { NodeVisitor, Path, visit } from '../ast/visit';
 import {
   PreprocessorAstNode,
-  PreprocessorConditionalNode,
   PreprocessorElseIfNode,
   PreprocessorIdentifierNode,
   PreprocessorIfNode,
@@ -175,7 +174,6 @@ const expandFunctionMacro = (
 
   while ((startMatch = startRegex.exec(current))) {
     const result = scanFunctionArgs(
-      // current.substr(startMatch.index + startMatch[0].length)
       current.substring(startMatch.index + startMatch[0].length)
     );
     if (result === null) {
@@ -188,7 +186,7 @@ const expandFunctionMacro = (
     );
     const { args, length: argLength } = result;
 
-    // The total lenth of the raw text to replace is the macro name in the
+    // The total length of the raw text to replace is the macro name in the
     // text (startMatch), plus the length of the arguments, plus one to
     // encompass the closing paren that the scan fn skips
     const matchLength = startMatch[0].length + argLength + 1;
@@ -251,8 +249,13 @@ const expandObjectMacro = (
   const regex = new RegExp(`\\b${macroName}\\b`, 'g');
   let expanded = text;
   if (regex.test(text)) {
+    // Macro definitions like
+    //     #define MACRO
+    // Have null for the body. Make it empty string if null to avoid 'null' expanded
+    const replacement = macro.body || '';
+
     const firstPass = tokenPaste(
-      text.replace(new RegExp(`\\b${macroName}\\b`, 'g'), macro.body)
+      text.replace(new RegExp(`\\b${macroName}\\b`, 'g'), replacement)
     );
     // Scan expanded text for more expansions. Ignore the expanded macro because
     // of the self-reference rule
@@ -278,7 +281,7 @@ const expandInExpressions = (
   macros: Macros,
   ...expressions: PreprocessorAstNode[]
 ) => {
-  expressions.filter(identity).forEach((expression) => {
+  expressions.forEach((expression) => {
     visitPreprocessedAst(expression, {
       unary_defined: {
         enter: (path) => {
@@ -496,20 +499,28 @@ const preprocessAst = (
           return;
         }
 
-        // Expand macros
+        // Expand macros in if/else *expressions* only. Macros are expanded in:
+        //     #if X + 1
+        //     #elif Y + 2
+        // But *not* in
+        //     # ifdef X
+        // Because X should not be expanded in the ifdef. Note that
+        //     # if defined(X)
+        // does have an expression, but the skip() in unary_defined prevents
+        // macro expansion in there. Checking for .expression and filtering out
+        // any conditionals without expressions is how ifdef is avoided.
+        // It's not great that ifdef is skipped differentaly than defined().
         expandInExpressions(
           macros,
-          // Expression might not exist, since ifPart can be #ifdef which
-          // doesn't have an expression key
-          (node.ifPart as PreprocessorIfNode).expression,
-          ...node.elseIfParts.map(
-            (elif: PreprocessorElseIfNode) => elif.expression
-          ),
-          node.elsePart?.body
+          ...[
+            (node.ifPart as PreprocessorIfNode).expression,
+            ...node.elseIfParts.map(
+              (elif: PreprocessorElseIfNode) => elif.expression
+            ),
+          ].filter(identity)
         );
 
         if (evaluateIfPart(macros, node.ifPart)) {
-          // Yuck! So much type casting in this file
           path.replaceWith(node.ifPart.body);
           // Keeping this commented out block in case I can find a way to
           // conditionally evaluate shaders
