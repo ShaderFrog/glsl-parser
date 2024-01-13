@@ -419,6 +419,14 @@ outside endif
 function_call line after program`);
 });
 
+test('different line breaks character', () => {
+  const program = '#ifndef x\rfloat a = 1.0;\r\n#endif';
+
+  const ast = parse(program);
+  const c = preprocessAst(ast);
+  expect(generate(ast)).toBe('float a = 1.0;\r\n');
+});
+
 /*
 test('debug', () => {
   const program = `

@@ -156,22 +156,22 @@ control_line "control line"
         return node('extension', { extension, name, colon, behavior });
       }
     )
-    wsEnd:[\n]? {
+    wsEnd:[\n\r]? {
       return { ...line, wsEnd };
     }
 
 // Any series of characters on the same line,
 // for example "abc 123" in "#define A abc 123"
-token_string "token string" = $([^\n]+)
+token_string "token string" = $([^\n\r]+)
 
 // Any non-control line. Ending newline for text is optional because program
 // might end on a non-newline
-text "text" = $(!(whitespace? "#") [^\n]+ [\n]? / [\n])
+text "text" = $(!(whitespace? "#") [^\n\r]+ [\n\r]? / [\n\r])
 
 conditional
   = ifPart:(
       ifLine:if_line
-      wsEnd:[\n]
+      wsEnd:[\n\r]
       body:text_or_control_lines? {
         return { ...ifLine, body, wsEnd };
       }
@@ -179,20 +179,20 @@ conditional
     elseIfParts:(
       token:ELIF
       expression:constant_expression
-      wsEnd: [\n]
+      wsEnd: [\n\r]
       elseIfBody:text_or_control_lines? {
         return node('elseif', { token, expression, wsEnd, body: elseIfBody });
       }
     )*
     elsePart:(
       token:ELSE
-      wsEnd: [\n]
+      wsEnd: [\n\r]
       elseBody:text_or_control_lines? {
         return node('else', { token, wsEnd, body: elseBody });
       }
     )?
     endif:ENDIF
-    wsEnd:[\n]? { // optional because the program can end with endif
+    wsEnd:[\n\r]? { // optional because the program can end with endif
       return node('conditional', { ifPart, elseIfParts, elsePart, endif, wsEnd, });
     }
 
@@ -339,7 +339,7 @@ comment
     x:whitespace cc:comment { return xnil(x, cc); }
   )* { return xnil(a, d.flat()); }
 
-single_comment = $('//' [^\n]*)
+single_comment = $('//' [^\n\r]*)
 multiline_comment = $("/*" inner:(!"*/" i:. { return i; })* "*/")
 
 whitespace "whitespace" = $[ \t]+
