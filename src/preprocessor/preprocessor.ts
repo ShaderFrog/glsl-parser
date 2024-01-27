@@ -77,8 +77,8 @@ const preprocessComments = (src: string): string => {
   let in_multi = 0;
 
   for (i = 0; i < src.length; i++) {
-    chr = src.substr(i, 1);
-    la = src.substr(i + 1, 1);
+    chr = src.substring(i, i + 1);
+    la = src.substring(i + 1, i + 2);
 
     // Enter single line comment
     if (chr == '/' && la == '/' && !in_single && !in_multi) {
