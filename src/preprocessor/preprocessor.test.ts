@@ -1,5 +1,4 @@
 import fs from 'fs';
-import path from 'path';
 import peggy from 'peggy';
 import util from 'util';
 import {
@@ -8,6 +7,7 @@ import {
   PreprocessorProgram,
 } from './preprocessor';
 import generate from './generator';
+import { GlslSyntaxError } from '../error';
 
 const fileContents = (filePath: string): string =>
   fs.readFileSync(filePath).toString();
@@ -36,6 +36,38 @@ const expectParsedProgram = (sourceGlsl: string) => {
 // test('pre test file', () => {
 //   expectParsedProgram(fileContents('./preprocess-test-grammar.glsl'));
 // });
+
+test('#preprocessComments', () => {
+  // Should strip comments and replace single-line comments with a single space
+  expect(
+    preprocessComments(`// ccc
+/* cc */aaa/* cc */
+/**
+ * cccc
+ */
+bbb
+`)
+  ).toBe(`
+ aaa 
+
+
+
+bbb
+`);
+});
+
+test('preprocessor error', () => {
+  let error: GlslSyntaxError | undefined;
+  try {
+    parse(`#if defined(#)`);
+  } catch (e) {
+    error = e as GlslSyntaxError;
+  }
+
+  expect(error).toBeInstanceOf(parser.SyntaxError);
+  expect(error!.location.start.line).toBe(1);
+  expect(error!.location.end.line).toBe(1);
+});
 
 test('preprocessor ast', () => {
   expectParsedProgram(`

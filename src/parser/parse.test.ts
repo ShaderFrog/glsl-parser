@@ -1,8 +1,25 @@
-import { AstNode, FunctionCallNode, TypeSpecifierNode, visit } from '../ast';
-import { buildParser, inspect } from './test-helpers';
+import { FunctionCallNode, visit } from '../ast';
+import { GlslSyntaxError } from '../error';
+import { buildParser } from './test-helpers';
 
 let c!: ReturnType<typeof buildParser>;
 beforeAll(() => (c = buildParser()));
+
+test('parse error', () => {
+  let error: GlslSyntaxError | undefined;
+  // Missing a semicolon
+  const text = `float a
+float b`;
+  try {
+    c.parse(text);
+  } catch (e) {
+    error = e as GlslSyntaxError;
+  }
+
+  expect(error).toBeInstanceOf(c.parser.SyntaxError);
+  expect(error!.location.start.line).toBe(2);
+  expect(error!.location.end.line).toBe(2);
+});
 
 test('declarations', () => {
   c.expectParsedProgram(`
