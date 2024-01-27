@@ -77,8 +77,8 @@ const preprocessComments = (src: string): string => {
   let in_multi = 0;
 
   for (i = 0; i < src.length; i++) {
-    chr = src.substr(i, 1);
-    la = src.substr(i + 1, 1);
+    chr = src.substring(i, i + 1);
+    la = src.substring(i + 1, i + 2);
 
     // Enter single line comment
     if (chr == '/' && la == '/' && !in_single && !in_multi) {
@@ -225,16 +225,16 @@ const expandFunctionMacro = (
 
     // Replace the use of the macro with the expansion
     const processed = current.replace(
-      current.substr(startMatch.index, matchLength),
+      current.substring(startMatch.index, startMatch.index + matchLength),
       expandedReplace
     );
     // Add text up to the end of the expanded macro to what we've procssed
-    expanded += processed.substr(0, endOfReplace);
+    expanded += processed.substring(0, endOfReplace);
 
     // Only work on the rest of the text, not what we already expanded. This is
     // to avoid a nested macro #define foo() foo() where we'll try to expand foo
     // forever. With this strategy, we expand foo() to foo() and move on
-    current = processed.substr(endOfReplace);
+    current = processed.substring(endOfReplace);
   }
 
   return expanded + current;

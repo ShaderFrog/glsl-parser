@@ -26,7 +26,8 @@ export const buildParser = () => {
   execSync(
     'npx peggy --cache -o src/parser/parser.js src/parser/glsl-grammar.pegjs'
   );
-  const parse = require('./parser').parse as Parse;
+  const parser = require('./parser');
+  const parse = parser.parse as Parse;
   const ps = parseSrc(parse);
   const ctx: Context = {
     parse,
@@ -34,6 +35,7 @@ export const buildParser = () => {
   };
   return {
     parse,
+    parser,
     parseSrc: ps,
     debugSrc: debugSrc(ctx),
     debugStatement: debugStatement(ctx),
