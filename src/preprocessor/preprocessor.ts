@@ -225,16 +225,16 @@ const expandFunctionMacro = (
 
     // Replace the use of the macro with the expansion
     const processed = current.replace(
-      current.substr(startMatch.index, matchLength),
+      current.substring(startMatch.index, startMatch.index + matchLength),
       expandedReplace
     );
     // Add text up to the end of the expanded macro to what we've procssed
-    expanded += processed.substr(0, endOfReplace);
+    expanded += processed.substring(0, endOfReplace);
 
     // Only work on the rest of the text, not what we already expanded. This is
     // to avoid a nested macro #define foo() foo() where we'll try to expand foo
     // forever. With this strategy, we expand foo() to foo() and move on
-    current = processed.substr(endOfReplace);
+    current = processed.substring(endOfReplace);
   }
 
   return expanded + current;
