@@ -3,7 +3,7 @@
   "engines": {
     "node": ">=16"
   },
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "A GLSL ES 1.0 and 3.0 parser and preprocessor that can preserve whitespace and comments",
   "scripts": {
     "prepare": "npm run build && ./prepublish.sh",
@@ -15,6 +15,7 @@
   "files": [
     "ast",
     "index.d.ts",
+    "error.d.ts",
     "index.js",
     "parser",
     "preprocessor"
