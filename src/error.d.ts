@@ -1,3 +1,11 @@
+/**
+ * This file is hand copied from peggy's peg.d.ts file so that end consumers
+ * of the GLSL parser can use the error type without me having to fully publish
+ * peggy as a dependency of this module.
+ *
+ * The primary exported type is GlslSyntaxError.
+ */
+
 /** Provides information pointing to a location within a source. */
 export interface Location {
   /** Line in the parsed source (1-based). */
@@ -91,7 +99,7 @@ export interface SourceText {
   text: string;
 }
 
-export interface SyntaxError extends Error {
+export interface GlslSyntaxError extends Error {
   /** Location where error was originated. */
   location: LocationRange;
   /**
