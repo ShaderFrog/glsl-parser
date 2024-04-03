@@ -1,6 +1,6 @@
-import generate from './parser/generator';
-import parser from './parser/parser';
+import generate from './parser/generator.js';
+import * as parser from './parser/parser.js';
 
-export type * from './error';
+export type * from './error.js';
 
 export { generate, parser };

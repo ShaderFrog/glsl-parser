@@ -4,7 +4,7 @@
  * *AstNode* types where I was lazy or didn't know the core type.
  */
 
-import { Scope } from '../parser/scope';
+import { Scope } from '../parser/scope.js';
 
 // The overall result of parsing, which incldues the AST and scopes
 export interface Program {

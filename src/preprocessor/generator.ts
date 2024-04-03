@@ -1,6 +1,6 @@
-import { makeGenerator, NodeGenerators } from '../ast';
-import { PreprocessorProgram } from './preprocessor';
-import { PreprocessorAstNode } from './preprocessor-node';
+import { makeGenerator, NodeGenerators } from '../ast/index.js';
+import { PreprocessorProgram } from './preprocessor.js';
+import { PreprocessorAstNode } from './preprocessor-node.js';
 
 type NodeGenerator<NodeType> = (node: NodeType) => string;
 

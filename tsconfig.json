@@ -9,14 +9,16 @@
     "lib": ["ESNext"],
 
     // Create ESM modules
-    "module": "esnext",
+    "module": "NodeNext",
     // Specify multiple folders that act like `./node_modules/@types`
     "typeRoots": [
       "node_modules/@types",
       "./preprocessor",
       "./parser"
-      ],          
-      
+    ],
+
+    "moduleResolution": "NodeNext",
+
     // Generate .d.ts files from TypeScript and JavaScript files in your project
     "declaration": true,
     // Specify an output folder for all emitted files.

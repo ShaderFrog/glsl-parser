@@ -1,4 +1,4 @@
-import { NodeVisitor, Path, visit } from '../ast/visit';
+import { NodeVisitor, Path, visit } from '../ast/visit.js';
 import {
   PreprocessorAstNode,
   PreprocessorElseIfNode,
@@ -6,7 +6,7 @@ import {
   PreprocessorIfNode,
   PreprocessorLiteralNode,
   PreprocessorSegmentNode,
-} from './preprocessor-node';
+} from './preprocessor-node.js';
 
 export type PreprocessorProgram = {
   type: string;

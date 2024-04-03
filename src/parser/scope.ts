@@ -9,8 +9,8 @@ import {
   FunctionNode,
   FunctionCallNode,
   TypeNameNode,
-} from '../ast';
-import { xor } from './utils';
+} from '../ast/index.js';
+import { xor } from './utils.js';
 
 export type TypeScopeEntry = {
   declaration?: TypeNameNode;

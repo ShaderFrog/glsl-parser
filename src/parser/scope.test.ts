@@ -1,7 +1,7 @@
-import generate from './generator';
-import { renameBindings, renameFunctions, renameTypes } from './utils';
-import { UNKNOWN_TYPE } from './grammar';
-import { buildParser, nextWarn } from './test-helpers';
+import generate from './generator.js';
+import { renameBindings, renameFunctions, renameTypes } from './utils.js';
+import { UNKNOWN_TYPE } from './grammar.js';
+import { buildParser, nextWarn } from './test-helpers.js';
 
 let c!: ReturnType<typeof buildParser>;
 beforeAll(() => (c = buildParser()));

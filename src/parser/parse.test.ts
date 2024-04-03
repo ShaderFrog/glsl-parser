@@ -1,6 +1,6 @@
-import { FunctionCallNode, visit } from '../ast';
-import { GlslSyntaxError } from '../error';
-import { buildParser } from './test-helpers';
+import { FunctionCallNode, visit } from '../ast/index.js';
+import { GlslSyntaxError } from '../error.js';
+import { buildParser } from './test-helpers.js';
 
 let c!: ReturnType<typeof buildParser>;
 beforeAll(() => (c = buildParser()));

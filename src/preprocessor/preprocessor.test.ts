@@ -5,9 +5,9 @@ import {
   preprocessComments,
   preprocessAst,
   PreprocessorProgram,
-} from './preprocessor';
-import generate from './generator';
-import { GlslSyntaxError } from '../error';
+} from './preprocessor.js';
+import generate from './generator.js';
+import { GlslSyntaxError } from '../error.js';
 
 const fileContents = (filePath: string): string =>
   fs.readFileSync(filePath).toString();

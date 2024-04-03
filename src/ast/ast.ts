@@ -1,4 +1,4 @@
-import type { AstNode, Program } from './ast-types';
+import type { AstNode, Program } from './ast-types.js';
 
 type NodeGenerator<NodeType> = (node: NodeType) => string;
 
