@@ -11,11 +11,7 @@
 
 // Global parser definitions, shared between all parsers
 {{
-  // Apparently peggy can't handle an open curly brace in a string, see
-  // https://github.com/pegjs/pegjs/issues/187
-  const OPEN_CURLY = String.fromCharCode(123);
-
-  const {
+  import {
     makeLocals,
     collapse,
     partial,
@@ -31,11 +27,12 @@
     signature,
     ifOnly,
     xnil,
-    builtIns,
-  // This require() without a file extension is an intentional hack. For local
-  // development, this will find the TypeScript file grammar.ts. When publihsed
-  // to npm, it will find the compiled Javascript file grammar.js.
-  } = require('./grammar.js');
+    builtIns
+  } from './grammar.js';
+
+  // Apparently peggy can't handle an open curly brace in a string, see
+  // https://github.com/pegjs/pegjs/issues/187
+  const OPEN_CURLY = String.fromCharCode(123);
 }}
 
 // Local parser code, unique to each invocation of the parser
