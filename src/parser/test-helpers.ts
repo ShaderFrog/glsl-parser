@@ -24,7 +24,7 @@ type Context = {
 
 export const buildParser = () => {
   execSync(
-    'npx peggy --cache -o src/parser/parser.js src/parser/glsl-grammar.pegjs'
+    'npx peggy --cache --format es -o src/parser/parser.js src/parser/glsl-grammar.pegjs'
   );
   const parser = require('./parser');
   const parse = parser.parse as Parse;
