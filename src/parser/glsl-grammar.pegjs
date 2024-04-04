@@ -35,7 +35,7 @@
   // This require() without a file extension is an intentional hack. For local
   // development, this will find the TypeScript file grammar.ts. When publihsed
   // to npm, it will find the compiled Javascript file grammar.js.
-  } = require('./grammar');
+  } = require('./grammar.js');
 }}
 
 // Local parser code, unique to each invocation of the parser
