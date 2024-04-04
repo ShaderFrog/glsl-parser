@@ -16,8 +16,8 @@ import {
   TypeNameNode,
   FullySpecifiedTypeNode,
   TypeSpecifierNode,
-} from '../ast';
-import { ParserOptions } from './parser';
+} from '../ast/index.js';
+import { ParserOptions } from './parser.js';
 import {
   Scope,
   findGlobalScope,
@@ -30,7 +30,7 @@ import {
   isDeclaredType,
   makeScopeIndex,
   findBindingScope,
-} from './scope';
+} from './scope.js';
 
 export {
   Scope,

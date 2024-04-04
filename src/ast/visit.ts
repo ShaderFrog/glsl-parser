@@ -1,4 +1,4 @@
-import type { AstNode, Program } from './ast-types';
+import type { AstNode, Program } from './ast-types.js';
 
 const isNode = (node: AstNode) => !!node?.type;
 const isTraversable = (node: any) => isNode(node) || Array.isArray(node);

@@ -1,3 +1,3 @@
-export * from './ast';
-export * from './visit';
-export * from './ast-types';
+export * from './ast.js';
+export * from './visit.js';
+export * from './ast-types.js';

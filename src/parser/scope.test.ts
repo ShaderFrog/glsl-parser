@@ -1,7 +1,7 @@
-import generate from './generator';
-import { renameBindings, renameFunctions, renameTypes } from './utils';
-import { UNKNOWN_TYPE } from './grammar';
-import { buildParser, nextWarn } from './test-helpers';
+import generate from './generator.js';
+import { renameBindings, renameFunctions, renameTypes } from './utils.js';
+import { UNKNOWN_TYPE } from './grammar.js';
+import { buildParser, nextWarn } from './test-helpers.js';
 
 let c!: ReturnType<typeof buildParser>;
 beforeAll(() => (c = buildParser()));
@@ -409,7 +409,7 @@ void x() {
   expect(ast.scopes[0].types).toMatchObject({});
   // Should have found one overload signature
   expect(ast.scopes[0].functions).toHaveProperty('main');
-  expect(ast.scopes[0].functions.main).toHaveProperty(signature);
+  expect(ast.scopes[0].functions.main).toHaveProperty([signature]);
   expect(Object.keys(ast.scopes[0].functions.main)).toHaveLength(1);
   // Should be declared with references
   expect(ast.scopes[0].functions.main[signature].declaration).toBeTruthy();
@@ -474,9 +474,9 @@ void x() {
   // undefined, and one for the unknown call
   expect(ast.scopes[0].functions).toHaveProperty('main');
   expect(Object.keys(ast.scopes[0].functions.main)).toHaveLength(3);
-  expect(ast.scopes[0].functions.main).toHaveProperty(defSig);
-  expect(ast.scopes[0].functions.main).toHaveProperty(undefSig);
-  expect(ast.scopes[0].functions.main).toHaveProperty(unknownSig);
+  expect(ast.scopes[0].functions.main).toHaveProperty([defSig]);
+  expect(ast.scopes[0].functions.main).toHaveProperty([undefSig]);
+  expect(ast.scopes[0].functions.main).toHaveProperty([unknownSig]);
 
   // Defined function has prototype, definition
   expect(ast.scopes[0].functions.main[defSig].declaration).toBeTruthy();

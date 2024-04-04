@@ -1,5 +1,10 @@
-import { AstNode, BinaryNode, IdentifierNode, LiteralNode } from './ast-types';
-import { visit } from './visit';
+import {
+  AstNode,
+  BinaryNode,
+  IdentifierNode,
+  LiteralNode,
+} from './ast-types.js';
+import { visit } from './visit.js';
 
 const literal = <T>(literal: T): LiteralNode<T> => ({
   type: 'literal',

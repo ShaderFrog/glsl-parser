@@ -1,10 +1,10 @@
 import { execSync } from 'child_process';
 import { GrammarError } from 'peggy';
 import util from 'util';
-import generate from './generator';
-import { AstNode, FunctionNode, Program } from '../ast';
-import { Parse, ParserOptions } from './parser';
-import { FunctionScopeIndex, Scope, ScopeIndex } from './scope';
+import generate from './generator.js';
+import { AstNode, FunctionNode, Program } from '../ast/index.js';
+import { Parse, ParserOptions } from './parser.js';
+import { FunctionScopeIndex, Scope, ScopeIndex } from './scope.js';
 
 export const inspect = (arg: any) =>
   console.log(util.inspect(arg, false, null, true));

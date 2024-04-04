@@ -1,5 +1,5 @@
-import type { AstNode } from '../ast';
-import { Scope } from './scope';
+import type { AstNode } from '../ast/index.js';
+import { Scope } from './scope.js';
 
 export const renameBindings = (
   scope: Scope,
