@@ -17,15 +17,7 @@
     partial,
     leftAssociate,
     isDeclaredFunction,
-    findGlobalScope,
-    makeScopeIndex,
-    findTypeScope,
     isDeclaredType,
-    findBindingScope,
-    extractConstant,
-    quantifiersSignature,
-    signature,
-    ifOnly,
     xnil,
     builtIns
   } from './grammar.js';
