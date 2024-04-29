@@ -455,8 +455,29 @@ test('different line breaks character', () => {
   const program = '#ifndef x\rfloat a = 1.0;\r\n#endif';
 
   const ast = parse(program);
-  const c = preprocessAst(ast);
+  preprocessAst(ast);
   expect(generate(ast)).toBe('float a = 1.0;\r\n');
+});
+
+test('generate #ifdef & #ifndef & #else', () => {
+  const program = `
+  #ifdef AA
+    float a;
+  #else
+    float b;
+  #endif
+
+  #ifndef CC
+    float c;
+  #endif
+
+  #if AA == 2
+    float d;
+  #endif
+  `;
+
+  const ast = parse(program);
+  expect(generate(ast)).toBe(program);
 });
 
 /*
