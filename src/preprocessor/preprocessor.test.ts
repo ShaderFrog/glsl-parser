@@ -431,12 +431,12 @@ function_call line after program`;
     //   // return identifier === 'A';
     // },
     preserve: {
-      conditional: (path) => false,
-      line: (path) => true,
-      error: (path) => true,
-      extension: (path) => true,
-      pragma: (path) => true,
-      version: (path) => true,
+      conditional: () => false,
+      line: () => true,
+      error: () => true,
+      extension: () => true,
+      pragma: () => true,
+      version: () => true,
     },
   });
   expect(generate(ast)).toBe(`
@@ -460,24 +460,21 @@ test('different line breaks character', () => {
 });
 
 test('generate #ifdef & #ifndef & #else', () => {
-  const program = `
-  #ifdef AA
-    float a;
-  #else
-    float b;
-  #endif
+  expectParsedProgram(`
+#ifdef AA
+  float a;
+#else
+  float b;
+#endif
 
-  #ifndef CC
-    float c;
-  #endif
+#ifndef CC
+  float c;
+#endif
 
-  #if AA == 2
-    float d;
-  #endif
-  `;
-
-  const ast = parse(program);
-  expect(generate(ast)).toBe(program);
+#if AA == 2
+  float d;
+#endif
+`);
 });
 
 /*
