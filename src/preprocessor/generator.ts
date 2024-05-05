@@ -60,9 +60,15 @@ const generators: NodePreprocessorGenerators = {
     generate(node.wsEnd) +
     generate(node.body),
   ifdef: (node) =>
-    generate(node.token) + generate(node.identifier) + generate(node.wsEnd) + generate(node.body),
+    generate(node.token) +
+    generate(node.identifier) +
+    generate(node.wsEnd) +
+    generate(node.body),
   ifndef: (node) =>
-    generate(node.token) + generate(node.identifier) + generate(node.wsEnd) + generate(node.body),
+    generate(node.token) +
+    generate(node.identifier) +
+    generate(node.wsEnd) +
+    generate(node.body),
   else: (node) =>
     generate(node.token) + generate(node.wsEnd) + generate(node.body),
   error: (node) =>
