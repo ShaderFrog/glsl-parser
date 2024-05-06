@@ -77,6 +77,7 @@ UNDEF = wsStart:_? token:"#undef" wsEnd:_? { return node('literal', { literal: t
 ERROR = wsStart:_? token:"#error" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 PRAGMA = wsStart:_? token:"#pragma" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 DEFINED = wsStart:_? token:"defined" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+DEFINED_WITH_END_WS = wsStart:_? token:"defined" wsEnd:whitespace { return node('literal', { literal: token, wsStart, wsEnd }); }
 IF = wsStart:_? token:"#if" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 IFDEF = wsStart:_? token:"#ifdef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 IFNDEF = wsStart:_? token:"#ifndef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
@@ -224,8 +225,8 @@ unary_expression "unary expression"
   = operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
     return node('unary_defined', { operator, lp, identifier, rp, });
   }
-  / operator:DEFINED identifier:IDENTIFIER {
-    return node('unary_defined', { operator, identifier, });
+  / operator:DEFINED_WITH_END_WS identifier:IDENTIFIER {
+    return node('unary_defined', { operator, identifier});
   }
   / operator:(PLUS / DASH / BANG / TILDE)
     expression:unary_expression {

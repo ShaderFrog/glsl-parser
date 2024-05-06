@@ -5,6 +5,7 @@ import {
   preprocessComments,
   preprocessAst,
   PreprocessorProgram,
+  visitPreprocessedAst,
 } from './preprocessor.js';
 import generate from './generator.js';
 import { GlslSyntaxError } from '../error.js';
@@ -477,11 +478,30 @@ test('generate #ifdef & #ifndef & #else', () => {
 `);
 });
 
-test('generate defined', () => {
+
+test('parse defined', () => {
   expectParsedProgram(`
-#if defined AAA  && defined(BBB)
+#if defined AAA && defined(BBB)&& definedCCC
 #endif
 `);
+});
+
+test('parse definedXXX', () => {
+  const program = `
+#if definedXXX
+#endif
+`;
+  const ast = parse(program);
+  visitPreprocessedAst(ast, {
+    conditional: {
+      enter: function (path) {
+        if (path.node.ifPart.type === 'if') {
+          expect(path.node.ifPart.expression.type).toBe('identifier');
+        }
+      }
+    }
+  });
+  expectParsedProgram(program);
 });
 
 /*
