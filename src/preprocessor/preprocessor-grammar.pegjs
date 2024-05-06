@@ -224,6 +224,9 @@ unary_expression "unary expression"
   = operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
     return node('unary_defined', { operator, lp, identifier, rp, });
   }
+  / operator:DEFINED identifier:IDENTIFIER {
+    return node('unary_defined', { operator, identifier, });
+  }
   / operator:(PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
       return node('unary', { operator, expression });

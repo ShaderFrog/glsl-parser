@@ -477,6 +477,13 @@ test('generate #ifdef & #ifndef & #else', () => {
 `);
 });
 
+test('generate defined', () => {
+  expectParsedProgram(`
+#if defined AAA  && defined(BBB)
+#endif
+`);
+});
+
 /*
 test('debug', () => {
   const program = `
