@@ -434,7 +434,7 @@ type VisitorOverride = (
 ) => void;
 
 // @ts-ignore
-const visitPreprocessedAst = visit as VisitorOverride;
+export const visitPreprocessedAst = visit as VisitorOverride;
 
 type PathOverride<NodeType> = {
   node: NodeType;
