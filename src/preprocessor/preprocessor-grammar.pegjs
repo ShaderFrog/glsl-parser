@@ -77,7 +77,7 @@ UNDEF = wsStart:_? token:"#undef" wsEnd:_? { return node('literal', { literal: t
 ERROR = wsStart:_? token:"#error" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 PRAGMA = wsStart:_? token:"#pragma" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 DEFINED = wsStart:_? token:"defined" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-DEFINED_WITH_END_WS = wsStart:_? token:"defined" wsEnd:whitespace { return node('literal', { literal: token, wsStart, wsEnd }); }
+DEFINED_WITH_END_WS = wsStart:_? token:"defined" wsEnd:__ { return node('literal', { literal: token, wsStart, wsEnd }); }
 IF = wsStart:_? token:"#if" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 IFDEF = wsStart:_? token:"#ifdef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
 IFNDEF = wsStart:_? token:"#ifndef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
@@ -327,10 +327,18 @@ logical_or_expression "logical or expression"
 // I added this as a maybe entry point to expressions
 constant_expression "constant expression" = logical_or_expression
 
+// Must have a space or a comment
+__ "whitespace or comment" = w:whitespace rest:(comment whitespace?)* {
+  return collapse(w, rest);
+}
+/ c:comment rest:(whitespace comment?)* {
+  return collapse(c, rest);
+}
+
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
-_ "whitespace or comment" = w:whitespace? rest:(comment whitespace?)* {
+_ "whitespace or comment or null" = w:whitespace? rest:(comment whitespace?)* {
   return collapse(w, rest);
 }
 

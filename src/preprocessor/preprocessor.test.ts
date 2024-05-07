@@ -5,7 +5,6 @@ import {
   preprocessComments,
   preprocessAst,
   PreprocessorProgram,
-  visitPreprocessedAst,
 } from './preprocessor.js';
 import generate from './generator.js';
 import { GlslSyntaxError } from '../error.js';
@@ -479,28 +478,21 @@ test('generate #ifdef & #ifndef & #else', () => {
 });
 
 
-test('parse defined', () => {
-  expectParsedProgram(`
-#if defined AAA && defined(BBB)&& definedCCC
-#endif
-`);
-});
-
-test('parse definedXXX', () => {
+test('parse defined && defined() && definedXXX', () => {
   const program = `
-#if definedXXX
+#if defined AAA && defined/**/BBB && defined/**/ CCC && definedXXX && defined(DDD)
 #endif
 `;
   const ast = parse(program);
-  visitPreprocessedAst(ast, {
-    conditional: {
-      enter: function (path) {
-        if (path.node.ifPart.type === 'if') {
-          expect(path.node.ifPart.expression.type).toBe('identifier');
-        }
-      }
-    }
-  });
+  const astStr = JSON.stringify(ast);
+  expect(astStr.includes('"identifier":"definedXXX"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"AAA"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"BBB"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"CCC"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"DDD"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"XXX"')).toBeFalsy();
+  expect(astStr.match(/unary_defined/g)?.length).toBe(4);
+
   expectParsedProgram(program);
 });
 
