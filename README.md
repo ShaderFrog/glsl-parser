@@ -24,7 +24,7 @@ npm install --save @shaderfrog/glsl-parser
 
 ## Parsing
 
-```javascript
+```typescript
 import { parser, generate } from '@shaderfrog/glsl-parser';
 
 // To parse a GLSL program's source code into an AST:
@@ -71,7 +71,7 @@ operator, and `#if` expressions can only operate on integer constants, not other
 types of data. The Shaderfrog GLSL preprocessor can't be used as a C/C++
 preprocessor without modification.
 
-```javascript
+```typescript
 import preprocess from '@shaderfrog/glsl-parser/preprocessor';
 
 // Preprocess a program
@@ -104,7 +104,7 @@ A preprocessed program string can be handed off to the main GLSL parser.
 If you want more  control over preprocessing, the `preprocess` function above is
 a convenience method for approximately the following:
 
-```javascript
+```typescript
 import {
   preprocessAst,
   preprocessComments,
@@ -116,14 +116,14 @@ import {
 const commentsRemoved = preprocessComments(`float a = 1.0;`)
 
 // Parse the source text into an AST
-const program = parser.parse(commentsRemoved);
+const ast = parser.parse(commentsRemoved);
 
 // Then preproces it, expanding #defines, evaluating #ifs, etc
-preprocessAst(program);
+preprocessAst(ast);
 
 // Then convert it back into a program string, which can be passed to the
 // core glsl parser
-const preprocessed = preprocessorGenerate(program);
+const preprocessed = generate(ast);
 ```
 
 ## Scope
@@ -275,7 +275,7 @@ The Shaderfrog parser provides a AST visitor function for manipulating and
 searching an AST. The visitor API loosely follows the [Babel visitor API](https://github.com/jamiebuilds/babel-handbook/blob/master/translations/en/plugin-handbook.md#toc-visitors). A visitor object looks
 like:
 
-```javascript
+```typescript
 const visitors = {
   function_call: {
     enter: (path) => {},
@@ -339,6 +339,20 @@ visit(ast, {
   }
 });
 console.log('There are ', numberOfFunctionCalls, 'function calls');
+```
+
+You can also visit the preprocessed AST with `visitPreprocessedAst`. Visitors
+follow the same convention outlined above.
+
+```typescript
+import {
+  parser,
+  visitPreprocessedAst,
+} from '@shaderfrog/glsl-parser/preprocessor';
+
+// Parse the source text into an AST
+const ast = parser.parse(`float a = 1.0;`);
+visitPreprocessedAst(ast, visitors);
 ```
 
 ### Utility Functions

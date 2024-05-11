@@ -70,22 +70,21 @@ CARET = token:"^" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 COLON = token:":" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 
-DEFINE = wsStart:_? token:"#define" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-INCLUDE = wsStart:_? token:"#include" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-LINE = wsStart:_? token:"#line" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-UNDEF = wsStart:_? token:"#undef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-ERROR = wsStart:_? token:"#error" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-PRAGMA = wsStart:_? token:"#pragma" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-DEFINED = wsStart:_? token:"defined" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-DEFINED_WITH_END_WS = wsStart:_? token:"defined" wsEnd:__ { return node('literal', { literal: token, wsStart, wsEnd }); }
-IF = wsStart:_? token:"#if" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-IFDEF = wsStart:_? token:"#ifdef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-IFNDEF = wsStart:_? token:"#ifndef" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-ELIF = wsStart:_? token:"#elif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-ELSE = wsStart:_? token:"#else" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-ENDIF = wsStart:_? token:"#endif" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-VERSION = wsStart:_? token:"#version" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
-EXTENSION = wsStart:_? token:"#extension" wsEnd:_? { return node('literal', { literal: token, wsStart, wsEnd }); }
+DEFINE = wsStart:_? token:"#define" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+INCLUDE = wsStart:_? token:"#include" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+LINE = wsStart:_? token:"#line" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+UNDEF = wsStart:_? token:"#undef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ERROR = wsStart:_? token:"#error" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+PRAGMA = wsStart:_? token:"#pragma" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+DEFINED = wsStart:_? token:"defined" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IF = wsStart:_? token:"#if" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFDEF = wsStart:_? token:"#ifdef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFNDEF = wsStart:_? token:"#ifndef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELIF = wsStart:_? token:"#elif" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELSE = wsStart:_? token:"#else" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ENDIF = wsStart:_? token:"#endif" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+VERSION = wsStart:_? token:"#version" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+EXTENSION = wsStart:_? token:"#extension" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
 
 IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, wsEnd: _ }); }
 IDENTIFIER_NO_WS = identifier:$([A-Za-z_] [A-Za-z_0-9]*) { return node('identifier', { identifier }); }
@@ -222,11 +221,8 @@ primary_expression "primary expression"
 unary_expression "unary expression"
   // "defined" is a unary operator, it can appear with optional parens. I'm not
   // sure if it makes sense to have it in the unary_expression section
-  = operator:DEFINED lp:LEFT_PAREN identifier:IDENTIFIER rp:RIGHT_PAREN {
+  = operator:DEFINED lp:LEFT_PAREN? identifier:IDENTIFIER rp:RIGHT_PAREN? {
     return node('unary_defined', { operator, lp, identifier, rp, });
-  }
-  / operator:DEFINED_WITH_END_WS identifier:IDENTIFIER {
-    return node('unary_defined', { operator, identifier});
   }
   / operator:(PLUS / DASH / BANG / TILDE)
     expression:unary_expression {
@@ -327,18 +323,10 @@ logical_or_expression "logical or expression"
 // I added this as a maybe entry point to expressions
 constant_expression "constant expression" = logical_or_expression
 
-// Must have a space or a comment
-__ "whitespace or comment" = w:whitespace rest:(comment whitespace?)* {
-  return collapse(w, rest);
-}
-/ c:comment rest:(whitespace comment?)* {
-  return collapse(c, rest);
-}
-
 // The whitespace is optional so that we can put comments immediately after
 // terminals, like void/* comment */
 // The ending whitespace is so that linebreaks can happen after comments
-_ "whitespace or comment or null" = w:whitespace? rest:(comment whitespace?)* {
+_ "whitespace or comment" = w:whitespace? rest:(comment whitespace?)* {
   return collapse(w, rest);
 }
 
@@ -355,3 +343,5 @@ single_comment = $('//' [^\n\r]*)
 multiline_comment = $("/*" inner:(!"*/" i:. { return i; })* "*/")
 
 whitespace "whitespace" = $[ \t]+
+
+terminal = ![A-Za-z_0-9] _:_? { return _; }
