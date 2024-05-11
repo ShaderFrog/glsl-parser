@@ -81,7 +81,7 @@ before if
       #if A == 1 || B == 2
       inside if
       #define A
-          #elif A == 1 || defined(B) && C == 2
+          #elif A == 1 || defined B && C == 2
           float a;
           #elif A == 1 || defined(B) && C == 2
           float a;
@@ -159,7 +159,7 @@ before if
 #if !defined(A) && (defined(B) && C == 2)
 inside first if
 #endif
-#if ((defined(B) && C == 2) || defined(A))
+#if ((defined B && C == 2) || defined(A))
 inside second if
 #endif
 after if
@@ -477,23 +477,35 @@ test('generate #ifdef & #ifndef & #else', () => {
 `);
 });
 
-
-test('parse defined && defined() && definedXXX', () => {
+test('test macro with "defined" at start of name', () => {
   const program = `
-#if defined AAA && defined/**/BBB && defined/**/ CCC && definedXXX && defined(DDD)
+#define definedX 1
+#if defined(definedX) && defined definedX && definedX 
+true
 #endif
 `;
-  const ast = parse(program);
-  const astStr = JSON.stringify(ast);
-  expect(astStr.includes('"identifier":"definedXXX"')).toBeTruthy();
-  expect(astStr.includes('"identifier":"AAA"')).toBeTruthy();
-  expect(astStr.includes('"identifier":"BBB"')).toBeTruthy();
-  expect(astStr.includes('"identifier":"CCC"')).toBeTruthy();
-  expect(astStr.includes('"identifier":"DDD"')).toBeTruthy();
-  expect(astStr.includes('"identifier":"XXX"')).toBeFalsy();
-  expect(astStr.match(/unary_defined/g)?.length).toBe(4);
-
   expectParsedProgram(program);
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+true
+`);
+});
+
+test('inline comments in if statement expression', () => {
+  const program = `
+#define AAA
+#define BBB
+#if defined/**/AAA && defined/**/ BBB
+true
+#endif
+`;
+  expectParsedProgram(program);
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+true
+`);
 });
 
 /*
