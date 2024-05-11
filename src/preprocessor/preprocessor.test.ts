@@ -477,6 +477,25 @@ test('generate #ifdef & #ifndef & #else', () => {
 `);
 });
 
+
+test('parse defined && defined() && definedXXX', () => {
+  const program = `
+#if defined AAA && defined/**/BBB && defined/**/ CCC && definedXXX && defined(DDD)
+#endif
+`;
+  const ast = parse(program);
+  const astStr = JSON.stringify(ast);
+  expect(astStr.includes('"identifier":"definedXXX"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"AAA"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"BBB"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"CCC"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"DDD"')).toBeTruthy();
+  expect(astStr.includes('"identifier":"XXX"')).toBeFalsy();
+  expect(astStr.match(/unary_defined/g)?.length).toBe(4);
+
+  expectParsedProgram(program);
+});
+
 /*
 test('debug', () => {
   const program = `

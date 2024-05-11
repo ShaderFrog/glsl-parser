@@ -3,6 +3,7 @@ import {
   preprocessAst,
   preprocessComments,
   PreprocessorOptions,
+  visitPreprocessedAst,
 } from './preprocessor.js';
 
 // This index file is currently only for package publishing, where the whole
@@ -20,4 +21,4 @@ const preprocess = (src: string, options: PreprocessorOptions) =>
 
 export default preprocess;
 
-export { preprocessAst, preprocessComments, generate, preprocess, parser };
+export { preprocessAst, preprocessComments, generate, preprocess, parser, visitPreprocessedAst };
