@@ -5,9 +5,9 @@ GLSL 1.00 and 3.00 parser and preprocessor that compiles [back to
 GLSL](src/parser/generator.ts). Both the parser and preprocessor can preserve
 comments and whitespace.
 
-The parser uses PEG grammar via the Peggy Javascript library. The PEG grammars
-for both the preprocessor and main parser are in the source code [on
-Github](https://github.com/ShaderFrog/glsl-parser).
+The parser uses PEG grammar via the [Peggy](https://peggyjs.org) Javascript
+library. The PEG grammars for both the preprocessor and main parser are in the
+source code [on Github](https://github.com/ShaderFrog/glsl-parser).
 
 See [the state of this library](#state-of-this-library) for limitations and
 goals of this compiler.
@@ -16,16 +16,16 @@ goals of this compiler.
 
 - [Installation](#installation)
 - [Parsing](#parsing)
-- [The program type](#the-program-type)
+  - [The program type](#the-program-type)
+  - [Scope](#scope)
+  - [Errors](#errors)
 - [Preprocessing](#preprocessing)
-- [Scope](#scope)
-- [Errors](#errors)
 - [Manipulating and Searching ASTs](#manipulating-and-searching-asts)
   - [Visitors](#visitors)
   - [Utility Functions](#utility-functions)
 - [What are "parsing" and "preprocessing"?](#what-are-parsing-and-preprocessing)
 - [State of this library](#state-of-this-library)
-- [Limitations of the Parser and Preprocessor](#limitations-of-the-parser-and-preprocessor)
+  - [Limitations of the Parser and Preprocessor](#limitations-of-the-parser-and-preprocessor)
 - [Local Development](#local-development)
 
 # Usage
