@@ -115,7 +115,7 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
       }
     }
 
-    const toTraverse = path.replaced ?? node;
+    const toTraverse = (path.replaced as AstNode | undefined) ?? node;
     const newPath = path.replaced
       ? makePath(toTraverse, parent, parentPath, key, index)
       : path;
