@@ -273,7 +273,7 @@ const expandMacros = (text: string, macros: Macros) =>
     text
   );
 
-const identity = (x: any): boolean => !!x;
+const isTruthy = (x: any): boolean => !!x;
 
 // Given an expression AST node, visit it to expand the macro macros to in the
 // right places
@@ -472,7 +472,6 @@ export type PreprocessorOptions = {
   preserve?: NodePreservers;
   preserveComments?: boolean;
   stopOnError?: boolean;
-  // ignoreMacro?: boolean;
 };
 
 const preprocessAst = (
@@ -483,9 +482,7 @@ const preprocessAst = (
     (defines, [name, body]) => ({ ...defines, [name]: { body } }),
     {}
   );
-  // const defineValues = { ...options.defines };
 
-  // const { preserve, ignoreMacro } = options;
   const { preserve } = options;
   const preserveNode = shouldPreserve(preserve);
 
@@ -517,20 +514,11 @@ const preprocessAst = (
             ...node.elseIfParts.map(
               (elif: PreprocessorElseIfNode) => elif.expression
             ),
-          ].filter(identity)
+          ].filter(isTruthy)
         );
 
         if (evaluateIfPart(macros, node.ifPart)) {
           path.replaceWith(node.ifPart.body);
-          // Keeping this commented out block in case I can find a way to
-          // conditionally evaluate shaders
-          // path.replaceWith({
-          //   ...node,
-          //   ifPart: node.ifPart.body,
-          //   elsePart: null,
-          //   endif: null,
-          //   wsEnd: null, // Remove linebreak after endif
-          // });
         } else {
           const elseBranchHit = node.elseIfParts.reduce(
             (res: boolean, elif: PreprocessorElseIfNode) =>
@@ -577,14 +565,8 @@ const preprocessAst = (
           body,
         } = path.node;
 
-        // TODO: Abandoning this for now until I know more concrete use cases
-        // const shouldIgnore = ignoreMacro?.(identifier, body);
-        // defineValues[identifier] = body;
-
-        // if (!shouldIgnore) {
         macros[identifier] = { body };
         !preserveNode(path) && path.remove();
-        // }
       },
     },
     undef: {

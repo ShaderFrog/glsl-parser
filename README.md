@@ -5,9 +5,9 @@ GLSL 1.00 and 3.00 parser and preprocessor that compiles [back to
 GLSL](src/parser/generator.ts). Both the parser and preprocessor can preserve
 comments and whitespace.
 
-The parser uses PEG grammar via the [Peggy](https://peggyjs.org) Javascript
-library. The PEG grammars for both the preprocessor and main parser are in the
-source code [on Github](https://github.com/ShaderFrog/glsl-parser).
+The parser is built with a PEG grammar, via the [Peggy](https://peggyjs.org)
+Javascript library. The PEG grammars for both the preprocessor and parser
+are available [on Github](https://github.com/ShaderFrog/glsl-parser).
 
 See [the state of this library](#state-of-this-library) for limitations and
 goals of this compiler.
@@ -48,24 +48,6 @@ const program = parser.parse('float a = 1.0;');
 const transpiled = generate(program);
 ```
 
-## The program type
-`parser.parse()` returns a `Program`, which is a special AST Node:
-
-```typescript
-interface Program {
-  // Hard coded AST node type of "program"
-  type: 'program';
-  // The AST itself is an array of the top level statements
-  program: AstNode[];
-  // All of the scopes found during parsing
-  scopes: Scope[];
-  // Leading whitespace of the source code
-  wsStart?: string;
-  // Trailing whitespace of the source code
-  wsEnd?: string;
-}
-```
-
 The parser accepts an optional second `options` argument:
 ```js
 parser.parse('float a = 1.0;', options);
@@ -95,85 +77,22 @@ type ParserOptions = {
 }
 ```
 
-## Preprocessing
-
-The parser also ships with a preprocess function that you can optionally call.
-
-Preprocessing is a text manipulation step supported in shader source code. One
-way to think about preprocessing is it's a glorified find and replace language
-that's also part of your program's source code. Special lines starting with `#`
-tell the preprocessor how to manipulate other text in the program source code.
-Some programs are not parseable until they are preprocessed, because the source
-code may be invalid until the text find and replacements are done. During
-preprocessing, the source code is treated purely as text. Said another way,
-there is no consideration for the GLSL source code structure, like `float`,
-`vec2`, etc. Preprocessing only handles special lines and rules starting with
-`#`.
-
-The preprocessor in this GLSL parser takes in a program source
-code string and produces a program source code string. If you want to access and
-manipulate the AST produced by preprocessing, see the next sections.
-
-See the [GLSL Langauge Spec](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf) to
-learn more about GLSL preprocessing. Some notable differences from the C++
-parser are no "stringize" operator (`#`), no `#include` operator, and `#if`
-expressions can only operate on integer constants, not other types of data. The
-Shaderfrog GLSL preprocessor can't be used as a C/C++ preprocessor without
-modification.
+## The program type
+`parser.parse()` returns a `Program`, which is a special AST Node:
 
 ```typescript
-import preprocess from '@shaderfrog/glsl-parser/preprocessor';
-
-// Preprocess a program
-console.log(preprocess(`
-  #define a 1
-  float b = a;
-`, options));
-```
-
-Where `options` is:
-
-```typescript
-type PreprocessorOptions = {
-  // Don't strip comments before preprocessing
-  preserveComments: boolean,
-  // Macro definitions to use when preprocessing
-  defines: {
-    SOME_MACRO_NAME: 'macro body'
-  },
-  // A list of callbacks evaluted for each node type, and returns whether or not
-  // this AST node is subject to preprocessing
-  preserve: {
-    ast_node_name: (path) => boolean
-  }
+interface Program {
+  // Hard coded AST node type of "program"
+  type: 'program';
+  // The AST itself is an array of the top level statements
+  program: AstNode[];
+  // All of the scopes found during parsing
+  scopes: Scope[];
+  // Leading whitespace of the source code
+  wsStart?: string;
+  // Trailing whitespace of the source code
+  wsEnd?: string;
 }
-```
-
-A preprocessed program string can be handed off to the main GLSL parser.
-
-If you want more control over preprocessing, the `preprocess` function above is
-a convenience method for approximately the following:
-
-```typescript
-import {
-  preprocessAst,
-  preprocessComments,
-  generate,
-  parser,
-} from '@shaderfrog/glsl-parser/preprocessor';
-
-// Remove comments before preprocessing
-const commentsRemoved = preprocessComments(`float a = 1.0;`);
-
-// Parse the source text into an AST
-const ast = parser.parse(commentsRemoved);
-
-// Then preproces it, expanding #defines, evaluating #ifs, etc
-preprocessAst(ast);
-
-// Then convert it back into a program string, which can be passed to the
-// core glsl parser
-const preprocessed = generate(ast);
 ```
 
 ## Scope
@@ -212,7 +131,7 @@ declared, `declaration` won't be present. If you set the [`failOnWarn` parser
 option](#Parsing) to `true`, the parser will throw an error when encountering
 an undeclared variable, rather than allow a scope entry without a declaration.
 
-For `functions`, the scope index is slighty different:
+For `functions`, the scope index is slightly different:
 ```typescript
 type FunctionScopeIndex = {
   [name: string]: {
@@ -260,8 +179,9 @@ See also [Utility-Functions](#Utility-Functions) for renaming scope references.
 
 ## Errors
 
-If you have invalid GLSL, the parser throws a `GlslSyntaxError`, which is a type
-alias for `peggy.SyntaxError`.
+If you have invalid GLSL, the parser throws a `GlslSyntaxError`. The parser uses
+Peggy under the hood, so `GlslSyntaxError` is a convenience type alias for a
+`peggy.SyntaxError`.
 
 ```ts
 import { parser, GlslSyntaxError } from '@shaderfrog/glsl-parser';
@@ -275,20 +195,25 @@ try {
 }
 ```
 
-The error class lives on the parser object itself:
+If you want to check if a caught error is an `instanceof` a `GlslSyntaxError`,
+then you need to use the Peggy `SyntaxError` error object, which lives on the
+parser:
 ```ts
 console.log(error instanceof parser.SyntaxError)
 // true
 ```
 
-The error message is automatically generated by Peggy:
+The only error the parser intentionally throws is a `GlslSyntaxError`. You
+should be safe to cast it to a `GlslSyntaxError` with `as` in Typescript.
+
+The error message string is automatically generated by Peggy:
 ```ts
 console.log(error.message)
 // 'Expected ",", ";", "=", or array specifier but end of input found'
 ```
 
-It includes the location of the error. Note `source` is the `grammarSource`
-string provided to the parser options, which is `undefined` by default.
+The error object includes the location of the error. It is not printed in the
+error message by default.
 ```ts
 console.log(error.location)
 /*
@@ -299,12 +224,18 @@ console.log(error.location)
 }
 */
 ```
+Note the `source` field on the error object is the `grammarSource` string
+provided to the parser options, which is `undefined` by default. If you pass in
+a `grammarSource` to `parser.parse()`, it shows up in the error object. This is
+meant to help you track which source file you're parsing, for example you could
+enter `"myfile.glsl"` as an argument to `parser.parse()` so that the error
+includes that your source GLSL came from your application's `myfile.glsl` file.
 
-The standard Peggy error object also has a fairly confusing `format()` method,
-which produces an ASCII formatted string with arrows and underlines. The
-`source` option passed to `.format()` **must** match your `grammarSource` in
-parser options (which is `undefined` by default). This API is awkward and I
-might override it in future versions of the parser.
+The error object  also has a fairly confusing `format()` method, which comes
+from the underlying Peggy error object. It produces an ASCII formatted string
+with arrows and underlines. The `source` option passed to `.format()` **must**
+match your `grammarSource` in parser options (which is `undefined` by default).
+This API is awkward and I might override it in future versions of the parser.
 
 ```ts
 console.log(error.format([{ text, source: undefined }])
@@ -315,6 +246,71 @@ Error: Expected ",", ";", "=", or array specifier but "f" found.
 2 | float b
   | ^
 */
+```
+
+## Preprocessing
+
+The parser also ships with a `preprocess()` function.
+
+The preprocessor takes in a program source code string and produces a
+preprocessed program source code string. If you want to access and manipulate
+the AST produced by preprocessing, see the next sections.
+
+```typescript
+import preprocess from '@shaderfrog/glsl-parser/preprocessor';
+
+// Preprocess a program
+console.log(preprocess(`
+  #define a 1
+  float b = a;
+`, options));
+```
+
+Where `options` is:
+
+```typescript
+type PreprocessorOptions = {
+  // Don't strip comments before preprocessing
+  preserveComments: boolean,
+  // Macro definitions to use when preprocessing
+  defines: {
+    SOME_MACRO_NAME: 'macro body'
+  },
+  // A list of callbacks evaluated for each node type, and returns whether or not
+  // this AST node is subject to preprocessing
+  preserve: {
+    ast_node_name: (path) => boolean
+  }
+}
+```
+
+A preprocessed program string can be handed off to the main GLSL parser.
+Preprocessing is optional, but a program string may not be valid until it is
+preprocessed.
+
+If you want more control over preprocessing, the `preprocess` function above is
+a convenience method for approximately the following:
+
+```typescript
+import {
+  preprocessAst,
+  preprocessComments,
+  generate,
+  parser,
+} from '@shaderfrog/glsl-parser/preprocessor';
+
+// Remove comments before preprocessing
+const commentsRemoved = preprocessComments(`float a = 1.0;`);
+
+// Parse the source text into an AST
+const ast = parser.parse(commentsRemoved);
+
+// Then preprocess it, expanding #defines, evaluating #ifs, etc
+preprocessAst(ast);
+
+// Then convert it back into a program string, which can be passed to the
+// core glsl parser
+const preprocessed = generate(ast);
 ```
 
 ## Manipulating and Searching ASTs
@@ -361,7 +357,7 @@ node itself. The path object:
   skip: () => void;
   // Remove this node from the AST
   remove: () => void;
-  // Replace this node with another AST node
+  // Replace this node with another AST node. See replaceWith() documentation.
   replaceWith: (replacer: any) => void;
   // Search for parents of this node's parent using a test function
   findParent: (test: (p: Path) => boolean) => Path | null;
@@ -405,6 +401,21 @@ const ast = parser.parse(`float a = 1.0;`);
 visitPreprocessedAst(ast, visitors);
 ```
 
+### Visitor `.replaceWith()` Behavior
+
+When you visit a node and call `path.replaceWith(otherNode)` inside the visitor's `enter()` method:
+1. `otherNode` and its children **are** visited by the same visitors.
+2. The `exit()` function of the visitor **is not called.**
+
+Notes:
+- Calling `.replaceWith()` in a visitor's `exit()` method is undefined behavior.
+- Replacing a node with the same type can cause infinite recursion, as the
+  visitor will continue to visit the replaced node of the same type. You must
+  handle this case manually.
+
+These rules apply to all visitors, both GLSL AST visitors and preprocessor AST
+visitors.
+
 ### Utility Functions
 
 Rename all the variables in a program:
@@ -431,11 +442,24 @@ use of this GLSL parser could be to parse a program into an AST, find all
 variable names in the AST, rename them, and generate new GLSL source code with
 renamed variables.
 
-GLSL supports "preprocessing," a compiler text manipulation step. GLSL's
-preprocessor is based on the C++ preprocessor. This library supports limited
-preprocessing.
+Preprocessing is a text manipulation step supported in shader source code. One
+way to think about preprocessing is it's a glorified find and replace language
+that's also part of your program's source code. Special lines starting with `#`
+tell the preprocessor how to manipulate other text in the program source code.
+Some programs are not parsable until they are preprocessed, because the source
+code may be invalid until the text find and replacements are done. During
+preprocessing, the source code is treated purely as text. Said another way,
+there is no consideration for the GLSL source code structure, like `float`,
+`vec2`, etc. Preprocessing only handles special lines and rules starting with
+`#`.
 
-Parsing, preprocesing, and code generation, are all phases of a compiler. This
+See the [GLSL Langauge Spec](https://www.khronos.org/registry/OpenGL/specs/gl/GLSLangSpec.4.60.pdf) to learn more about GLSL preprocessing. Some notable
+differences from the C++ parser are no "stringize" operator (`#`), no `#include`
+operator, and `#if` expressions can only operate on integer constants, not other
+types of data. The Shaderfrog GLSL preprocessor can't be used as a C/C++
+preprocessor without modification.
+
+Parsing, preprocessing, and code generation, are all phases of a compiler. This
 library is technically a source code > source code compiler, also known as a
 "transpiler." The input and output source code are both GLSL.
 
@@ -497,7 +521,7 @@ and `#extension` have no effect, and can be fully preserved as part of parsing.
 
 To work on the tests, run `npx jest --watch`.
 
-The GLSL grammar definition lives in `src/parser/glsl-grammar.pegjs`. Peggyjs
+The GLSL grammar definition lives in `src/parser/glsl-grammar.pegjs`. Peggy
 supports inlining Javascript code in the `.pegjs` file to define utility
 functions, but that means you have to write in vanilla Javascript, which is
 terrible. Instead, I've pulled out utility functions into the `grammar.ts`
