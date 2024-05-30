@@ -115,19 +115,23 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
       }
     }
 
-    Object.entries(node)
+    const toTraverse = (path.replaced as AstNode | undefined) ?? node;
+    const newPath = path.replaced
+      ? makePath(toTraverse, parent, parentPath, key, index)
+      : path;
+    Object.entries(toTraverse)
       .filter(([_, nodeValue]) => isTraversable(nodeValue))
       .forEach(([nodeKey, nodeValue]) => {
         if (Array.isArray(nodeValue)) {
           for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
             const child = nodeValue[i - offset];
-            const res = visitNode(child, node, path, nodeKey, i - offset);
+            const res = visitNode(child, toTraverse, newPath, nodeKey, i - offset);
             if (res?.removed) {
               offset += 1;
             }
           }
         } else {
-          visitNode(nodeValue, node, path, nodeKey);
+          visitNode(nodeValue, toTraverse, newPath, nodeKey);
         }
       });
 

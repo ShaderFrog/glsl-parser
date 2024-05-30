@@ -117,6 +117,39 @@ true
 `);
 });
 
+test('define inside if/else is properly expanded when the if branch is chosen', () => {
+  const program = `
+#define MACRO
+#ifdef MACRO
+#define BRANCH a
+#else
+#define BRANCH b
+#endif
+BRANCH
+`;
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+a
+`);
+});
+
+test('define inside if/else is properly expanded when the else branch is chosen', () => {
+  const program = `
+#ifdef MACRO
+#define BRANCH a
+#else
+#define BRANCH b
+#endif
+BRANCH
+`;
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+b
+`);
+});
+
 test('ifdef inside else is properly expanded', () => {
   // Regression: Make sure #ifdef MACRO inside #else isn't expanded
   const program = `
