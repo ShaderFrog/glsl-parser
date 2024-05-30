@@ -67,3 +67,97 @@ test('visit()', () => {
   expect(parent?.type).toBe('binary');
   expect(unfound).not.toBeDefined();
 });
+
+test('visit with replace', () => {
+  const visitLog: Array<['enter' | 'exit', AstNode['type']]> = [];
+
+  const tree: BinaryNode = {
+    type: 'binary',
+    operator: literal('-'),
+    // mock location data
+    location: {
+      start: { line: 0, column: 0, offset: 0 },
+      end: { line: 0, column: 0, offset: 0 },
+    },
+    left: identifier('foo'),
+    right: {
+      type: 'group',
+      lp: literal('('),
+      rp: literal(')'),
+      expression: identifier('bar'),
+    },
+  };
+
+  let sawBar = false;
+  let sawBaz = false;
+
+  visit(tree, {
+    group: {
+      enter: (path) => {
+        visitLog.push(['enter', path.node.type]);
+        path.replaceWith(identifier('baz'));
+      },
+      exit: (path) => {
+        visitLog.push(['exit', path.node.type]);
+      },
+    },
+    binary: {
+      enter: (path) => {
+        visitLog.push(['enter', path.node.type]);
+      },
+      exit: (path) => {
+        visitLog.push(['exit', path.node.type]);
+      },
+    },
+    literal: {
+      enter: (path) => {
+        visitLog.push(['enter', path.node.type]);
+      },
+      exit: (path) => {
+        visitLog.push(['exit', path.node.type]);
+      },
+    },
+    identifier: {
+      enter: (path) => {
+        visitLog.push(['enter', path.node.type]);
+        if (path.node.identifier === 'baz') {
+          sawBaz = true;
+        }
+        if (path.node.identifier === 'bar') {
+          sawBar = true;
+        }
+      },
+      exit: (path) => {
+        visitLog.push(['exit', path.node.type]);
+      },
+    },
+  });
+
+  expect(visitLog).toEqual([
+    ['enter', 'binary'],
+
+    // tree.operator
+    ['enter', 'literal'],
+    ['exit', 'literal'],
+
+    // tree.left
+    ['enter', 'identifier'],
+    ['exit', 'identifier'],
+
+    // tree.right
+    ['enter', 'group'],
+    // No exit because it got replaced
+
+    // Replaced tree.right
+    ['enter', 'identifier'],
+    ['exit', 'identifier'],
+
+    ['exit', 'binary'],
+  ]);
+
+  // The children of the node that got replaced should not be visited
+  expect(sawBar).toBeFalsy();
+
+  // The children of the new replacement node should be visited
+  expect(sawBaz).toBeTruthy();
+})
