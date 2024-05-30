@@ -460,9 +460,6 @@ function_call line after program`;
   const ast = parse(program);
 
   preprocessAst(ast, {
-    // ignoreMacro: (identifier, body) => {
-    //   // return identifier === 'A';
-    // },
     preserve: {
       conditional: () => false,
       line: () => true,
@@ -540,19 +537,3 @@ true
 true
 `);
 });
-
-/*
-test('debug', () => {
-  const program = `
-precision highp float;
-precision mediump int;
-precision lowp int;
-`;
-
-  const ast = parse(program);
-  preprocessAst(ast);
-  expect(generate(ast)).toBe(`
-varying vec2 vUv;
-`);
-});
-*/
