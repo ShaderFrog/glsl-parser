@@ -4,7 +4,16 @@ import {
   IdentifierNode,
   LiteralNode,
 } from './ast-types.js';
-import { visit } from './visit.js';
+import { Path, visit } from './visit.js';
+
+const visitLogger = () => {
+  const visitLog: Array<['enter' | 'exit', AstNode['type']]> = [];
+  const track = (type: 'enter' | 'exit') => (path: Path<any>) =>
+    visitLog.push([type, path.node.type]);
+  const enter = track('enter');
+  const exit = track('exit');
+  return [visitLog, enter, exit, track] as const;
+};
 
 const literal = <T>(literal: T): LiteralNode<T> => ({
   type: 'literal',
@@ -69,7 +78,7 @@ test('visit()', () => {
 });
 
 test('visit with replace', () => {
-  const visitLog: Array<['enter' | 'exit', AstNode['type']]> = [];
+  const [visitLog, enter, exit] = visitLogger();
 
   const tree: BinaryNode = {
     type: 'binary',
@@ -94,32 +103,22 @@ test('visit with replace', () => {
   visit(tree, {
     group: {
       enter: (path) => {
-        visitLog.push(['enter', path.node.type]);
+        enter(path);
         path.replaceWith(identifier('baz'));
       },
-      exit: (path) => {
-        visitLog.push(['exit', path.node.type]);
-      },
+      exit,
     },
     binary: {
-      enter: (path) => {
-        visitLog.push(['enter', path.node.type]);
-      },
-      exit: (path) => {
-        visitLog.push(['exit', path.node.type]);
-      },
+      enter,
+      exit,
     },
     literal: {
-      enter: (path) => {
-        visitLog.push(['enter', path.node.type]);
-      },
-      exit: (path) => {
-        visitLog.push(['exit', path.node.type]);
-      },
+      enter,
+      exit,
     },
     identifier: {
       enter: (path) => {
-        visitLog.push(['enter', path.node.type]);
+        enter(path);
         if (path.node.identifier === 'baz') {
           sawBaz = true;
         }
@@ -127,9 +126,7 @@ test('visit with replace', () => {
           sawBar = true;
         }
       },
-      exit: (path) => {
-        visitLog.push(['exit', path.node.type]);
-      },
+      exit,
     },
   });
 
@@ -160,4 +157,65 @@ test('visit with replace', () => {
 
   // The children of the new replacement node should be visited
   expect(sawBaz).toBeTruthy();
-})
+});
+
+test('visit stop()', () => {
+  const [visitLog, enter, exit] = visitLogger();
+
+  const tree: BinaryNode = {
+    type: 'binary',
+    operator: literal('-'),
+    left: {
+      type: 'binary',
+      operator: literal('+'),
+      left: identifier('foo'),
+      right: identifier('bar'),
+    },
+    right: {
+      type: 'group',
+      lp: literal('('),
+      rp: literal(')'),
+      expression: identifier('baz'),
+    },
+  };
+
+  visit(tree, {
+    group: {
+      enter,
+      exit,
+    },
+    binary: {
+      enter,
+      exit,
+    },
+    literal: {
+      enter,
+      exit,
+    },
+    identifier: {
+      enter: (path) => {
+        enter(path);
+        if (path.node.identifier === 'foo') {
+          path.stop();
+        }
+      },
+      exit,
+    },
+  });
+
+  expect(visitLog).toEqual([
+    ['enter', 'binary'],
+
+    // tree.operator
+    ['enter', 'literal'],
+    ['exit', 'literal'],
+
+    // tree.left
+    ['enter', 'binary'],
+    ['enter', 'literal'],
+    ['exit', 'literal'],
+
+    // stop on first identifier!
+    ['enter', 'identifier'],
+  ]);
+});
