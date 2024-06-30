@@ -9,11 +9,13 @@ export type Path<NodeType> = {
   parentPath: Path<any> | undefined;
   key: string | undefined;
   index: number | undefined;
+  stop: () => void;
   skip: () => void;
   remove: () => void;
   replaceWith: (replacer: AstNode) => void;
   findParent: (test: (p: Path<any>) => boolean) => Path<any> | undefined;
 
+  stopped?: boolean;
   skipped?: boolean;
   removed?: boolean;
   replaced?: any;
@@ -31,6 +33,9 @@ const makePath = <NodeType>(
   parentPath,
   key,
   index,
+  stop: function () {
+    this.stopped = true;
+  },
   skip: function () {
     this.skipped = true;
   },
@@ -72,6 +77,8 @@ export type NodeVisitors = {
  * Apply the visitor pattern to an AST that conforms to this compiler's spec
  */
 export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
+  let stopped = false;
+
   const visitNode = (
     node: AstNode | Program,
     parent?: AstNode | Program,
@@ -79,6 +86,11 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
     key?: string,
     index?: number
   ) => {
+    // Handle case where stop happened at exit
+    if (stopped) {
+      return;
+    }
+
     const visitor = visitors[node.type];
     const path = makePath(node, parent, parentPath, key, index);
     const parentNode = parent as any;
@@ -115,6 +127,11 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
       }
     }
 
+    if (path.stopped) {
+      stopped = true;
+      return;
+    }
+
     if (path.replaced) {
       const replacedNode = path.replaced as AstNode;
       visitNode(replacedNode, parent, parentPath, key, index);
@@ -123,7 +140,11 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
         .filter(([_, nodeValue]) => isTraversable(nodeValue))
         .forEach(([nodeKey, nodeValue]) => {
           if (Array.isArray(nodeValue)) {
-            for (let i = 0, offset = 0; i - offset < nodeValue.length; i++) {
+            for (
+              let i = 0, offset = 0;
+              i - offset < nodeValue.length && !stopped;
+              i++
+            ) {
               const child = nodeValue[i - offset];
               const res = visitNode(child, node, path, nodeKey, i - offset);
               if (res?.removed) {
@@ -131,11 +152,15 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
               }
             }
           } else {
-            visitNode(nodeValue, node, path, nodeKey);
+            if (!stopped) {
+              visitNode(nodeValue, node, path, nodeKey);
+            }
           }
         });
 
-      visitor?.exit?.(path as any);
+      if (!stopped) {
+        visitor?.exit?.(path as any);
+      }
     }
   };
 

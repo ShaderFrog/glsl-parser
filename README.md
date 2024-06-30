@@ -355,6 +355,8 @@ node itself. The path object:
 
   // Don't visit any children of this node
   skip: () => void;
+  // Stop traversal entirely
+  stop: () => void;
   // Remove this node from the AST
   remove: () => void;
   // Replace this node with another AST node. See replaceWith() documentation.
@@ -400,6 +402,13 @@ import {
 const ast = parser.parse(`float a = 1.0;`);
 visitPreprocessedAst(ast, visitors);
 ```
+
+### Stopping traversal
+
+To skip all children of a node, call `path.skip()`.
+
+To stop traversal entirely, call `path.stop()` in either `enter()` or `exit()`.
+No future `enter()` nor `exit()` callbacks will fire.
 
 ### Visitor `.replaceWith()` Behavior
 
