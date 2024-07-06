@@ -27,7 +27,7 @@ export interface BaseNode {
   location?: LocationObject;
 }
 
-type Whitespace = string | string[];
+export type Whitespace = string | string[];
 
 // Types reused across nodes
 export type TypeQualifiers = (
@@ -222,7 +222,7 @@ export interface FloatConstantNode extends BaseNode {
   whitespace: Whitespace;
 }
 
-type SimpleStatement =
+export type SimpleStatement =
   | ContinueStatementNode
   | BreakStatementNode
   | ReturnStatementNode
