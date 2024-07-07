@@ -176,7 +176,10 @@ float fn() {
 `);
 
   expect(ast.scopes[0].functions.noise);
-  renameFunctions(ast.scopes[0], (name) => `${name}_FUNCTION`);
+  ast.scopes[0].functions = renameFunctions(
+    ast.scopes[0].functions,
+    (name) => `${name}_FUNCTION`
+  );
   expect(generate(ast)).toBe(`
 float noise_FUNCTION() {}
 float fn_FUNCTION() {
@@ -233,8 +236,14 @@ vec4 linearToOutputTexel( vec4 value ) { return LinearToLinear( value ); }
     { quiet: true }
   );
 
-  renameBindings(ast.scopes[0], (name) => `${name}_VARIABLE`);
-  renameFunctions(ast.scopes[0], (name) => `${name}_FUNCTION`);
+  ast.scopes[0].bindings = renameBindings(
+    ast.scopes[0].bindings,
+    (name) => `${name}_VARIABLE`
+  );
+  ast.scopes[0].functions = renameFunctions(
+    ast.scopes[0].functions,
+    (name) => `${name}_FUNCTION`
+  );
 
   expect(generate(ast)).toBe(`
 float selfref_VARIABLE, b_VARIABLE = 1.0, c_VARIABLE = selfref_VARIABLE;
@@ -306,7 +315,8 @@ StructName main(in StructName x, StructName[3] y) {
   float a2 = 1.0 + StructName(1.0).color.x;
 }
 `);
-  renameTypes(ast.scopes[0], (name) => `${name}_x`);
+  ast.scopes[0].types = renameTypes(ast.scopes[0].types, (name) => `${name}_x`);
+
   expect(generate(ast)).toBe(`
 struct StructName_x {
   vec3 color;
@@ -342,13 +352,34 @@ StructName_x main(in StructName_x x, StructName_x[3] y) {
   ]);
   expect(Object.keys(ast.scopes[0].bindings)).toEqual(['reflectedLight']);
   expect(Object.keys(ast.scopes[0].types)).toEqual([
-    'StructName',
-    'OtherStruct',
+    'StructName_x',
+    'OtherStruct_x',
   ]);
-  expect(ast.scopes[0].types.StructName.references).toHaveLength(16);
+  expect(ast.scopes[0].types.StructName_x.references).toHaveLength(16);
 
   // Inner struct definition should be found in inner fn scope
   expect(Object.keys(ast.scopes[2].types)).toEqual(['StructName']);
+});
+
+test('shangus', () => {
+  const ast = c.parseSrc(`
+struct MyStruct { float y; };
+attribute vec3 position;
+vec3 func() {}`);
+
+  ast.scopes[0].bindings = renameBindings(
+    ast.scopes[0].bindings,
+    (name) => `${name}_x`
+  );
+  ast.scopes[0].functions = renameFunctions(
+    ast.scopes[0].functions,
+    (name) => `${name}_y`
+  );
+  ast.scopes[0].types = renameTypes(ast.scopes[0].types, (name) => `${name}_z`);
+
+  expect(Object.keys(ast.scopes[0].bindings)).toEqual(['position_x']);
+  expect(Object.keys(ast.scopes[0].functions)).toEqual(['func_y']);
+  expect(Object.keys(ast.scopes[0].types)).toEqual(['MyStruct_z']);
 });
 
 test('fn args shadowing global scope identified as separate bindings', () => {
@@ -357,7 +388,7 @@ attribute vec3 position;
 vec3 func(vec3 position) {
   return position;
 }`);
-  renameBindings(ast.scopes[0], (name) =>
+  ast.scopes[0].bindings = renameBindings(ast.scopes[0].bindings, (name) =>
     name === 'position' ? 'renamed' : name
   );
   // The func arg "position" shadows the global binding, it should be untouched
@@ -378,7 +409,10 @@ uniform vec2 vProp;
 };`);
 
   // This shouldn't crash - see the comment block in renameBindings()
-  renameBindings(ast.scopes[0], (name) => `${name}_x`);
+  ast.scopes[0].bindings = renameBindings(
+    ast.scopes[0].bindings,
+    (name) => `${name}_x`
+  );
   expect(generate(ast)).toBe(`
 layout(std140,column_major) uniform;
 float a_x;
