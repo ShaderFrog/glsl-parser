@@ -435,6 +435,7 @@ import { renameBindings, renameFunctions, renameTypes } from '@shaderfrog/glsl-p
 // ... parse an ast...
 
 // Suffix top level variables with _x
+// TODO UPDATE THIS
 renameBindings(ast.scopes[0], (name, node) => `${name}_x`);
 // Suffix function names with _x
 renameFunctions(ast.scopes[0], (name, node) => `${name}_x`);

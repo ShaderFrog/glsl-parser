@@ -361,27 +361,6 @@ StructName_x main(in StructName_x x, StructName_x[3] y) {
   expect(Object.keys(ast.scopes[2].types)).toEqual(['StructName']);
 });
 
-test('shangus', () => {
-  const ast = c.parseSrc(`
-struct MyStruct { float y; };
-attribute vec3 position;
-vec3 func() {}`);
-
-  ast.scopes[0].bindings = renameBindings(
-    ast.scopes[0].bindings,
-    (name) => `${name}_x`
-  );
-  ast.scopes[0].functions = renameFunctions(
-    ast.scopes[0].functions,
-    (name) => `${name}_y`
-  );
-  ast.scopes[0].types = renameTypes(ast.scopes[0].types, (name) => `${name}_z`);
-
-  expect(Object.keys(ast.scopes[0].bindings)).toEqual(['position_x']);
-  expect(Object.keys(ast.scopes[0].functions)).toEqual(['func_y']);
-  expect(Object.keys(ast.scopes[0].types)).toEqual(['MyStruct_z']);
-});
-
 test('fn args shadowing global scope identified as separate bindings', () => {
   const ast = c.parseSrc(`
 attribute vec3 position;
