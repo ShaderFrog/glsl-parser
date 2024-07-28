@@ -118,7 +118,6 @@ export const functionDeclarationSignature = (
   const quantifiers = specifier.quantifier || [];
 
   const parameterTypes = proto?.parameters?.map(({ specifier, quantifier }) => {
-    // todo: saving place on putting quantifiers here
     const quantifiers =
       // vec4[1][2] param
       specifier.quantifier ||

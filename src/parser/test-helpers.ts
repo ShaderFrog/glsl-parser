@@ -67,37 +67,6 @@ export const buildParser = () => {
 //   }
 // };
 
-export const debugEntry = (bindings: ScopeIndex) => {
-  return Object.entries(bindings).map(
-    ([k, v]) =>
-      `${k}: (${v.references.length} references, ${
-        v.declaration ? '' : 'un'
-      }declared): ${v.references.map((r) => r.type).join(', ')}`
-  );
-};
-export const debugFunctionEntry = (bindings: FunctionScopeIndex) =>
-  Object.entries(bindings).flatMap(([name, overloads]) =>
-    Object.entries(overloads).map(
-      ([signature, overload]) =>
-        `${name} (${signature}): (${overload.references.length} references, ${
-          overload.declaration ? '' : 'un'
-        }declared): ${overload.references.map((r) => r.type).join(', ')}`
-    )
-  );
-
-export const debugScopes = (astOrScopes: Program | Scope[]) =>
-  console.log(
-    'Scopes:',
-    'scopes' in astOrScopes
-      ? astOrScopes.scopes
-      : astOrScopes.map((s) => ({
-          name: s.name,
-          types: debugEntry(s.types),
-          bindings: debugEntry(s.bindings),
-          functions: debugFunctionEntry(s.functions),
-        }))
-  );
-
 const middle = /\/\* start \*\/((.|[\r\n])+)(\/\* end \*\/)?/m;
 
 type ParseSrc = (src: string, options?: ParserOptions) => Program;

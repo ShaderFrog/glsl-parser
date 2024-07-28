@@ -61,15 +61,18 @@ type ParserOptions = {
   // like undefined functions and variables. If `failOnWarn` is set to true,
   // warnings will still cause the parser to raise an error. Defaults to false.
   quiet: boolean;
+
   // An optional string representing the origin of the GLSL, for debugging and
   // error messages. For example, "main.js". If the parser raises an error, the
   // grammarSource shows up in the error.source field. If you format the error
   // (see the errors section), the grammarSource shows up in the formatted error
   // string. Defaults to undefined.
   grammarSource: string;
+
   // If true, sets location information on each AST node, in the form of
   // { column: number, line: number, offset: number }. Defaults to false.
   includeLocation: boolean;
+
   // If true, causes the parser to raise an error instead of log a warning.
   // The parser does limited type checking, and things like undeclared variables
   // are treated as warnings. Defaults to false.
@@ -427,19 +430,86 @@ visitors.
 
 ### Utility Functions
 
-Rename all the variables in a program:
+#### Rename variables / identifiers in a program
+
+You can rename bindings (aka variables), functions, and types (aka structs) with `renameBindings`, `renameFunctions`, and `renameTypes` respectively.
+
+The signature for these methods:
+
+```ts
+const renameBindings = (
+  // The scope to rename the bindings in. ast.scopes[0] is the global scope.
+  // Passing this ast.scopes[0] renames all global variables
+  bindings: ScopeIndex,
+
+  // The rename function. This is called once per scope entry with the original
+  // name in the scope, to generate the renamed variable. 
+  mangle: (name: string) => string
+): ScopeIndex
+```
+
+These scope renaming functions, `renameBindings`, `renameFunctions`, and `renameTypes`, do two things:
+1. Each function *mutates* the AST to rename identifiers in place.
+2. They *return* an *immutable* new ScopeIndex where the scope references
+   themselves are renamed.
+
+If you want your ast.scopes array to stay in sync with your AST, you need to
+re-assign it to the output of the functions! Examples:
 
 ```typescript
 import { renameBindings, renameFunctions, renameTypes } from '@shaderfrog/glsl-parser/utils';
 
-// ... parse an ast...
+// Suffix top level variables with _x, and update the scope
+ast.scopes[0].bindings = renameBindings(ast.scopes[0].bindings, (name) => `${name}_x`);
 
-// Suffix top level variables with _x
-renameBindings(ast.scopes[0], (name, node) => `${name}_x`);
 // Suffix function names with _x
-renameFunctions(ast.scopes[0], (name, node) => `${name}_x`);
+ast.scopes[0].functions = renameFunctions(ast.scopes[0].functions, (name) => `${name}_x`);
+
 // Suffix struct names and usages (including constructors) with _x
-renameTypes(ast.scopes[0], (name, node) => `${name}_x`);
+ast.scopes[0].types = renameTypes(ast.scopes[0].types, (name) => `${name}_x`);
+```
+
+There are also functions to rename only one variable/identifier in a given
+scope. Use these if you know specifically which variable you want to rename.
+
+```typescript
+import { renameBinding, renameFunction, renameType } from '@shaderfrog/glsl-parser/utils';
+
+// Replace all instances of "oldVar" with "newVar" in the global scope, and
+// creates a new global scope entry named "newVar"
+ast.scopes[0].bindings.newVar = renameBinding(
+  ast.scopes[0].bindings.oldVar,
+  'newVar',
+);
+// You need to manually delete the old scope entry if you want the scope to stay
+// in sync with your program AST
+delete ast.scopes[0].bindings.oldVar;
+
+// Rename a specific function
+ast.scopes[0].functions.newFn = renameFunction(
+  ast.scopes[0].functions.oldFn,
+  'newFn',
+);
+delete ast.scopes[0].functions.oldFn;
+
+// Rename a specific type/struct
+ast.scopes[0].functions.newType = renametype(
+  ast.scopes[0].functions.oldType,
+  'newType',
+);
+delete ast.scopes[0].functions.oldType;
+```
+
+#### Debugging utility functions
+
+The parser also exports a debugging function, useful for logging information
+about the AST.
+
+```ts
+import { debugScopes } from '@shaderfrog/glsl-parser/parser/utils';
+
+// Print a condensed representation of the AST scopes to the console
+debugScopes(ast);
 ```
 
 ## What are "parsing" and "preprocessing"?
