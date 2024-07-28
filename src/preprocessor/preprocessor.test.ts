@@ -333,6 +333,19 @@ foo`;
 foo`);
 });
 
+test(`function macro where source variable is same as macro argument`, () => {
+  const program = `
+#define GE(x, y) x + y
+float z = GE(y, x);
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+float z = y + x;
+`);
+});
+
 test("macro that isn't macro function call call is expanded", () => {
   const program = `
 #define foo () yes expand
