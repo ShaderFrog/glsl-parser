@@ -333,6 +333,27 @@ foo`;
 foo`);
 });
 
+test(`function macro where source variable is same as macro argument`, () => {
+  const program = `
+#define FN(x, y) x + y
+FN(y, x);
+FN(y.y, x.x);
+FN(yy, xx);
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+
+  // Ensure that if the argument passed to the fn FN(X) has the
+  // same name as the macro definition #define FN(X), it doesn't get expanded
+  // https://github.com/ShaderFrog/glsl-parser/issues/31
+  expect(generate(ast)).toBe(`
+y + x;
+y.y + x.x;
+yy + xx;
+`);
+});
+
 test("macro that isn't macro function call call is expanded", () => {
   const program = `
 #define foo () yes expand
