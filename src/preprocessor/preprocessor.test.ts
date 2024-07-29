@@ -336,13 +336,21 @@ foo`);
 test(`function macro where source variable is same as macro argument`, () => {
   const program = `
 #define GE(x, y) x + y
-float z = GE(y, x);
+GE(y, x);
+GE(y.y, x.x);
+GE(yy, xx);
 `;
 
   const ast = parse(program);
   preprocessAst(ast);
+
+  // Ensure that if the argument passed to the fn GE(X) has the
+  // same name as the macro definition #define GE(X), it doesn't get expanded
+  // https://github.com/ShaderFrog/glsl-parser/issues/31
   expect(generate(ast)).toBe(`
-float z = y + x;
+y + x;
+y.y + x.x;
+yy + xx;
 `);
 });
 

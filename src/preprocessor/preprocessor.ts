@@ -198,17 +198,31 @@ const expandFunctionMacro = (
       throw new Error(`'${macroName}': Not enough arguments for macro`);
     }
 
+    // Collect the macro identifiers and build a replacement map from those to
+    // the user defined replacements
+    const argIdentifiers = macroArgs.map(
+      (a) => (a as PreprocessorIdentifierNode).identifier
+    );
+    const argKeys = argIdentifiers.reduce<Record<string, string>>(
+      (acc, identifier, index) => ({
+        ...acc,
+        [identifier]: args[index].trim(),
+      }),
+      {}
+    );
+
     const replacedBody = tokenPaste(
-      macroArgs.reduce(
-        (replaced, macroArg, index) =>
-          replaced.replace(
-            new RegExp(
-              `\\b${(macroArg as PreprocessorIdentifierNode).identifier}\\b`,
-              'g'
-            ),
-            args[index].trim()
-          ),
-        macro.body
+      macro.body.replace(
+        // Replace all instances of macro arguments in the macro definition
+        // (the arg separated by word boundaries) with its user defined
+        // replacement. This one-pass strategy ensures that we won't clobber
+        // previous replacements when the user supplied args have the same names
+        // as the macro arguments
+        new RegExp(
+          '(' + argIdentifiers.map((a) => `\\b${a}\\b`).join(`|`) + ')',
+          'g'
+        ),
+        (match) => (match in argKeys ? argKeys[match] : match)
       )
     );
 
