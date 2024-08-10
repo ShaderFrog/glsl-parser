@@ -457,7 +457,7 @@ If you want your ast.scopes array to stay in sync with your AST, you need to
 re-assign it to the output of the functions! Examples:
 
 ```typescript
-import { renameBindings, renameFunctions, renameTypes } from '@shaderfrog/glsl-parser/utils';
+import { renameBindings, renameFunctions, renameTypes } from '@shaderfrog/glsl-parser/parser/utils';
 
 // Suffix top level variables with _x, and update the scope
 ast.scopes[0].bindings = renameBindings(ast.scopes[0].bindings, (name) => `${name}_x`);
@@ -473,7 +473,7 @@ There are also functions to rename only one variable/identifier in a given
 scope. Use these if you know specifically which variable you want to rename.
 
 ```typescript
-import { renameBinding, renameFunction, renameType } from '@shaderfrog/glsl-parser/utils';
+import { renameBinding, renameFunction, renameType } from '@shaderfrog/glsl-parser/parser/utils';
 
 // Replace all instances of "oldVar" with "newVar" in the global scope, and
 // creates a new global scope entry named "newVar"
