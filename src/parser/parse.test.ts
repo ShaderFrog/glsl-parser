@@ -428,3 +428,15 @@ test('fails on error', () => {
     )
   ).toThrow(/duplicate variable declaration: "a"/);
 });
+
+test('exotic precision statements', () => {
+  // Regression to test for upper/loweracse typos in specific keywords
+  expect(
+    c.parse(`precision highp sampler2DArrayShadow;`).program[0].declaration
+      .specifier.specifier.token
+  ).toBe('sampler2DArrayShadow');
+  expect(
+    c.parse(`precision highp sampler2DRectShadow;`).program[0].declaration
+      .specifier.specifier.token
+  ).toBe('sampler2DRectShadow');
+});
