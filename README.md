@@ -586,6 +586,12 @@ and `#extension` have no effect, and can be fully preserved as part of parsing.
 
 ## Deviations from the Khronos Grammar
 
+- The parser allows for programs to contain top level preprocessor statements,
+  like `#define X`, as a convenience to avoid preprocessing some programs, and
+  for simple programs lets you preserve preprocessor lines in the AST if you
+  want to do something specific with them. However, preprocessor statements at
+  any other part of the program are not allowed. The Khronos grammar does not
+  include preprocessor statements.
 - `selection_statement` is renamed to `if_statement`
 - The grammar specifies `declaration` itself ends with a semicolon. I moved the
   semicolon into the `declaration_statement` rule.

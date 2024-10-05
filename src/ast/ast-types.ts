@@ -6,10 +6,16 @@
 
 import { Scope } from '../parser/scope.js';
 
+// Valid top level program lines
+export type ProgramStatement =
+  | PreprocessorNode
+  | DeclarationStatementNode
+  | FunctionNode;
+
 // The overall result of parsing, which incldues the AST and scopes
 export interface Program {
   type: 'program';
-  program: (PreprocessorNode | DeclarationStatementNode | FunctionNode)[];
+  program: ProgramStatement[];
   scopes: Scope[];
   wsStart?: string;
   wsEnd?: string;
