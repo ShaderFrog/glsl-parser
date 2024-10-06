@@ -323,7 +323,7 @@ export interface InterfaceDeclaratorNode extends BaseNode {
   qualifiers: TypeQualifiers;
   interface_type: IdentifierNode;
   lp: LiteralNode<'('>;
-  declarations: AstNode;
+  declarations: StructDeclarationNode;
   rp: LiteralNode<')'>;
   identifier?: QuantifiedIdentifierNode;
 }
