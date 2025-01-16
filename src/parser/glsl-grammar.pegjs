@@ -19,7 +19,8 @@
     isDeclaredFunction,
     isDeclaredType,
     xnil,
-    builtIns
+    FN_BUILT_INS,
+    BUILT_INS
   } from './grammar.js';
 
   // Apparently peggy can't handle an open curly brace in a string, see
@@ -426,7 +427,7 @@ function_call
       const n = node('function_call', { ...identifierPartial, args: args || [], rp });
 
       const isDeclaredFn = isDeclaredFunction(context.scope, fnName);
-      const isBuiltIn = builtIns.has(fnName);
+      const isBuiltIn = FN_BUILT_INS.has(fnName);
       const isType = isDeclaredType(context.scope, fnName);
 
       // fnName will be undefined here if the identifier is a keyword

@@ -57,6 +57,18 @@ Where `options` is:
 
 ```typescript
 type ParserOptions = {
+  // The stage of the GLSL source, which defines the built in variables when
+  // parsing, like gl_Position. If specified, when the compiler encounters an
+  // expected variable for that stage, it will continue on normally (and add
+  // that variable, like gl_Position, to the current scope). If it encounters an
+  // unknown variable, it will log a warning or raise an exception, depending
+  // on if `failOnWarn` is set. If the stage is set to 'either' - used in the
+  // case when you don't yet know what stage the GLSL is, the compiler *won't*
+  // warn on built-in variables for *either* stage. If this option is not set,
+  // the compiler will warn on *all* built-in variables it encounters as not
+  // defined.
+  stage: 'vertex' | 'fragment' | 'either';
+
   // Hide warnings. If set to false or not set, then the parser logs warnings
   // like undefined functions and variables. If `failOnWarn` is set to true,
   // warnings will still cause the parser to raise an error. Defaults to false.
