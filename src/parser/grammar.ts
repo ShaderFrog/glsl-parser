@@ -102,9 +102,39 @@ export const leftAssociate = (
     head
   );
 
+// From https://www.khronos.org/opengl/wiki/Built-in_Variable_(GLSL)
+export const BUILT_INS = {
+  vertex: new Set([
+    'gl_VertexID',
+    'gl_InstanceID',
+    'gl_DrawID',
+    'gl_BaseVertex',
+    'gl_BaseInstance',
+    'gl_Position',
+    'gl_PointSize',
+    'gl_ClipDistance',
+  ]),
+  fragment: new Set([
+    'gl_FragColor',
+    'gl_FragData',
+    'gl_FragCoord',
+    'gl_FrontFacing',
+    'gl_PointCoord',
+    'gl_SampleID',
+    'gl_SamplePosition',
+    'gl_SampleMaskIn',
+    'gl_ClipDistance',
+    'gl_PrimitiveID',
+    'gl_Layer',
+    'gl_ViewportIndex',
+    'gl_FragDepth',
+    'gl_SampleMask',
+  ]),
+};
+
 // From https://www.khronos.org/registry/OpenGL-Refpages/gl4/index.php
 // excluding gl_ prefixed builtins, which don't appear to be functions
-export const builtIns = new Set([
+export const FN_BUILT_INS = new Set([
   'abs',
   'acos',
   'acosh',
@@ -559,7 +589,17 @@ export const makeLocals = (context: Context) => {
     if (foundScope) {
       foundScope.bindings[name].references.push(reference);
     } else {
-      warn(`Encountered undefined variable: "${name}"`);
+      if (
+        !context.options.stage ||
+        (context.options.stage === 'vertex' && !BUILT_INS.vertex.has(name)) ||
+        (context.options.stage === 'fragment' &&
+          !BUILT_INS.fragment.has(name)) ||
+        (context.options.stage === 'either' &&
+          !BUILT_INS.vertex.has(name) &&
+          !BUILT_INS.fragment)
+      ) {
+        warn(`Encountered undefined variable: "${name}"`);
+      }
       // This intentionally does not provide a declaration
       scope.bindings[name] = makeScopeIndex(reference);
     }

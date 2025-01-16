@@ -5,6 +5,7 @@ export type ParserOptions = Partial<{
   grammarSource: string;
   includeLocation: boolean;
   failOnWarn: boolean;
+  stage: 'vertex' | 'fragment' | 'either';
   tracer: {
     trace: (e: {
       type: 'rule.enter' | 'rule.match' | 'rule.fail';

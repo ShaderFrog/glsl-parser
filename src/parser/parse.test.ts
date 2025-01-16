@@ -440,3 +440,75 @@ test('exotic precision statements', () => {
       .specifier.specifier.token
   ).toBe('sampler2DRectShadow');
 });
+
+test('warns when grammar stage is unknown', () => {
+  const consoleWarnMock = jest
+    .spyOn(console, 'warn')
+    .mockImplementation(() => {});
+
+  // we don't know if this is vertex or fragment so it should warn
+  c.parseSrc(`
+    void main() {
+      gl_Position = vec4(0.0);
+    }
+  `);
+
+  expect(consoleWarnMock).toHaveBeenCalled();
+  consoleWarnMock.mockRestore();
+});
+
+test('does not warn on built in stage variable', () => {
+  const consoleWarnMock = jest
+    .spyOn(console, 'warn')
+    .mockImplementation(() => {});
+
+  c.parseSrc(
+    `
+    void main() {
+      gl_Position = vec4(0.0);
+    }
+  `,
+    { stage: 'vertex' }
+  );
+
+  expect(consoleWarnMock).not.toHaveBeenCalled();
+  consoleWarnMock.mockRestore();
+});
+
+test('does not warn on built in either stage variable', () => {
+  const consoleWarnMock = jest
+    .spyOn(console, 'warn')
+    .mockImplementation(() => {});
+
+  c.parseSrc(
+    `
+    void main() {
+      gl_Position = vec4(0.0);
+      gl_FragColor = vec4(0.0);
+    }
+  `,
+    { stage: 'either' }
+  );
+
+  expect(consoleWarnMock).not.toHaveBeenCalled();
+  consoleWarnMock.mockRestore();
+});
+
+test('warn on variable from wrong stage', () => {
+  const consoleWarnMock = jest
+    .spyOn(console, 'warn')
+    .mockImplementation(() => {});
+
+  c.parseSrc(
+    `
+    void main() {
+      gl_Position = vec4(0.0);
+      gl_FragColor = vec4(0.0);
+    }
+  `,
+    { stage: 'fragment' }
+  );
+
+  expect(consoleWarnMock).toHaveBeenCalled();
+  consoleWarnMock.mockRestore();
+});
