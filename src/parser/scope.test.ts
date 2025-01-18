@@ -572,3 +572,18 @@ void main() {
   const a = Object.values(ast.scopes[0].functions.a)[0];
   expect(a.references).toHaveLength(3);
 });
+
+test('rename function prototypes', () => {
+  const ast = c.parseSrc(
+    `vec3 hash3(vec3 p3);
+vec3 hash3(vec3 p3) {}`
+  );
+
+  ast.scopes[0].functions = renameFunctions(
+    ast.scopes[0].functions,
+    (name) => `${name}_FUNCTION`
+  );
+
+  expect(generate(ast)).toBe(`vec3 hash3_FUNCTION(vec3 p3);
+vec3 hash3_FUNCTION(vec3 p3) {}`);
+});

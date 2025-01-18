@@ -100,6 +100,8 @@ export const renameFunction = (
         node.identifier.type === 'identifier'
       ) {
         node.identifier.identifier = newName;
+      } else if (node.type === 'function_prototype') {
+        node.header.name.identifier = newName;
       } else {
         console.warn('Unknown function node to rename', node);
         throw new Error(`Function for type ${node.type} not recognized`);
