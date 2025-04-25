@@ -79,21 +79,26 @@ CARET = token:"^" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 AMPERSAND = token:"&" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 COLON = token:":" _:_? { return node('literal', { literal: token, wsEnd: _ }); }
 
-DEFINE = wsStart:_? token:"#define" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-INCLUDE = wsStart:_? token:"#include" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-LINE = wsStart:_? token:"#line" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-UNDEF = wsStart:_? token:"#undef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-ERROR = wsStart:_? token:"#error" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-PRAGMA = wsStart:_? token:"#pragma" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+// From the grammar spec: "Each number sign (#) can be preceded in its line only
+// by spaces or horizontal tabs. It may also be followed by spaces and
+// horizontal tabs, preceding the directive."
+HASH = $(token:"#") whitespace:_? { return "#"; }
+
+DEFINE = wsStart:_? token:$(HASH "define") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+INCLUDE = wsStart:_? token:$(HASH "include") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+LINE = wsStart:_? token:$(HASH "line") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+UNDEF = wsStart:_? token:$(HASH "undef") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ERROR = wsStart:_? token:$(HASH "error") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+PRAGMA = wsStart:_? token:$(HASH "pragma") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
 DEFINED = wsStart:_? token:"defined" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-IF = wsStart:_? token:"#if" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-IFDEF = wsStart:_? token:"#ifdef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-IFNDEF = wsStart:_? token:"#ifndef" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-ELIF = wsStart:_? token:"#elif" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-ELSE = wsStart:_? token:"#else" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-ENDIF = wsStart:_? token:"#endif" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-VERSION = wsStart:_? token:"#version" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
-EXTENSION = wsStart:_? token:"#extension" wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IF = wsStart:_? token:$(HASH "if") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFDEF = wsStart:_? token:$(HASH "ifdef") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+IFNDEF = wsStart:_? token:$(HASH "ifndef") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELIF = wsStart:_? token:$(HASH "elif") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ELSE = wsStart:_? token:$(HASH "else") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+ENDIF = wsStart:_? token:$(HASH "endif") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+VERSION = wsStart:_? token:$(HASH "version") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
+EXTENSION = wsStart:_? token:$(HASH "extension") wsEnd:terminal { return node('literal', { literal: token, wsStart, wsEnd }); }
 
 IDENTIFIER = identifier:$([A-Za-z_] [A-Za-z_0-9]*) _:_? { return node('identifier', { identifier, wsEnd: _ }); }
 IDENTIFIER_NO_WS = identifier:$([A-Za-z_] [A-Za-z_0-9]*) { return node('identifier', { identifier }); }
