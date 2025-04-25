@@ -21,4 +21,11 @@ const preprocess = (src: string, options: PreprocessorOptions) =>
 
 export default preprocess;
 
-export { preprocessAst, preprocessComments, generate, preprocess, parser, visitPreprocessedAst };
+export {
+  preprocessAst,
+  preprocessComments,
+  generate,
+  preprocess,
+  parser,
+  visitPreprocessedAst,
+};
