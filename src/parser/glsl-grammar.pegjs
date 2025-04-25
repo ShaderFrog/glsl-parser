@@ -235,7 +235,7 @@ DOUBLECONSTANT = token:floating_constant _:_? { return node('double_constant', {
 INTCONSTANT = token:integer_constant _:_? { return node('int_constant', { token, whitespace: _ }); }
 UINTCONSTANT = token:integer_constant _:_? { return node('uint_constant', { token, whitespace: _ }); }
 BOOLCONSTANT
-  = token:("true" / "false") _:_ { return node('bool_constant', { token, whitespace:_ }); }
+  = token:("true" / "false") t:terminal { return node('bool_constant', { token, whitespace: t }); }
 FIELD_SELECTION = IDENTIFIER
 
 keyword "keyword" = ATTRIBUTE / VARYING / CONST / BOOL / FLOAT / DOUBLE / INT / UINT
