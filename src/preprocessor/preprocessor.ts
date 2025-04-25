@@ -497,6 +497,10 @@ export type PreprocessorOptions = {
   stopOnError?: boolean;
 };
 
+// Remove escaped newlines, rather than try to handle them in the grammar
+const unescapeSrc = (src: string, options: PreprocessorOptions = {}) =>
+  src.replace(/\\[\n\r]/g, '');
+
 const preprocessAst = (
   program: PreprocessorProgram,
   options: PreprocessorOptions = {}
@@ -639,4 +643,4 @@ const preprocessAst = (
   return program;
 };
 
-export { preprocessAst, preprocessComments };
+export { preprocessAst, preprocessComments, unescapeSrc };

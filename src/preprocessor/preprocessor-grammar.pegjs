@@ -7,7 +7,16 @@
  * https://docs.microsoft.com/en-us/cpp/preprocessor/grammar-summary-c-cpp?view=msvc-160
  */
 
+{{
+  import {
+    unescapeSrc
+  } from './preprocessor.js';
+}}
+
 {
+  // Remove escaped newlines before parsing
+  input = unescapeSrc(input);
+
   const node = (type, attrs) => ({
     type,
     ...attrs

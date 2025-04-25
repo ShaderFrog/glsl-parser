@@ -9,15 +9,15 @@ import {
 import generate from './generator.js';
 import { GlslSyntaxError } from '../error.js';
 
-const fileContents = (filePath: string): string =>
-  fs.readFileSync(filePath).toString();
+import { buildPreprocessorParser } from '../parser/test-helpers.js';
 
-const grammar = fileContents('./src/preprocessor/preprocessor-grammar.pegjs');
-const parser = peggy.generate(grammar, { cache: true });
-const parse = (src: string) => parser.parse(src) as PreprocessorProgram;
+let c!: ReturnType<typeof buildPreprocessorParser>;
+beforeAll(() => (c = buildPreprocessorParser()));
+
+const parse = (src: string) => c.parse(src) as PreprocessorProgram;
 
 const debugProgram = (program: string): void => {
-  debugAst(parse(program));
+  debugAst(c.parse(program));
 };
 
 const debugAst = (ast: any) => {
@@ -64,7 +64,7 @@ test('preprocessor error', () => {
     error = e as GlslSyntaxError;
   }
 
-  expect(error).toBeInstanceOf(parser.SyntaxError);
+  expect(error).toBeInstanceOf(c.parser.SyntaxError);
   expect(error!.location.start.line).toBe(1);
   expect(error!.location.end.line).toBe(1);
 });
@@ -612,4 +612,34 @@ true
   expect(generate(ast)).toBe(`
 true
 `);
+});
+
+test('multiline macros', () => {
+  const program = `
+#define X a\\
+  b
+#define Y \\
+  c\\
+d\\
+
+#define Z \\
+e \\
+f
+#define W\\
+
+vec3 x() {
+X
+Y
+Z
+W
+}`;
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+vec3 x() {
+a  b
+cd
+e f
+
+}`);
 });

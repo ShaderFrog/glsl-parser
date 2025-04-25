@@ -45,6 +45,18 @@ export const buildParser = () => {
   };
 };
 
+export const buildPreprocessorParser = () => {
+  execSync(
+    'npx peggy --cache --format es -o src/preprocessor/preprocessor-parser.js src/preprocessor/preprocessor-grammar.pegjs'
+  );
+  const parser = require('../preprocessor/preprocessor-parser');
+  const parse = parser.parse as Parse;
+  return {
+    parse,
+    parser,
+  };
+};
+
 // Keeping this around in case I need to figure out how to do tracing again
 // Most of this ceremony around building a parser is dealing with Peggy's error
 // format() function, where the grammarSource has to line up in generate() and
