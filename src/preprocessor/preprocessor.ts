@@ -203,10 +203,16 @@ const expandFunctionMacro = (
     const argIdentifiers = macroArgs.map(
       (a) => (a as PreprocessorIdentifierNode).identifier
     );
+
     const argKeys = argIdentifiers.reduce<Record<string, string>>(
       (acc, identifier, index) => ({
         ...acc,
-        [identifier]: args[index].trim(),
+        // We are scanning from the outside in - so fn(args) - we need to
+        // recursivey test if args itself has macros to expand. We don't need
+        // to remove the current macroName from macros because we are scanning
+        // outside in, so self-referencing macros won't get into an infinite
+        // loop here
+        [identifier]: expandMacros(args[index].trim(), macros),
       }),
       {}
     );
@@ -228,7 +234,8 @@ const expandFunctionMacro = (
 
     // Any text expanded is then scanned again for more replacements. The
     // self-reference rule means that a macro that references itself won't be
-    // expanded again, so remove it from the search
+    // expanded again, so remove it from the search. WARNING! There is a known
+    // bug here! See the xtest in preprocessor.test.ts.
     const expandedReplace = expandMacros(
       replacedBody,
       without(macros, macroName)
@@ -242,6 +249,7 @@ const expandFunctionMacro = (
       current.substring(startMatch.index, startMatch.index + matchLength),
       expandedReplace
     );
+
     // Add text up to the end of the expanded macro to what we've procssed
     expanded += processed.substring(0, endOfReplace);
 
@@ -268,12 +276,13 @@ const expandObjectMacro = (
     // Have null for the body. Make it empty string if null to avoid 'null' expanded
     const replacement = macro.body || '';
 
-    const firstPass = tokenPaste(
-      text.replace(new RegExp(`\\b${macroName}\\b`, 'g'), replacement)
+    // Recursively scan this macro body for more replacements, ignoring our own
+    // macro to avoid the self-reference rule.
+    const scanned = expandMacros(replacement, without(macros, macroName));
+
+    expanded = tokenPaste(
+      text.replace(new RegExp(`\\b${macroName}\\b`, 'g'), scanned)
     );
-    // Scan expanded text for more expansions. Ignore the expanded macro because
-    // of the self-reference rule
-    expanded = expandMacros(firstPass, without(macros, macroName));
   }
   return expanded;
 };
