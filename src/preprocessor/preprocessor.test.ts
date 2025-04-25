@@ -93,6 +93,15 @@ final line after program
 `);
 });
 
+test('directive whitespace', () => {
+  const program = `# define X Y
+X`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`Y`);
+});
+
 test('nested expand macro', () => {
   const program = `#define X Y
 #define Y Z
