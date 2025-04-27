@@ -495,6 +495,7 @@ export type PreprocessorOptions = {
   preserve?: NodePreservers;
   preserveComments?: boolean;
   stopOnError?: boolean;
+  grammarSource?: string;
 };
 
 // Remove escaped newlines, rather than try to handle them in the grammar

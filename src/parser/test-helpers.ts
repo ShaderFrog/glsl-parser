@@ -49,8 +49,7 @@ export const buildPreprocessorParser = () => {
   execSync(
     'npx peggy --cache --format es -o src/preprocessor/preprocessor-parser.js src/preprocessor/preprocessor-grammar.pegjs'
   );
-  const parser = require('../preprocessor/preprocessor-parser');
-  const parse = parser.parse as Parse;
+  const { parse, parser } = require('../preprocessor');
   return {
     parse,
     parser,
