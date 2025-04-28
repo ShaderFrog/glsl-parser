@@ -1,11 +1,9 @@
-import type { PreprocessorProgram } from './preprocessor';
+import type { PreprocessorProgram, PreprocessorOptions } from './preprocessor';
 import { SyntaxError } from '../error.ts';
-
-export type ParserOptions = {};
 
 export function parse(
   input: string,
-  options?: ParserOptions
+  options?: PreprocessorOptions
 ): PreprocessorProgram;
 
 export const SyntaxError: typeof SyntaxError;
