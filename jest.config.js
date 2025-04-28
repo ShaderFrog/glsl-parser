@@ -8,4 +8,6 @@ export default {
   transform: {
     '^.+\\.(t|j)sx?$': '@swc/jest',
   },
+  // In CI, it builds the test files into JS files, which we don't want to run
+  testMatch: ['**/*.test.ts'],
 };

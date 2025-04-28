@@ -1,5 +1,3 @@
-import fs from 'fs';
-import peggy from 'peggy';
 import util from 'util';
 import {
   preprocessComments,
@@ -7,14 +5,17 @@ import {
   PreprocessorProgram,
 } from './preprocessor.js';
 import generate from './generator.js';
+import { PreprocessorOptions } from './preprocessor.js';
 import { GlslSyntaxError } from '../error.js';
 
 import { buildPreprocessorParser } from '../parser/test-helpers.js';
 
 let c!: ReturnType<typeof buildPreprocessorParser>;
-beforeAll(() => (c = buildPreprocessorParser()));
-
-const parse = (src: string) => c.parse(src) as PreprocessorProgram;
+let parse: (src: string, options?: PreprocessorOptions) => PreprocessorProgram;
+beforeAll(() => {
+  c = buildPreprocessorParser();
+  parse = c.parse;
+});
 
 const debugProgram = (program: string): void => {
   debugAst(c.parse(program));
@@ -24,8 +25,11 @@ const debugAst = (ast: any) => {
   console.log(util.inspect(ast, false, null, true));
 };
 
-const expectParsedProgram = (sourceGlsl: string) => {
-  const ast = parse(sourceGlsl);
+const expectParsedProgram = (
+  sourceGlsl: string,
+  options?: PreprocessorOptions
+) => {
+  const ast = parse(sourceGlsl, options);
   const glsl = generate(ast);
   if (glsl !== sourceGlsl) {
     debugAst(ast);
@@ -64,7 +68,7 @@ test('preprocessor error', () => {
     error = e as GlslSyntaxError;
   }
 
-  expect(error).toBeInstanceOf(c.parser.SyntaxError);
+  expect(error).toBeInstanceOf(GlslSyntaxError);
   expect(error!.location.start.line).toBe(1);
   expect(error!.location.end.line).toBe(1);
 });
@@ -615,8 +619,8 @@ test('inline comments in if statement expression', () => {
 true
 #endif
 `;
-  expectParsedProgram(program);
-  const ast = parse(program);
+  expectParsedProgram(program, { preserveComments: true });
+  const ast = parse(program, { preserveComments: true });
   preprocessAst(ast);
   expect(generate(ast)).toBe(`
 true

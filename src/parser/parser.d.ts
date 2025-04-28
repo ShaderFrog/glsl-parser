@@ -1,4 +1,5 @@
 import type { AstNode, Program } from '../ast';
+import { SyntaxError } from '../error.ts';
 
 export type ParserOptions = Partial<{
   quiet: boolean;
@@ -40,3 +41,5 @@ export type Parser = {
 };
 
 export const parse: Parse;
+
+export const SyntaxError: typeof SyntaxError;
