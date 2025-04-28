@@ -227,8 +227,8 @@ Error: Expected ",", ";", "=", or array specifier but "f" found.
 */
 ```
 
-The error object includes the location of the error. It is not printed in the
-error message by default.
+The error object includes the location of the error.
+
 ```ts
 console.log(error.location)
 /*
@@ -245,7 +245,6 @@ a `grammarSource` to `parse()`, it shows up in the error object. This is
 meant to help you track which source file you're parsing, for example you could
 enter `"myfile.glsl"` as an argument to `parse()` so that the error
 includes that your source GLSL came from your application's `myfile.glsl` file.
-```
 
 ## Preprocessing
 
@@ -313,6 +312,7 @@ const preprocessed = generate(ast);
 ```
 
 ## Accessing the raw Peggy parser
+
 If you need to access the Peggy compiled parser directly, import the `parser`.
 You can manually call `parser.parse()` if you prefer. Note if there are errors,
 rather than returning a `GlslSyntaxError`, it will return the underlying
