@@ -1,16 +1,16 @@
+import { expect, vi } from 'vitest';
 import { execSync } from 'child_process';
 import { GrammarError } from 'peggy';
 import util from 'util';
 import generate from './generator.js';
 import { AstNode, FunctionNode, Program } from '../ast/index.js';
 import { Parse, ParserOptions } from './parser.js';
-import { FunctionScopeIndex, Scope, ScopeIndex } from './scope.js';
 
 export const inspect = (arg: any) =>
   console.log(util.inspect(arg, false, null, true));
 
 export const nextWarn = () => {
-  console.warn = jest.fn();
+  console.warn = vi.fn();
   let i = 0;
   // @ts-ignore
   const mock = console.warn.mock;
@@ -22,11 +22,11 @@ type Context = {
   parseSrc: ParseSrc;
 };
 
-export const buildParser = () => {
+export const buildParser = async () => {
   execSync(
     'npx peggy --cache --format es -o src/parser/parser.js src/parser/glsl-grammar.pegjs'
   );
-  const parser = require('./parser');
+  const parser = await import('./parser.js');
   const parse = parser.parse as Parse;
   const ps = parseSrc(parse);
   const ctx: Context = {
@@ -45,11 +45,11 @@ export const buildParser = () => {
   };
 };
 
-export const buildPreprocessorParser = () => {
+export const buildPreprocessorParser = async () => {
   execSync(
-    'npx peggy --cache --format es -o src/preprocessor/preprocessor-parser.js src/preprocessor/preprocessor-grammar.pegjs'
+    'npx peggy --cache --format es --allowed-start-rules program,constant_expression -o src/preprocessor/preprocessor-parser.js src/preprocessor/preprocessor-grammar.pegjs'
   );
-  const { parse, parser } = require('../preprocessor');
+  const { parse, parser } = await import('../preprocessor/index.js');
   return {
     parse,
     parser,

@@ -39,7 +39,7 @@ export interface PreprocessorDefineNode extends IPreprocessorNode {
   type: 'define';
   define: string;
   identifier: PreprocessorIdentifierNode;
-  body: string;
+  body: string | null;
 }
 
 export interface PreprocessorElseNode extends IPreprocessorNode {
@@ -52,7 +52,7 @@ export interface PreprocessorElseNode extends IPreprocessorNode {
 export interface PreprocessorElseIfNode extends IPreprocessorNode {
   type: 'elseif';
   token: string;
-  expression: PreprocessorAstNode;
+  expression: string;
   wsEnd: string;
   body: PreprocessorAstNode;
 }
@@ -87,7 +87,7 @@ export interface PreprocessorIdentifierNode extends IPreprocessorNode {
 export interface PreprocessorIfNode extends IPreprocessorNode {
   type: 'if';
   token: string;
-  expression: PreprocessorAstNode;
+  expression: string | null;
   body: PreprocessorAstNode;
 }
 

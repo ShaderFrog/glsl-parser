@@ -3,10 +3,12 @@ import {
   PreprocessorAstNode,
   PreprocessorElseIfNode,
   PreprocessorIdentifierNode,
-  PreprocessorIfNode,
   PreprocessorLiteralNode,
   PreprocessorSegmentNode,
 } from './preprocessor-node.js';
+
+import * as parser from './preprocessor-parser.js';
+import { formatError } from '../error.js';
 
 export type PreprocessorProgram = {
   type: string;
@@ -135,6 +137,14 @@ export type NodeEvaluators = Partial<
     >;
   }
 >;
+
+// Use the same parser, but starting from the expression entry point, to parse
+// expression strings on the fly after macro expansion
+const expressionParser = (src: string): PreprocessorAstNode =>
+  formatError(parser)(src, {
+    grammarSource: 'expression',
+    startRule: 'constant_expression',
+  });
 
 const evaluate = (ast: PreprocessorAstNode, evaluators: NodeEvaluators) => {
   const visit = (node: PreprocessorAstNode) => {
@@ -298,31 +308,11 @@ const expandMacros = (text: string, macros: Macros) =>
 
 const isTruthy = (x: any): boolean => !!x;
 
-// Given an expression AST node, visit it to expand the macro macros to in the
-// right places
-const expandInExpressions = (
-  macros: Macros,
-  ...expressions: PreprocessorAstNode[]
-) => {
-  expressions.forEach((expression) => {
-    visitPreprocessedAst(expression, {
-      unary_defined: {
-        enter: (path) => {
-          path.skip();
-        },
-      },
-      identifier: {
-        enter: (path) => {
-          path.node.identifier = expandMacros(path.node.identifier, macros);
-        },
-      },
-    });
-  });
-};
-
 const evaluateIfPart = (macros: Macros, ifPart: PreprocessorAstNode) => {
   if (ifPart.type === 'if') {
-    return evaluteExpression(ifPart.expression, macros);
+    return ifPart.expression
+      ? isTruthy(evaluateExpressionString(ifPart.expression, macros))
+      : false;
   } else if (ifPart.type === 'ifdef') {
     return ifPart.identifier.identifier in macros;
   } else if (ifPart.type === 'ifndef') {
@@ -336,7 +326,7 @@ const evaluteExpression = (node: PreprocessorAstNode, macros: Macros) =>
     // TODO: Handle non-base-10 numbers. Should these be parsed in the peg grammar?
     int_constant: (node) => parseInt(node.token, 10),
     unary_defined: (node) => node.identifier.identifier in macros,
-    identifier: (node) => node.identifier,
+    identifier: (node) => 0, // Undefined macros evaluate to 0 per spec
     group: (node, visit) => visit(node.expression),
     binary: ({ left, right, operator: { literal } }, visit) => {
       switch (literal) {
@@ -496,6 +486,34 @@ export type PreprocessorOptions = {
   preserveComments?: boolean;
   stopOnError?: boolean;
   grammarSource?: string;
+  startRule?: 'constant_expression' | 'program';
+};
+
+// Expressions are stored as strings in the AST, since their contents may be
+// affected by macro expansion. This function performs macro expansion, then
+// parses and evaluates the expanded string. It uses the same grammar, but
+// starting from the "constant expression" rule to parse, aka the rule for the
+// expression of an if / elif
+const evaluateExpressionString = (expr: string, macros: Macros): any => {
+  // Strip inline comments so "defined/**/A" is treated as "defined A"
+  const stripped = preprocessComments(expr);
+
+  // In the input
+  //     #define A
+  //     #if !defined(A)
+  // If we expand macros then evaluate the expression it will break. The spec
+  // says that identifiers inside defined() are not eligible for expansion. So
+  // hacky way to evaluate them first before macro expansion and parsing
+  const defined = stripped
+    .replace(/defined\s*\(\s*([A-Za-z_][A-Za-z_0-9]*)\s*\)/g, (_, id) =>
+      id in macros ? '1' : '0'
+    )
+    .replace(/defined\s+([A-Za-z_][A-Za-z_0-9]*)/g, (_, id) =>
+      id in macros ? '1' : '0'
+    );
+
+  const expanded = expandMacros(defined, macros);
+  return evaluteExpression(expressionParser(expanded.trim()), macros);
 };
 
 // Remove escaped newlines, rather than try to handle them in the grammar
@@ -524,34 +542,13 @@ const preprocessAst = (
           return;
         }
 
-        // Expand macros in if/else *expressions* only. Macros are expanded in:
-        //     #if X + 1
-        //     #elif Y + 2
-        // But *not* in
-        //     # ifdef X
-        // Because X should not be expanded in the ifdef. Note that
-        //     # if defined(X)
-        // does have an expression, but the skip() in unary_defined prevents
-        // macro expansion in there. Checking for .expression and filtering out
-        // any conditionals without expressions is how ifdef is avoided.
-        // It's not great that ifdef is skipped differentaly than defined().
-        expandInExpressions(
-          macros,
-          ...[
-            (node.ifPart as PreprocessorIfNode).expression,
-            ...node.elseIfParts.map(
-              (elif: PreprocessorElseIfNode) => elif.expression
-            ),
-          ].filter(isTruthy)
-        );
-
         if (evaluateIfPart(macros, node.ifPart)) {
           path.replaceWith(node.ifPart.body);
         } else {
           const elseBranchHit = node.elseIfParts.reduce(
             (res: boolean, elif: PreprocessorElseIfNode) =>
               res ||
-              (evaluteExpression(elif.expression, macros) &&
+              (isTruthy(evaluateExpressionString(elif.expression, macros)) &&
                 // path/visit hack to remove type error
                 (path.replaceWith(elif.body as PreprocessorAstNode), true)),
             false

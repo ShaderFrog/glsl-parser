@@ -1,9 +1,11 @@
+import { expect, test, beforeAll, vi } from 'vitest';
+
 import { FunctionCallNode, visit } from '../ast/index.js';
 import { GlslSyntaxError } from '../error.js';
 import { buildParser } from './test-helpers.js';
 
-let c!: ReturnType<typeof buildParser>;
-beforeAll(() => (c = buildParser()));
+let c!: Awaited<ReturnType<typeof buildParser>>;
+beforeAll(async () => (c = await buildParser()));
 
 test('parse error', () => {
   let error: GlslSyntaxError | undefined;
@@ -354,7 +356,7 @@ test('Locations with location disabled', () => {
 });
 
 test('built-in function names should be identified as keywords', () => {
-  console.warn = jest.fn();
+  console.warn = vi.fn();
 
   const src = `
 void main() {
@@ -442,7 +444,7 @@ test('exotic precision statements', () => {
 });
 
 test('warns when grammar stage is unknown', () => {
-  const consoleWarnMock = jest
+  const consoleWarnMock = vi
     .spyOn(console, 'warn')
     .mockImplementation(() => {});
 
@@ -458,7 +460,7 @@ test('warns when grammar stage is unknown', () => {
 });
 
 test('does not warn on built in stage variable', () => {
-  const consoleWarnMock = jest
+  const consoleWarnMock = vi
     .spyOn(console, 'warn')
     .mockImplementation(() => {});
 
@@ -476,7 +478,7 @@ test('does not warn on built in stage variable', () => {
 });
 
 test('does not warn on built in either stage variable', () => {
-  const consoleWarnMock = jest
+  const consoleWarnMock = vi
     .spyOn(console, 'warn')
     .mockImplementation(() => {});
 
@@ -495,7 +497,7 @@ test('does not warn on built in either stage variable', () => {
 });
 
 test('warn on variable from wrong stage', () => {
-  const consoleWarnMock = jest
+  const consoleWarnMock = vi
     .spyOn(console, 'warn')
     .mockImplementation(() => {});
 

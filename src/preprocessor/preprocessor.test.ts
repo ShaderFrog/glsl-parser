@@ -1,20 +1,22 @@
+import { expect, test, beforeAll } from 'vitest';
+
 import util from 'util';
 import {
   preprocessComments,
   preprocessAst,
   PreprocessorProgram,
   visitPreprocessedAst,
+  PreprocessorOptions,
 } from './preprocessor.js';
 import generate from './generator.js';
-import { PreprocessorOptions } from './preprocessor.js';
 import { GlslSyntaxError } from '../error.js';
 
 import { buildPreprocessorParser } from '../parser/test-helpers.js';
 
-let c!: ReturnType<typeof buildPreprocessorParser>;
+let c!: Awaited<ReturnType<typeof buildPreprocessorParser>>;
 let parse: (src: string, options?: PreprocessorOptions) => PreprocessorProgram;
-beforeAll(() => {
-  c = buildPreprocessorParser();
+beforeAll(async () => {
+  c = await buildPreprocessorParser();
   parse = c.parse;
 });
 
@@ -38,9 +40,36 @@ const expectParsedProgram = (
   }
 };
 
-// test('pre test file', () => {
-//   expectParsedProgram(fileContents('./preprocess-test-grammar.glsl'));
-// });
+test('evaluates binary expression with simple macro', () => {
+  const program = `
+#define A 1 +
+#if A 1 == 2
+true
+#endif
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+true
+`);
+});
+
+test('evaluates binary expression with nested macro', () => {
+  const program = `
+#define A 1
+#define B A + 1
+#if B == 2
+true
+#endif
+`;
+
+  const ast = parse(program);
+  preprocessAst(ast);
+  expect(generate(ast)).toBe(`
+true
+`);
+});
 
 test('#preprocessComments', () => {
   // Should strip comments and replace single-line comments with a single space
@@ -490,17 +519,17 @@ bar()`);
 // for now. The current preprocessor results in bar(bar(1.0)). To achieve the
 // correct result here I likely need to redo the expansion system to use "blue
 // painting" https://en.wikipedia.org/wiki/Painted_blue
-xtest('nested function macros that reference each other', () => {
-  const program = `
-#define foo(x) bar(x)
-#define bar(x) foo(x)
-bar(foo(1.0))`;
+// xtest('nested function macros that reference each other', () => {
+//   const program = `
+// #define foo(x) bar(x)
+// #define bar(x) foo(x)
+// bar(foo(1.0))`;
 
-  const ast = parse(program);
-  preprocessAst(ast);
-  expect(generate(ast)).toBe(`
-bar(foo(1.0))`);
-});
+//   const ast = parse(program);
+//   preprocessAst(ast);
+//   expect(generate(ast)).toBe(`
+// bar(foo(1.0))`);
+// });
 
 test('multi-pass cross-referencing object macros', () => {
   const program = `
