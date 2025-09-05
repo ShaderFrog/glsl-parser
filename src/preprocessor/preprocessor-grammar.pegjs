@@ -30,7 +30,7 @@
   const ifOnly = arr => arr.length > 1 ? arr : arr[0];
 
   // Remove empty elements and return value if only 1 element remains
-  const collapse = (...args) => ifOnly(xnil(args));
+  const collapse = (...args) => ifOnly(xnil(args.flat()));
 
   // Create a left associative tree of nodes
 	const leftAssociate = (...nodes) =>
