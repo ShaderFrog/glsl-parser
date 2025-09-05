@@ -146,11 +146,9 @@ export const visit = (ast: Program | AstNode, visitors: NodeVisitors) => {
               i++
             ) {
               const child = nodeValue[i - offset];
-              if (isNode(child)) {
-                const res = visitNode(child, node, path, nodeKey, i - offset);
-                if (res?.removed) {
-                  offset += 1;
-                }
+              const res = visitNode(child, node, path, nodeKey, i - offset);
+              if (res?.removed) {
+                offset += 1;
               }
             }
           } else {
