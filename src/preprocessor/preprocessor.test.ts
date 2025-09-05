@@ -3,6 +3,7 @@ import {
   preprocessComments,
   preprocessAst,
   PreprocessorProgram,
+  visitPreprocessedAst,
 } from './preprocessor.js';
 import generate from './generator.js';
 import { PreprocessorOptions } from './preprocessor.js';
@@ -655,4 +656,16 @@ cd
 e f
 
 }`);
+});
+
+test('visitPreprocessedAst test', () => {
+  const program = `
+#ifdef AA // test
+true
+#endif`;
+  const ast = parse(program, {
+    preserveComments: true,
+  });
+  visitPreprocessedAst(ast, {});
+  expect(generate(ast)).toBe(program);
 });
