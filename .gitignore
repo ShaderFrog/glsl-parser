@@ -17,3 +17,9 @@ index.d.ts
 index.js
 parser/
 preprocessor/
+
+# Typescript builds these?
+vite.config.d.ts
+vite.config.js
+vitest.global-setup.d.ts
+vitest.global-setup.js
