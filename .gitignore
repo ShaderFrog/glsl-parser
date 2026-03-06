@@ -3,6 +3,23 @@ dist
 .vscode
 .DS_Store
 tmp
+tsconfig.tsbuildinfo
+
+# Compiled parsers
 src/parser/parser.js
 src/preprocessor/preprocessor-parser.js
-tsconfig.tsbuildinfo
+
+# Peggy / typescript built files
+ast/
+error.d.ts
+error.js
+index.d.ts
+index.js
+parser/
+preprocessor/
+
+# Typescript builds these?
+vite.config.d.ts
+vite.config.js
+vitest.global-setup.d.ts
+vitest.global-setup.js

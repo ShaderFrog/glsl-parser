@@ -1,13 +1,21 @@
+import { expect, test, beforeAll } from 'vitest';
+
 import generate from './generator.js';
 import { renameBindings, renameFunctions, renameTypes } from './utils.js';
 import { UNKNOWN_TYPE } from './grammar.js';
 import { buildParser, nextWarn } from './test-helpers.js';
+import { Program } from '../ast/index.js';
+import { ParserOptions } from './parser.js';
 
-let c!: ReturnType<typeof buildParser>;
-beforeAll(() => (c = buildParser()));
+let c!: Awaited<ReturnType<typeof buildParser>>;
+let parse: (src: string, options?: ParserOptions) => Program;
+beforeAll(async () => {
+  c = await buildParser();
+  parse = c.parse;
+});
 
 test('scope bindings and type names', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 float selfref, b = 1.0, c = selfref;
 vec2 texcoord1, texcoord2;
 vec3 position;
@@ -47,7 +55,7 @@ coherent buffer Block {
 });
 
 test('scope references', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 float selfref, b = 1.0, c = selfref;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
@@ -124,7 +132,7 @@ vec3 fnName(float arg1, vec3 arg2) {
 });
 
 test('scope binding declarations', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 float selfref, b = 1.0, c = selfref;
 void main() {
@@ -144,7 +152,7 @@ void main() {
 });
 
 test('struct constructor identified in scope', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 struct light {
   float intensity;
   vec3 position;
@@ -155,7 +163,7 @@ light lightVar = light(3.0, vec3(1.0, 2.0, 3.0));
 });
 
 test('function overloaded scope', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 vec4 overloaded(vec4 x) {
   return x;
 }
@@ -167,7 +175,7 @@ float overloaded(float x) {
 
 test('overriding glsl builtin function', () => {
   // "noise" is a built-in GLSL function that should be identified and renamed
-  const ast = c.parseSrc(`
+  const ast = parse(`
 float noise() {}
 float fn() {
     vec2 uv;
@@ -190,7 +198,7 @@ float fn_FUNCTION() {
 });
 
 test('rename bindings and functions', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 float selfref, b = 1.0, c = selfref;
 mat2x2 myMat = mat2( vec2( 1.0, 0.0 ), vec2( 0.0, 1.0 ) );
@@ -290,7 +298,7 @@ vec4 linearToOutputTexel_FUNCTION( vec4 value ) { return LinearToLinear_FUNCTION
 });
 
 test('detecting struct scope and usage', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 struct StructName {
   vec3 color;
 };
@@ -362,7 +370,7 @@ StructName_x main(in StructName_x x, StructName_x[3] y) {
 });
 
 test('fn args shadowing global scope identified as separate bindings', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 attribute vec3 position;
 vec3 func(vec3 position) {
   return position;
@@ -379,7 +387,7 @@ vec3 func(vec3 position) {
 });
 
 test('I do not yet know what to do with layout()', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 layout(std140,column_major) uniform;
 float a;
 uniform Material
@@ -402,14 +410,14 @@ uniform vec2 vProp;
 });
 
 test(`(regression) ensure self-referenced variables don't appear as types`, () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 float a = 1.0, c = a;
 `);
   expect(Object.keys(ast.scopes[0].types)).toEqual([]);
 });
 
 test('identifies a declared function with references', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 vec4[3] main(float a, vec3 b) {}
 void x() {
   float a = 1.0;
@@ -430,7 +438,7 @@ void x() {
 });
 
 test('does not match function overload with different argument length', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 float main(float a, float b) {}
 void x() {
@@ -458,7 +466,7 @@ void x() {
 });
 
 test('handles declared, undeclared, and unknown function cases', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 // Prototype for undeclared function
 float main(float, float, float[3]);
@@ -507,7 +515,7 @@ void x() {
 test('warns on undeclared functions and structs', () => {
   const next = nextWarn();
 
-  c.parseSrc(`
+  parse(`
 MyStruct x = MyStruct();
 void main() {
   a();
@@ -528,7 +536,7 @@ struct MyStruct { float y; };
 test('warns on duplicate declarations', () => {
   const next = nextWarn();
 
-  c.parseSrc(`
+  parse(`
 struct MyStruct { float y; };
 struct MyStruct { float y; };
 float dupefloat = 1.0;
@@ -546,7 +554,7 @@ void dupefn() {}
 });
 
 test('undeclared variables are added to the expected scope', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `
 void a() {
   MyStruct x;
@@ -563,7 +571,7 @@ void a() {
 });
 
 test('postfix is added to scope', () => {
-  const ast = c.parseSrc(`
+  const ast = parse(`
 void a() {}
 void main() {
   float y = a().xyz;
@@ -574,7 +582,7 @@ void main() {
 });
 
 test('rename function prototypes', () => {
-  const ast = c.parseSrc(
+  const ast = parse(
     `vec3 hash3(vec3 p3);
 vec3 hash3(vec3 p3) {}`
   );

@@ -1,4 +1,4 @@
-import { makeGenerator, NodeGenerators } from '../ast/index.js';
+import { makeGenerator } from '../ast/index.js';
 import { PreprocessorProgram } from './preprocessor.js';
 import { PreprocessorAstNode } from './preprocessor-node.js';
 

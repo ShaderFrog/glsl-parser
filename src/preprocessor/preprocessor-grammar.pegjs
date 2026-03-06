@@ -5,6 +5,9 @@
  *
  * And I used some Microsoft preprocessor documentation for the grammar base:
  * https://docs.microsoft.com/en-us/cpp/preprocessor/grammar-summary-c-cpp?view=msvc-160
+ *
+ * And grammar spec starting on PDF page 157 https://www.open-std.org/jtc1/sc22/wg14/www/docs/n1256.pdf
+ * And compiler explorer https://godbolt.org which lets you run preprocessor examples
  */
 
 {{
@@ -192,7 +195,7 @@ conditional
     )
     elseIfParts:(
       token:ELIF
-      expression:constant_expression
+      expression:token_string
       wsEnd: [\n\r]
       elseIfBody:text_or_control_lines? {
         return node('elseif', { token, expression, wsEnd, body: elseIfBody });
@@ -217,7 +220,9 @@ if_line "if"
   / token:IFNDEF identifier:IDENTIFIER {
     return node('ifndef', { token, identifier });
   }
-  / token:IF expression:constant_expression? {
+  // Intentionally defer parsing of the expression, macro expansion is first
+  // done on this string, then the expanded expression lexeme is parsed again
+  / token:IF expression:token_string? {
     return node('if', { token, expression });
   }
 
