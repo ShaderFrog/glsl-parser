@@ -11,3 +11,8 @@ cp -r dist/src/* .
 # dist/parser/ and dist/preprocessor/, separate from the compiled TypeScript in dist/src/)
 cp dist/parser/parser.js parser/
 cp dist/preprocessor/preprocessor-parser.js preprocessor/
+
+# Remove test files from the published directories - they're not part of the package
+# and if present they confuse Vitest into running compiled JS tests with broken module paths
+find . -name "*.test.js" -not -path "./src/*" -not -path "./dist/*" -not -path "./node_modules/*" -delete
+find . -name "*.test.d.ts" -not -path "./src/*" -not -path "./dist/*" -not -path "./node_modules/*" -delete
