@@ -6,4 +6,7 @@ export default defineConfig({
       ignored: ['**/*.js'],
     },
   },
+  test: {
+    globalSetup: './vitest.global-setup.ts',
+  },
 });
