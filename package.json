@@ -11,7 +11,8 @@
     "postpublish": "./postbuild.sh",
     "build": "./build.sh",
     "watch-test": "vitest --watch",
-    "test": "vitest"
+    "test": "vitest",
+    "test-publish": "./test-publish.sh"
   },
   "files": [
     "ast",
