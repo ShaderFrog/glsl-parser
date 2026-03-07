@@ -10,7 +10,9 @@ cp -r dist/src/* .
 # Copy peggy-generated parsers to their directories (build.sh places these in
 # dist/parser/ and dist/preprocessor/, separate from the compiled TypeScript in dist/src/)
 cp dist/parser/parser.js parser/
+cp dist/parser/parser.d.ts parser/
 cp dist/preprocessor/preprocessor-parser.js preprocessor/
+cp dist/preprocessor/preprocessor-parser.d.ts preprocessor/
 
 # Remove test files from the published directories - they're not part of the package
 # and if present they confuse Vitest into running compiled JS tests with broken module paths
